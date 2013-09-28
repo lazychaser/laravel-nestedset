@@ -1,0 +1,21 @@
+{
+    "name": "kalnoy/nestedset",
+    "description": "",
+    "authors": [
+        {
+            "name": "Aleksander Kalnoy",
+            "email": "lazychaser@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "illuminate/support": "4.0.x",
+        "illuminate/database": "4.0.x"
+    },
+    "autoload": {
+        "psr-0": {
+            "Kalnoy\\Nestedset": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
