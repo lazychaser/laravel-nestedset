@@ -120,9 +120,13 @@ Nodes can be provided with depth level if scope `withDepth` is applied:
 $nodes = Category::withDepth()->get();
 ```
 
-Query can be filtered out from the root node using scope `withoutRoot`.
+Query can be filtered out from the root node using scope `withoutRoot`:
 
-## Insertion, re-insertion and deletion of nodes
+```php
+$nodes = Category::withoutRoot()->get();
+```
+
+### Insertion, re-insertion and deletion of nodes
 
 Operations such as insertion and deletion of nodes imply several independent queries
 before node is actually saved. That is why if something goes wrong, the whole tree
