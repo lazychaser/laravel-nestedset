@@ -13,6 +13,8 @@ The package can be installed as Composer package, just include it into
 
 ## Basic usage
 
+### Schema
+
 Storing trees in database requires additional columns for the table, so these
 fields need to be included in table schema. We use `NestedSet::columns($table)`
 inside table schema creation function, like so:
@@ -60,15 +62,20 @@ class CreateCategoriesTable extends Migration {
 
 To simplify things root node is required. `NestedSet::createRoot` creates it for us.
 
+### The model
+
 The next step is to create `Eloquent` model. Do it whatever way you like, but
-make shure that node is extended from `\Kalnoy\Nestedset\Node`, like here:
+make shure that model is extended from `\Kalnoy\Nestedset\Node`, like here:
 
 ```php
 <?php
 
 class Category extends \Kalnoy\Nestedset\Node {}
 ```
-Now you can create nodes like so:
+
+### Queries
+
+You can create nodes like so:
 
 ```php
 $node = new Category(array('title' => 'TV\'s'));
