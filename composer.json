@@ -1,6 +1,8 @@
 {
     "name": "kalnoy/nestedset",
-    "description": "",
+    "description": "Nested Set Model for Laravel 4",
+    "keywords": ["laravel", "nested set", "database", "hierarchy"],
+    
     "authors": [
         {
             "name": "Aleksander Kalnoy",
