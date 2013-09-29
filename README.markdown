@@ -136,7 +136,7 @@ Query can be filtered out from the root node using scope `withoutRoot`:
 $nodes = Category::withoutRoot()->get();
 ```
 
-Deleting nodes as simple as before:
+Deleting nodes is as simple as before:
 
 ```php
 $node->delete();
@@ -293,3 +293,5 @@ children?
 When you create your table's schema and use `NestedSet::columns`, it creates foreign
 key for you, since nodes are connected by `parent_id` attribute. When you hard delete
 the node, all of descendants are cascaded.
+
+In case when DBMS doesn't support foreign keys, descendants are removed manually.

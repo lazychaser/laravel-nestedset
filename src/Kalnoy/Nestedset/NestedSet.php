@@ -18,7 +18,7 @@ class NestedSet {
         $table->integer(Node::RGT);
         $table->unsignedInteger(Node::PARENT_ID)->nullable();
 
-        $table->index([ Node::LFT, Node::RGT, Node::PARENT_ID ], 'nested_set_index');
+        $table->index(array(Node::LFT, Node::RGT, Node::PARENT_ID), 'nested_set_index');
 
         $table
             ->foreign(Node::PARENT_ID, 'nested_set_foreign')

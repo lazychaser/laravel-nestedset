@@ -4,8 +4,7 @@ use \Illuminate\Database\Eloquent\Model as Eloquent;
 use \Illuminate\Database\Query\Builder;
 use Exception;
 
-class Node extends Eloquent 
-{
+class Node extends Eloquent {
     /**
      * The name of "lft" column.
      *
@@ -94,7 +93,7 @@ class Node extends Eloquent
     {
         $query = $this->newQuery();
 
-        return $query->whereBetween('lft', array($this->getLft() + 1, $this->getRgt()));
+        return $query->whereBetween(static::LFT, array($this->getLft() + 1, $this->getRgt()));
     }
 
     /**
@@ -162,7 +161,8 @@ class Node extends Eloquent
      */
     public function path()
     {
-        if (!$this->exists) {
+        if (!$this->exists) 
+        {
             throw new Exception("Cannot query for path to non-existing node.");
         }
 
@@ -216,7 +216,7 @@ class Node extends Eloquent
      */
     public function appendTo(Node $parent)
     {
-        return $this->insertAt($parent->attributes[static::RGT], $parent);
+        return $this->checkTarget($parent)->insertAt($parent->attributes[static::RGT], $parent);
     }
 
     /**
@@ -228,7 +228,7 @@ class Node extends Eloquent
      */
     public function prependTo(Node $parent)
     {        
-        return $this->insertAt($parent->attributes[static::LFT] + 1, $parent);
+        return $this->checkTarget($parent)->insertAt($parent->attributes[static::LFT] + 1, $parent);
     }
 
     /**
@@ -264,14 +264,15 @@ class Node extends Eloquent
      * @param  self::BEFORE|self::AFTER $dir
      *
      * @return Node
+     * @throws Exception If $node is not a valid target.
+     * @throws Exception If $node is the root.
      */
     protected function beforeOrAfter(Node $node, $dir)
     {
-        if (!$node->exists) {
-            throw new Exception("Cannot insert node $dir node that does not exists.");  
-        }
+        $this->checkTarget($node);
 
-        if ($node->isRoot()) {
+        if ($node->isRoot()) 
+        {
             throw new Exception("Cannot insert node $dir root node.");
         }
 
@@ -281,17 +282,37 @@ class Node extends Eloquent
     }
 
     /**
+     * Check if target node is saved.
+     *
+     * @param  Node   $node
+     *
+     * @return Node
+     * @throws Exception If target fails conditions.
+     */
+    protected function checkTarget(Node $node)
+    {
+        if (!$node->exists || $node->isDirty(static::LFT)) 
+        {
+            throw new Exception("Target node is updated but not saved.");
+        }
+
+        return $this;
+    }
+
+    /**
      * Insert node at specific position and related parent.
      *
      * @param  int $position
      * @param  Node $parent
      *
      * @return Node
+     * @throws Exceptino If node is inserted in one of it's descendants
      */
     protected function insertAt($position, Node $parent)
     {
-        if ($this->exists && $this->getLft() < $position && $position < $this->getRgt()) {
-            throw new Exception("Cannot insert node into itself.");
+        if ($this->exists && $this->getLft() < $position && $position < $this->getRgt()) 
+        {
+            throw new Exception("Trying to insert node into one of it's descendants.");
         }
 
         $height = $this->getNodeHeight();
@@ -317,17 +338,23 @@ class Node extends Eloquent
      */
     public function fireModelEvent($event, $halt = true)
     {
-        if ($event === 'creating' or $event === 'updating' and $this->isDirty(static::LFT)) {
-            if (!$this->updateTree()) {
+        if ($event === 'creating') 
+        {
+            if (!isset($this->attributes[static::LFT]) || !$this->updateTree())
+            {
                 return false;
             }
         }
 
-        if ($event === 'deleting' and $this->isRoot()) {
-            return false;
+        if ($event === 'updating' && $this->isDirty(static::LFT))
+        {
+            if (!$this->updateTree()) return false;
         }
 
-        if ($event === 'deleted' and !$this->softDelete) {
+        if ($event === 'deleting' && $this->isRoot()) return false;
+
+        if ($event === 'deleted' && !$this->softDelete) 
+        {
             $this->processDeletedNode();
         }
 
@@ -345,7 +372,8 @@ class Node extends Eloquent
         $rgt    = $this->attributes[static::RGT];
         $height = $rgt - $lft + 1;
 
-        if ($this->exists) {
+        if ($this->exists) 
+        {
             $oldLft = $this->original[static::LFT];
             $oldRgt = $this->original[static::RGT];
 
@@ -358,7 +386,8 @@ class Node extends Eloquent
                 // Node is going down.
                 // Other nodes are going up on its place.
                 static::shiftNodes(-$height, $oldRgt + 1, $lft - 1, $this);
-            } else {
+            } else 
+            {
                 $shiftAmount = $lft - $oldLft;
 
                 // Node is going up.
@@ -382,11 +411,19 @@ class Node extends Eloquent
      */
     protected function processDeletedNode()
     {
+        $lft = $this->getLft();
+        $rgt = $this->getRgt();
+
+        // DBMS with support of foreign keys will remove descendant nodes automatically
+        $this->descendants()->delete();
+
         // We cannot use getNodeHeight because it always return 2 for non-existing
         // nodes.
-        $height = $this->attributes[static::RGT] - $this->attributes[static::LFT] + 1;
+        $height = $rgt - $lft + 1;
 
-        $this->shiftNodes(-$height, $this->attributes[static::RGT] + 1, null, $this);
+        $this->shiftNodes(-$height, $rgt + 1, null, $this);
+
+        unset($this->attributes[static::LFT], $this->attributes[static::RGT]);
     }
 
     /**
@@ -438,13 +475,9 @@ class Node extends Eloquent
      */
     static protected function shiftNodes($amount, $from, $to, $instance = null)
     {
-        if ($amount == 0 || $from === null && $to === null) {
-            return;
-        }
+        if ($amount == 0 || $from === null && $to === null) return;
 
-        if ($instance === null) {
-            $instance = new static;
-        }
+        if ($instance === null) $instance = new static;
 
         $query  = $instance->newQueryWithDeleted()->getQuery();
         $method = $amount > 0 ? 'increment' : 'decrement';
@@ -453,13 +486,14 @@ class Node extends Eloquent
         static::shiftNodesColumn($query, static::LFT, $method, $amount, $from, $to);
         static::shiftNodesColumn($query, static::RGT, $method, $amount, $from, $to);
 
-        // Update parent of the instance to support inserting multiple nodes into
-        // single parent.
-        if (isset($instance->relations['parent'])) {
-            $parent = $instance->relations['parent'];
+        // Update all ancestors (if any) of the instance to support inserting 
+        // multiple nodes into single parent.
+        while (isset($instance->relations['parent'])) 
+        {
+            $instance = $instance->relations['parent'];
 
-            $parent->shiftColumn(static::LFT, $amount, $from, $to);
-            $parent->shiftColumn(static::RGT, $amount, $from, $to);
+            $instance->shiftColumn(static::LFT, $amount, $from, $to);
+            $instance->shiftColumn(static::RGT, $amount, $from, $to);
         }
     }
 
@@ -480,13 +514,9 @@ class Node extends Eloquent
         $query->wheres = array();
         $query->setBindings(array());
 
-        if ($from === null) {
-            $query->where($column, '<=', $to);
-        } elseif ($to === null) {
-            $query->where($column, '>=', $from);
-        } else {
-            $query->whereBetween($column, array($from, $to));
-        }
+        if ($from === null) $query->where($column, '<=', $to);
+        elseif ($to === null) $query->where($column, '>=', $from);
+        else $query->whereBetween($column, array($from, $to));
 
         return $query->$method($column, $amount);
     }
@@ -502,9 +532,7 @@ class Node extends Eloquent
      */
     protected function shift($amount, $from, $to)
     {
-        if ($from === null && $to === null || $amount == 0) {
-            return;
-        }
+        if ($from === null && $to === null || $amount == 0) return;
 
         $this->shiftColumn(static::LFT, $amount, $from, $to);
         $this->shiftColumn(static::RGT, $amount, $from, $to);
@@ -545,7 +573,8 @@ class Node extends Eloquent
     {
         $lft = $this->getLft();
 
-        if ($from <= $lft && $lft <= $to) {
+        if ($from <= $lft && $lft <= $to) 
+        {
             $this->attributes[static::LFT] += $shiftAmount;
             $this->attributes[static::RGT] += $shiftAmount;
         }
@@ -564,9 +593,7 @@ class Node extends Eloquent
      */
     static protected function hideOrRevealNodes($from, $to, $shiftAmount = 0, $instance = null)
     {
-        if ($instance === null) {
-            $instance = new static;
-        }
+        if ($instance === null) $instance = new static;
 
         $query   = $instance->newQueryWithDeleted()->getQuery();
         $grammar = $query->getGrammar();
@@ -577,9 +604,11 @@ class Node extends Eloquent
         // and "revealing" is putting nodes back in database but in new position based on shiftAmount
         $updateValues = array();
 
-        if ($shiftAmount == 0) {
+        if ($shiftAmount == 0) 
+        {
             $updateValues[static::LFT] = $query->raw('-'.$grammar->wrap(static::LFT));
-        } else {
+        } else 
+        {
             $shiftAmountStr = $shiftAmount > 0 ? '+'.$shiftAmount : $shiftAmount;
 
             $updateValues[static::LFT] = $query->raw('-'.$grammar->wrap(static::LFT).$shiftAmountStr);
@@ -624,9 +653,7 @@ class Node extends Eloquent
      */
     public function getNodeHeight()
     {
-        if (!$this->exists) {
-            return 2;
-        }
+        if (!$this->exists) return 2;
 
         return $this->attributes[static::RGT] - $this->attributes[static::LFT] + 1;
     }
@@ -647,14 +674,12 @@ class Node extends Eloquent
      * Behind the scenes node is appended to found parent node.
      *
      * @param int $value
+     * @throws Exception If parent node doesn't exists
      */
-    public function setParentId($value)
+    public function setParentIdAttribute($value)
     {
-        if ($this->isRoot()) {
-            throw new Exception("Cannot change parent of root node.");
-        }
-
-        if ($this->attributes[static::PARENT_ID] != $value) {
+        if (!isset($this->attributes[static::PARENT_ID]) || $this->attributes[static::PARENT_ID] != $value) 
+        {
             $this->appendTo(static::findOrFail($value));
         }
     }
