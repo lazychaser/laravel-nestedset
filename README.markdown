@@ -13,6 +13,8 @@ The package can be installed as Composer package, just include it into
     "required": {
         "kalnoy/nestedset": "dev-master"
     }
+    
+And then hit `composer update` in the terminal. That's it - you are ready to go next.
 
 ## Basic usage
 
