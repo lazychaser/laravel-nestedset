@@ -14,6 +14,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
             $table->string('name');
             NestedSet::columns($table);
         });
+
+        Capsule::enableQueryLog();
     }
 
     public function setUp()
@@ -27,6 +29,14 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         Capsule::table('categories')->truncate();
     }
+
+    // public static function tearDownAfterClass()
+    // {
+    //     $log = Capsule::getQueryLog();
+    //     foreach ($log as $item) {
+    //         echo $item['query']." with ".implode(', ', $item['bindings'])."\n";
+    //     }
+    // }
 
     public function assertTreeNotBroken($table = 'categories')
     {
@@ -51,7 +61,16 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $actual = Capsule::connection()->selectOne($sql);
 
-        $this->assertEquals(array('errors' => null), $actual, 'The tree structure of $table is broken!');
+        $this->assertEquals(array('errors' => null), $actual, "The tree structure of $table is broken!");
+    }
+
+    public function assertNodeRecievesValidValues($node)
+    {
+        $lft = $node->getLft();
+        $rgt = $node->getRgt();
+        $nodeInDb = $this->findCategory($node->name);
+
+        $this->assertTrue($lft == $nodeInDb->getLft() && $rgt == $nodeInDb->getRgt(), 'Node is not synced with database after save.');
     }
 
     public function findCategory($name)
@@ -64,100 +83,78 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTreeNotBroken();
     }
 
-    public function testNewCategoryAppendsTo()
+    public function nodeValues($node)
     {
-        $node = new Category(array('name' => 'LG'));
-        $target = $this->findCategory('mobile');
-
-        $expectedLft = $target->_rgt;
-
-        $node->appendTo($target)->save();
-
-        $this->assertTreeNotBroken();
-        $this->assertEquals($target->id, $node->parent_id);
-        $this->assertEquals($expectedLft, $node->_lft);
+        return array($node->_lft, $node->_rgt, $node->parent_id);
     }
 
-    public function testNewCategoryPrependsTo()
+    public function testRecievesValidValuesWhenAppendedTo()
     {
-        $node = new Category(array('name' => 'LG'));
-        $target = $this->findCategory('mobile');
+        $root = Category::root();
+        $node = new Category;
+        $node->appendTo($root);
 
-        $expectedLft = $target->_lft + 1;
-
-        $node->prependTo($target)->save();
-
-        $this->assertTreeNotBroken();
-        $this->assertEquals($target->id, $node->parent_id);
-        $this->assertEquals($expectedLft, $node->_lft);
+        $this->assertEquals(array($root->_rgt, $root->_rgt + 1, $root->id), $this->nodeValues($node));
     }
 
-    public function testNewCategoryInsertsAfter()
+    public function testRecievesValidValuesWhenPrependedTo()
     {
-        $node = new Category(array('name' => 'acer'));
-        $target = $this->findCategory('lenovo');
+        $root = Category::root();
+        $node = new Category;
+        $node->prependTo($root);
 
-        $expectedLft = $target->_rgt + 1;
-
-        $node->after($target)->save();
-
-        $this->assertTreeNotBroken();
-        $this->assertEquals($target->parent->id, $node->parent_id);
-        $this->assertEquals($target->_rgt + 1, $node->_lft);
+        $this->assertEquals(array($root->_lft + 1, $root->_lft + 2, $root->id), $this->nodeValues($node));
     }
 
-    public function testNewCategoryInsertsBefore()
+    public function testRecievesValidValuesWhenInsertedAfter()
     {
-        $node = new Category(array('name' => 'acer'));
-        $target = $this->findCategory('lenovo');
-
-        $expectedLft = $target->_lft;
-
-        $node->before($target)->save();
-
-        $this->assertTreeNotBroken();
-        $this->assertEquals($target->parent->id, $node->parent_id);
-        $this->assertEquals($expectedLft, $node->_lft);
-    }
-
-    public function testCategoryAppendsTo()
-    {
-        $node = $this->findCategory('apple');
-        $target = $this->findCategory('mobile');
-
-        $node->appendTo($target);
-
-        $this->assertTreeNotBroken();
-    }
-
-    public function testCategoryPrependsTo()
-    {
-        $node = $this->findCategory('apple');
-        $target = $this->findCategory('mobile');
-
-        $node->prepend($target);
-
-        $this->assertTreeNotBroken();
-    }
-
-    public function testCategoryInsertsAfter()
-    {
-        $node = $this->findCategory('apple');
-        $target = $this->findCategory('nokia');
-
+        $target = $this->findCategory('apple');
+        $node = new Category;
         $node->after($target);
 
-        $this->assertTreeNotBroken();
+        $this->assertEquals(array($target->_rgt + 1, $target->_rgt + 2, $target->parent->id), $this->nodeValues($node));
     }
 
-    public function testCategoryInsertsBefore()
+    public function testRecievesValidValuesWhenInsertedBefore()
     {
-        $node = $this->findCategory('apple');
-        $target = $this->findCategory('nokia');
-
+        $target = $this->findCategory('apple');
+        $node = new Category;
         $node->before($target);
 
+        $this->assertEquals(array($target->_lft, $target->_lft + 1, $target->parent->id), $this->nodeValues($node));
+    }
+
+    public function testNewCategoryInserts()
+    {
+        $node = new Category(array('name' => 'LG'));
+        $target = $this->findCategory('mobile');
+
+        $this->assertTrue($node->appendTo($target)->save());
+
         $this->assertTreeNotBroken();
+        $this->assertNodeRecievesValidValues($node);
+    }
+
+    public function testCategoryMovesDown()
+    {
+        $node = $this->findCategory('apple');
+        $target = $this->findCategory('mobile');
+
+        $this->assertTrue($node->appendTo($target)->save());
+
+        $this->assertTreeNotBroken();
+        $this->assertNodeRecievesValidValues($node);
+    }
+
+    public function testCategoryMovesUp()
+    {
+        $node = $this->findCategory('samsung');
+        $target = $this->findCategory('notebooks');
+
+        $this->assertTrue($node->append($target)->save());
+
+        $this->assertTreeNotBroken();
+        $this->assertNodeRecievesValidValues($node);
     }
 
     /**
@@ -171,11 +168,12 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node->after($target)->save();
     }
 
+    /**
+     * @expectedException Exception
+     */
     public function testRootDoesNotGetsDeleted()
     {
         $result = Category::root()->delete();
-
-        $this->assertFalse($result);
     }
 
     public function testWithoutRootWorks()
@@ -238,10 +236,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(5, $node->parent_id);
     }
 
-    public function testNodeIsNotSavedUntilNotInserted()
+    /**
+     * @expectedException Exception
+     */
+    public function testFailsToSaveNodeUntilNotInserted()
     {
         $node = new Category;
-        $this->assertFalse($node->save());
+        $node->save();
     }
 
     public function testNodeIsDeletedWithDescendants()
@@ -255,10 +256,45 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(0, $nodes);
     }
 
+    /**
+     * @expectedException Exception
+     */
     public function testSavingDeletedNodeWithoutInsertingFails()
     {
         $node = $this->findCategory('apple');
         $this->assertTrue($node->delete());
-        $this->assertFalse($node->save());
+        $node->save();
+    }
+
+    public function testParentGetsUpdateWhenNodeIsAppended()
+    {
+        $node = new Category(array('name' => 'Name'));
+        $target = $this->findCategory('apple');
+        $expectedValue = $target->_rgt + 2;
+
+        $node->appendTo($target)->save();
+        $this->assertEquals($expectedValue, $target->_rgt);
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testFailsToSaveNodeUntilParentIsSaved()
+    {
+        $node = new Category(array('title' => 'Node'));
+        $parent = new Category(array('title' => 'Parent'));
+
+        $node->appendTo($parent)->save();
+    }
+
+    public function testParentGetsUpdateWhenNodeIsDeleted()
+    {
+        $node = $this->findCategory('mobile');
+        $parent = $node->parent;
+        $targetRgt = $parent->_rgt - $node->getNodeHeight();
+
+        $node->delete();
+
+        $this->assertEquals($targetRgt, $parent->_rgt);
     }
 }

@@ -2,6 +2,7 @@
 
 use \Illuminate\Database\Eloquent\Model as Eloquent;
 use \Illuminate\Database\Query\Builder;
+use \Illuminate\Database\Query\Expression;
 use Exception;
 
 class Node extends Eloquent {
@@ -157,14 +158,10 @@ class Node extends Eloquent {
      * Get query for path to the node not including the node itself.
      *
      * @return  \Illuminate\Database\Eloquent\Builder
-     * @throws Exception If node does not exists
      */
     public function path()
     {
-        if (!$this->exists) 
-        {
-            throw new Exception("Cannot query for path to non-existing node.");
-        }
+        if (!$this->exists) return array();
 
         $query = $this->newQuery();
         $grammar = $query->getQuery()->getGrammar();
@@ -216,7 +213,9 @@ class Node extends Eloquent {
      */
     public function appendTo(Node $parent)
     {
-        return $this->checkTarget($parent)->insertAt($parent->attributes[static::RGT], $parent);
+        return $this
+            ->checkTarget($parent)
+            ->insertAt($parent->attributes[static::RGT], $parent);
     }
 
     /**
@@ -228,7 +227,9 @@ class Node extends Eloquent {
      */
     public function prependTo(Node $parent)
     {        
-        return $this->checkTarget($parent)->insertAt($parent->attributes[static::LFT] + 1, $parent);
+        return $this
+            ->checkTarget($parent)
+            ->insertAt($parent->attributes[static::LFT] + 1, $parent);
     }
 
     /**
@@ -276,7 +277,9 @@ class Node extends Eloquent {
             throw new Exception("Cannot insert node $dir root node.");
         }
 
-        $position = $dir === self::BEFORE ? $node->attributes['_lft'] : $node->attributes['_rgt'] + 1;
+        $position = $dir === self::BEFORE 
+            ? $node->attributes['_lft'] 
+            : $node->attributes['_rgt'] + 1;
 
         return $this->insertAt($position, $node->parent);
     }
@@ -338,25 +341,34 @@ class Node extends Eloquent {
      */
     public function fireModelEvent($event, $halt = true)
     {
-        if ($event === 'creating') 
+        // We need to capture 'saving' event to be able to control dirty values.
+        // 'updating' event is called after dirty values are retrieved.
+        if ($event === 'saving') 
         {
-            if (!isset($this->attributes[static::LFT]) || !$this->updateTree())
+            if ($this->exists) 
             {
-                return false;
+                if ($this->isDirty(static::LFT) && !$this->updateTree())
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (!isset($this->attributes[static::LFT]))
+                {
+                    throw new Exception("Cannot save node until it is inserted.");
+                }
+
+                if (!$this->updateTree()) return false;
             }
         }
 
-        if ($event === 'updating' && $this->isDirty(static::LFT))
+        if ($event === 'deleting' && $this->isRoot())
         {
-            if (!$this->updateTree()) return false;
+            throw new Exception("Cannot delete root node.");
         }
 
-        if ($event === 'deleting' && $this->isRoot()) return false;
-
-        if ($event === 'deleted' && !$this->softDelete) 
-        {
-            $this->processDeletedNode();
-        }
+        if ($event === 'deleted' && !$this->softDelete) $this->deleteNode();
 
         return parent::fireModelEvent($event, $halt);
     }
@@ -368,258 +380,187 @@ class Node extends Eloquent {
      */
     protected function updateTree()
     {
-        $lft    = $this->attributes[static::LFT];
-        $rgt    = $this->attributes[static::RGT];
-        $height = $rgt - $lft + 1;
+        $cut = $this->attributes[static::LFT];
 
         if ($this->exists) 
         {
-            $oldLft = $this->original[static::LFT];
-            $oldRgt = $this->original[static::RGT];
+            $lft = $this->original[static::LFT];
+            $rgt = $this->original[static::RGT];
 
-            // Secure node from being shifted.
-            $this->hideNodes();
-            
-            if ($lft > $oldLft) {
-                $shiftAmount = $lft - $oldRgt - 1;
-
-                // Node is going down.
-                // Other nodes are going up on its place.
-                static::shiftNodes(-$height, $oldRgt + 1, $lft - 1, $this);
-            } else 
-            {
-                $shiftAmount = $lft - $oldLft;
-
-                // Node is going up.
-                // Other nodes are going down on its place.
-                static::shiftNodes($height, $lft, $oldLft - 1, $this);
-            }
-
-            // Reveal and put nodes into new position.
-            $this->revealNodes($shiftAmount);
-        } else {
-            static::shiftNodes($height, $lft, null, $this);
+            return $this->rearrange($lft, $rgt, $cut) > 0;
         }
 
-        return true;
+        return $this->makeGap($cut, 2) > 0;
     }
 
     /**
-     * Update NestedSet when node is removed physically.
+     * Rearrange the tree to put the node into the new position.
+     *
+     * @param  integer $lft
+     * @param  integer $rgt
+     * @param  integer $pos
+     *
+     * @return integer the number of updated nodes.
+     */
+    public function rearrange($lft, $rgt, $pos)
+    {
+        $from = min($lft, $pos);
+        $to   = max($rgt, $pos - 1);
+
+        $query = $this->newQueryWithDeleted()->getQuery()
+            ->whereBetween(static::LFT, array($from, $to))
+            ->orWhereBetween(static::RGT, array($from, $to));
+
+        // The height of node that is being moved
+        $height = $rgt - $lft + 1;
+
+        // The distance that our node will travel to reach it's destination
+        $distance = $to - $from + 1 - $height;
+
+        if ($pos > $lft) $height *= -1; else $distance *= -1;
+
+        $params  = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
+        $grammar = $query->getGrammar();
+        $updated = $query->update($this->getColumnsPatch($params, $grammar));
+
+        // Sync the attributes
+        $this->original[static::LFT] = $this->attributes[static::LFT] = $lft += $distance;
+        $this->original[static::RGT] = $this->attributes[static::RGT] = $rgt += $distance;
+
+        $this->updateParent($height, $from, $to);
+
+        return $updated;
+    }
+
+    /**
+     * Update the tree when the node is removed physically.
      *
      * @return void
      */
-    protected function processDeletedNode()
+    protected function deleteNode()
     {
-        $lft = $this->getLft();
-        $rgt = $this->getRgt();
-
         // DBMS with support of foreign keys will remove descendant nodes automatically
         $this->descendants()->delete();
 
-        // We cannot use getNodeHeight because it always return 2 for non-existing
-        // nodes.
-        $height = $rgt - $lft + 1;
-
-        $this->shiftNodes(-$height, $rgt + 1, null, $this);
-
-        unset($this->attributes[static::LFT], $this->attributes[static::RGT]);
-    }
-
-    /**
-     * Hide nodes from NestedSet manipulations.
-     *
-     * @return void
-     */
-    protected function hideNodes()
-    {
-        static::hideOrRevealNodes(
-            $this->original[static::LFT], 
-            $this->original[static::RGT], 
-            0, 
-            $this
-        );
-    }
-
-    /**
-     * Reveal nodes in new position after NestedSet manipulations.
-     *
-     * @param  integer $shiftAmount
-     *
-     * @return void
-     */
-    protected function revealNodes($shiftAmount)
-    {
-        static::hideOrRevealNodes(
-            $this->original[static::LFT], 
-            $this->original[static::RGT], 
-            $shiftAmount, 
-            $this
-        );
-        
-        // Fill original attributes because database contains updated LFT and RGT
-        // values after nodes are revealed.
-        $this->original[static::LFT] = $this->attributes[static::LFT];        
-        $this->original[static::RGT] = $this->attributes[static::RGT];
-    }
-
-    /**
-     * Shift nodes within given range.      
-     *
-     * @param  integer $amount
-     * @param  integer $from
-     * @param  integer $to
-     * @param  Node    $instance
-     *
-     * @return void
-     */
-    static protected function shiftNodes($amount, $from, $to, $instance = null)
-    {
-        if ($amount == 0 || $from === null && $to === null) return;
-
-        if ($instance === null) $instance = new static;
-
-        $query  = $instance->newQueryWithDeleted()->getQuery();
-        $method = $amount > 0 ? 'increment' : 'decrement';
-        $amount = abs($amount);
-        
-        static::shiftNodesColumn($query, static::LFT, $method, $amount, $from, $to);
-        static::shiftNodesColumn($query, static::RGT, $method, $amount, $from, $to);
-
-        // Update all ancestors (if any) of the instance to support inserting 
-        // multiple nodes into single parent.
-        while (isset($instance->relations['parent'])) 
-        {
-            $instance = $instance->relations['parent'];
-
-            $instance->shiftColumn(static::LFT, $amount, $from, $to);
-            $instance->shiftColumn(static::RGT, $amount, $from, $to);
-        }
-    }
-
-    /**
-     * Shift node specific column.
-     *
-     * @param  Builder $query
-     * @param  string  $column
-     * @param  string  $method
-     * @param  integer  $amount
-     * @param  integer  $from
-     * @param  integer  $to
-     *
-     * @return integer
-     */
-    static protected function shiftNodesColumn(Builder $query, $column, $method, $amount, $from, $to)
-    {
-        $query->wheres = array();
-        $query->setBindings(array());
-
-        if ($from === null) $query->where($column, '<=', $to);
-        elseif ($to === null) $query->where($column, '>=', $from);
-        else $query->whereBetween($column, array($from, $to));
-
-        return $query->$method($column, $amount);
-    }
-
-    /**
-     * Apply nestedset logic to loaded model to sync it with database.      
-     *
-     * @param   integer  $amount
-     * @param   integer  $from
-     * @param   integer  $to
-     *
-     * @return  void
-     */
-    protected function shift($amount, $from, $to)
-    {
-        if ($from === null && $to === null || $amount == 0) return;
-
-        $this->shiftColumn(static::LFT, $amount, $from, $to);
-        $this->shiftColumn(static::RGT, $amount, $from, $to);
-    }
-
-    /**
-     * Shift specific column.
-     *
-     * @param   static::LFT|static::RGT  $column
-     * @param   integer  $amount
-     * @param   integer  $from
-     * @param   integer  $to
-     *
-     * @return  void
-     */
-    protected function shiftColumn($column, $amount, $from, $to)
-    {
-        $value = $this->attributes[$column];
-
-        if ($from === null && $value <= $to || 
-            $to === null && $from <= $value ||
-            $from !== null && $to !== null && $from <= $value && $value <= $to) 
-        {
-            $this->original[$column] = $this->attributes[$column] += $amount;
-        }
-    }
-
-    /**
-     * Sync node with database.
-     *
-     * @param   integer  $shiftAmount
-     * @param   integer  $from
-     * @param   integer  $to
-     *
-     * @return  void
-     */
-    protected function reveal($shiftAmount, $from, $to)
-    {
         $lft = $this->getLft();
+        $rgt = $this->getRgt();
 
-        if ($from <= $lft && $lft <= $to) 
-        {
-            $this->attributes[static::LFT] += $shiftAmount;
-            $this->attributes[static::RGT] += $shiftAmount;
-        }
+        // Unset this attributes to indicate that node has'n been inserted.
+        unset($this->attributes[static::LFT], $this->attributes[static::RGT]);
+
+        return $this->makeGap($rgt + 1, $lft - $rgt - 1);
     }
 
     /**
-     * Hide nodes from NestedSet manipulations if shiftAmount = 0
-     * or reveal them in new position made by shifting nodes by shiftAmount.
+     * Make or remove gap in the tree. Negative height will remove gap.
      *
-     * @param  integer $from
-     * @param  integer $to
-     * @param  integer $shiftAmount
-     * @param  Node    $instance
+     * @param  integer $cut
+     * @param  integer $height
      *
-     * @return integer the number of updated nodes
+     * @return integer the number of updated nodes.
      */
-    static protected function hideOrRevealNodes($from, $to, $shiftAmount = 0, $instance = null)
+    protected function makeGap($cut, $height)
     {
-        if ($instance === null) $instance = new static;
-
-        $query   = $instance->newQueryWithDeleted()->getQuery();
-        $grammar = $query->getGrammar();
-
-        // Here we "hide" or "reveal" nodes that are going to be inserted into new position.
-        // We negate lft value to distinguish nodes from other nodes that we are going to update.
-        // "hiding" nodes is like ripping them out of database to do some manipulations
-        // and "revealing" is putting nodes back in database but in new position based on shiftAmount
-        $updateValues = array();
-
-        if ($shiftAmount == 0) 
-        {
-            $updateValues[static::LFT] = $query->raw('-'.$grammar->wrap(static::LFT));
-        } else 
-        {
-            $shiftAmountStr = $shiftAmount > 0 ? '+'.$shiftAmount : $shiftAmount;
-
-            $updateValues[static::LFT] = $query->raw('-'.$grammar->wrap(static::LFT).$shiftAmountStr);
-            $updateValues[static::RGT] = $query->raw($grammar->wrap(static::RGT).$shiftAmountStr);
-        }
-
+        $params = compact('cut', 'height');
+        $query = $this->newQueryWithDeleted()->getQuery();
         $updated = $query
-            ->whereBetween(static::LFT, $shiftAmount == 0 ? array($from, $to) : array(-$to, -$from))
-            ->update($updateValues);
+            ->where(static::LFT, '>=', $cut)
+            ->orWhere(static::RGT, '>=', $cut)
+            ->update($this->getColumnsPatch($params, $query->getGrammar()));
+
+        $this->updateParent($height);
 
         return $updated;
+    }
+
+    /**
+     * Update parent to keep it synced.
+     * 
+     * When node is inserted, either lft or rgt is updated. If node doesn't exists
+     * it is always rgt and it is simply increased or decreased by height depending
+     * on whether node was deleted or it is being inserted.
+     * 
+     * When node is exists and it is moved, parent is updated within specific
+     * boundaries and column is selected based on where node moved - up (rgt) or
+     * down (lft).
+     *
+     * @param  integer $height
+     * @param  integer $from
+     * @param  integer $to
+     *
+     * @return void
+     */
+    protected function updateParent($height, $from = null, $to = null)
+    {
+        if (!isset($this->relations['parent'])) return;
+
+        $parent = $this->relations['parent'];
+
+        if ($from === null)
+        {
+            $parent->attributes[static::RGT] += $height;
+        }
+        else
+        {
+            $col = $height < 0 ? static::LFT : static::RGT;
+            $value = $parent->attributes[$col];
+
+            if ($to === null) $to = $value;
+
+            if ($from <= $value and $value <= $to)
+            {
+                $parent->attributes[$col] += $height;
+            }
+        }
+
+        $parent->updateParent($height, $from, $to);
+    }
+
+    /**
+     * Get patch for columns.
+     *
+     * @param  array  $params
+     * @param  \Illuminate\Database\Query\Grammars\Grammar $grammar
+     *
+     * @return array
+     */
+    protected function getColumnsPatch(array $params, $grammar)
+    {
+        $columns = array();
+        foreach (array(static::LFT, static::RGT) as $col) 
+        {
+            $columns[$col] = $this->getColumnPatch($grammar->wrap($col), $params);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Get patch for single column.
+     *
+     * @param  string $col
+     * @param  array  $params
+     *
+     * @return string
+     */
+    protected function getColumnPatch($col, array $params)
+    {
+        extract($params);
+
+        if ($height > 0) $height = '+'.$height;
+
+        if (isset($cut)) 
+        {
+            return new Expression("case when $col >= $cut then $col $height else $col end");
+        }
+
+        if ($distance > 0) $distance = '+'.$distance;
+
+        return new Expression("case ".
+            "when $col between $lft and $rgt then $col $distance ".
+            "when $col between $from and $to then $col $height ".
+            "else $col end"
+        );
     }
 
     /**
