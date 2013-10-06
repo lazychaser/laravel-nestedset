@@ -2,6 +2,7 @@
     "name": "kalnoy/nestedset",
     "description": "Nested Set Model for Laravel 4",
     "keywords": ["laravel", "nested set", "database", "hierarchy"],
+    "licence": "MIT",
     
     "authors": [
         {

@@ -13,7 +13,7 @@ section of your `composer.json` file:
 
 ```json
 "required": {
-    "kalnoy/nestedset": "dev-master"
+    "kalnoy/nestedset": "1.0-beta"
 }
 ```
     
