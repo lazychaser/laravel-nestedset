@@ -178,9 +178,9 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
     public function testWithoutRootWorks()
     {
-        $result = Category::withoutRoot()->count();
+        $result = Category::withoutRoot()->pluck('name');
 
-        $this->assertEquals(6, $result);
+        $this->assertNotEquals('store', $result);
     }
 
     public function testPathReturnsAncestorsWithoutNodeItself()
@@ -200,9 +200,10 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
     public function testDescendantsQueried()
     {
-        $descendants = Category::root()->descendants()->count();
+        $node = $this->findCategory('mobile');
+        $descendants = $node->descendants()->lists('name');
 
-        $this->assertEquals(6, $descendants);
+        $this->assertEquals(array('nokia', 'samsung', 'galaxy', 'sony'), $descendants);
     }
 
     /**
@@ -296,5 +297,80 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node->delete();
 
         $this->assertEquals($targetRgt, $parent->_rgt);
+    }
+
+    public function testGetsSiblings()
+    {
+        $node = $this->findCategory('samsung');
+        $siblings = $node->siblings()->lists('id');
+
+        $this->assertEquals(array(6, 9), $siblings);
+    }
+
+    public function testGetsNextSiblings()
+    {
+        $node = $this->findCategory('samsung');
+        $siblings = $node->nextSiblings()->lists('id');
+
+        $this->assertEquals(array(9), $siblings);
+    }
+
+    public function testGetsPrevSiblings()
+    {
+        $node = $this->findCategory('samsung');
+        $siblings = $node->prevSiblings()->lists('id');
+
+        $this->assertEquals(array(6), $siblings);
+    }
+
+    public function testFetchesReversed()
+    {
+        $node = $this->findCategory('sony');
+        $siblings = $node->prevSiblings()->reversed()->pluck('id');
+
+        $this->assertEquals(7, $siblings);
+    }
+
+    public function testToTreeBuildsWithDefaultOrder()
+    {
+        $tree = Category::whereBetween('_lft', array(8, 17))->get()->toTree();
+
+        $this->assertEquals(1, count($tree));
+
+        $root = $tree->first();
+        $this->assertEquals('mobile', $root->name);
+        $this->assertEquals(3, count($root->children));
+    }
+
+    public function testToTreeBuildsWithCustomOrder()
+    {
+        $tree = Category::whereBetween('_lft', array(8, 17))
+            ->orderBy('title')
+            ->get()
+            ->toTree();
+
+        $this->assertEquals(1, count($tree));
+
+        $root = $tree->first();
+        $this->assertEquals('mobile', $root->name);
+        $this->assertEquals(3, count($root->children));
+    }
+
+    public function testToTreeBuildsWithDefaultOrderAndMultipleRootNodes()
+    {
+        $tree = Category::withoutRoot()->get()->toTree();
+
+        $this->assertEquals(2, count($tree));
+    }
+
+    public function testToTreeBuildsWithRootItemIdProvided()
+    {
+        $tree = Category::whereBetween('_lft', array(8, 17))->get()->toTree(5);
+
+        $this->assertEquals(3, count($tree));
+
+        $root = $tree[1];
+        $this->assertEquals('samsung', $root->name);
+        $this->assertEquals(1, count($root->children));
     }
 }

@@ -1,28 +1,30 @@
-This is Laravel 4 package that simplifies creating, managing and retrieving trees
-in database. Using [Nested Set](http://en.wikipedia.org/wiki/Nested_set_model) 
-technique high performance descendants retrieval and path-to-node queries can be done.
+Say hi to Laravel 4 extension that will allow to create and manage hierarchies in
+your database out-of-box. You can:
 
-__IMPORTANT!__ To keep realization of Nested Set Model simple, it's made to work
-within single HTTP requests. Don't build trees in your code. [But, it's possible](#multiple-node-insertion).
+*   Create multi-level menus and select items of specific level;
+*   Create categories for the store with no limit of nesting level, query for
+    descendants and ancestors;
+*   Forget about performance issues!
 
 ## Installation
 
-The package can be installed as Composer package, just include it into 
-`required` section of your `composer.json` file:
+The package can be installed using Composer, just include it into `required` 
+section of your `composer.json` file:
 
-    "required": {
-        "kalnoy/nestedset": "dev-master"
-    }
+```json
+"required": {
+    "kalnoy/nestedset": "dev-master"
+}
+```
     
-And then hit `composer update` in the terminal. That's it - you are ready to go next.
+Hit `composer update` in the terminal, and you are ready to go next!
 
 ## Basic usage
 
 ### Schema
 
-Storing trees in database requires additional columns for the table, so these
-fields need to be included in table schema. We use `NestedSet::columns($table)`
-inside table schema creation function, like so:
+Storing hierarchies in a database requires additional columns for the table, so these
+fields need to be included in the migration. There is a helper for this:
 
 ```php
 <?php
@@ -48,8 +50,9 @@ class CreateCategoriesTable extends Migration {
             NestedSet::columns($table);
         });
 
+        // The root node is required
         NestedSet::createRoot('categories', array(
-            'title' => 'Root',
+            'title' => 'Store',
         ));
     }
 
@@ -65,12 +68,13 @@ class CreateCategoriesTable extends Migration {
 }
 ```
 
-To simplify things root node is required. `NestedSet::createRoot` creates it for us.
-
 ### The model
 
-The next step is to create `Eloquent` model. Do it whatever way you like, but
-make shure that model is extended from `\Kalnoy\Nestedset\Node`, like here:
+The next step is to create `Eloquent` model. I prefer [Jeffrey Way's generators][1],
+but you can stick to whatever you prefer, just make shure that model is extended 
+from `\Kalnoy\Nestedset\Node`, like here:
+
+[1]: https://github.com/JeffreyWay/Laravel-4-Generators
 
 ```php
 <?php
@@ -80,16 +84,20 @@ class Category extends \Kalnoy\Nestedset\Node {}
 
 ### Queries
 
-You can create nodes like so:
+You can insert nodes using several methods:
 
 ```php
 $node = new Category(array('title' => 'TV\'s'));
-$node->appendTo(Category::root())->save();
+$target = Category::root();
+
+$node->appendTo($target)->save();
+$node->prependTo($target)->save();
 ```
 
-the same thing can be done differently (to allow changing parent via mass assignment):
+The parent can be changed via mass asignment:
 
 ```php
+// The equivalent of $node->appendTo(Category::find($parent_id))
 $node->parent_id = $parent_id;
 $node->save();
 ```
@@ -104,7 +112,7 @@ $srcNode->after($targetNode)->save();
 $srcNode->before($targetNode)->save();
 ```
 
-Path to the node can be obtained in two ways:
+_Ancestors_ can be obtained in two ways:
 
 ```php
 // Target node will not be included into result since it is already available
@@ -118,13 +126,22 @@ or using the scope:
 $path = Category::pathTo($nodeId)->get();
 ```
 
-Descendant nodes can easily be gotten this way:
+_Descendants_ can easily be retrieved in this way:
 
 ```php
 $descendants = $node->descendants()->get();
 ```
 
-Nodes can be provided with depth level if scope `withDepth` is applied:
+This method returns query builder, so you can apply any constraints or eager load
+some relations. 
+
+There are few more methods:
+
+*   `siblings()` for querying siblings of the node;
+*   `nextSiblings()` and `prevSiblings()` to query nodes after and before the node
+    respectively.
+
+Nodes can be provided with _nesting level_ if scope `withDepth` is applied:
 
 ```php
 // Each node instance will recieve 'depth' attribute with depth level starting at
@@ -132,13 +149,19 @@ Nodes can be provided with depth level if scope `withDepth` is applied:
 $nodes = Category::withDepth()->get();
 ```
 
-Query can be filtered out from the root node using scope `withoutRoot`:
+Using `depth` attribute it is possible to get nodes with maximum level of nesting:
+
+```php
+$menu = Menu::withDepth()->having('depth', '<=', 2)->get();
+```
+
+The root node can be filtered out using scope `withoutRoot`:
 
 ```php
 $nodes = Category::withoutRoot()->get();
 ```
 
-Deleting nodes is as simple as before:
+Nothing changes when you need to remove the node:
 
 ```php
 $node->delete();
@@ -150,15 +173,47 @@ There are two relations provided by `Node`: _children_ and _parent_.
 
 ### Insertion, re-insertion and deletion of nodes
 
-Operations such as insertion and deletion of nodes imply several independent queries
+Operations such as insertion and deletion of nodes imply extra queries
 before node is actually saved. That is why if something goes wrong, the whole tree
-might be broken. To avoid such situations each call to `save()` must be enclosed 
-into transaction.
+might be broken. To avoid such situations, each call of `save()` has to be enclosed 
+in the transaction.
 
-Also, experimentally was noticed that using transaction drastically improves
-performance when tree gets update.
+## How-tos
+
+### Move node up or down
+
+Sometimes there is need to move nodes around while remaining in boundaries of 
+the parent.
+
+To move node down, this snippet can be used:
+
+```php
+if ($sibling = $node->nextSiblings()->first())
+{
+    $node->after($sibling)->save();
+}
+```
+
+Moving up is a little bit trickier:
+
+```php
+if ($sibling = $node->prevSiblings()->reversed()->first())
+{
+    $node->before($sibling)->save();
+}
+```
+
+To move node up we need to insert it before node that is right at the top of it.
+If we use `$node->prevSiblings()->first()` we'll get the first child of the parent 
+since all nodes are ordered by fixed values. We apply `reversed()` scope to reverse
+default order.
 
 ## Advanced usage
+
+### Default order
+
+Nodes are ordered by lft column unless there is `limit` or `offset` is provided,
+or when user uses `orderBy`.
 
 ### Custom collection
 
@@ -205,9 +260,10 @@ This is what we are going to get:
 }];
 ```
 
-Even though the query returned all nodes but _Netbooks_, the resulting tree does not contain any
-child from that node. This is very helpful when nodes are soft deleted. Active children of soft 
-deleted nodes will inevitably show up in query results, which is not desired in most situations.
+Even though the query returned all nodes but _Netbooks_, the resulting tree does 
+not contain any child from that node. This is very helpful when nodes are soft deleted. 
+Active children of soft deleted nodes will inevitably show up in query results, 
+which is not desired in most situations.
 
 ### Multiple node insertion
 
@@ -244,48 +300,6 @@ work just fine.
 _THIS IS THE ONLY CASE WHEN MULTIPLE NODES CAN BE INSERTED AND/OR RE-INSERTED 
 DURING SINGLE HTTP REQUEST WITHOUT REFRESHING DATA_
 
-#### If you still need this
-
-If you are up to create your tree structure in your code, make shure that target node 
-is always updated. Here is the description of what nodes are target when using insertion
-functions:
-
-```php
-/**
- * @var Category $node The node being inserted
- * @var Category $target The target node
- */
- 
-$node->appendTo($target);
-$node->prependTo($target);
-$node->before($target);
-$node->after($target);
-$target->append($node);
-$target->prepend($node);
-```
-
-When doing multiple insertions, just call `$target->refresh()` each time before calling 
-any of the above functions.
-
-```php
-DB::transaction(function () {
-    $node = new Category(...);
-    $root = Category::root();
-    
-    // The root here is updated automatically
-    $node->appendTo($root)->save();
-    
-    $nodeSubNode = new Category(...);
-    // No need to update $node since it is just saved
-    // Also, $node gets update since it is new parent for $nodeSubNode
-    $nodeSubNode->appendTo($node)->save();
-    
-    $nodeSibling = new Category(...);
-    // We refresh $root because it is not updated since last operation
-    $nodeSibling->appendTo($root->refresh())->save();
-});
-```
-
 ### Deleting nodes
 
 To delete a node, you just call `$node->delete()` as usual. If node is soft deleted, 
@@ -296,4 +310,8 @@ When you create your table's schema and use `NestedSet::columns`, it creates for
 key for you, since nodes are connected by `parent_id` attribute. When you hard delete
 the node, all of descendants are cascaded.
 
-In case when DBMS doesn't support foreign keys, descendants are removed manually.
+In case when DBMS doesn't support foreign keys, descendants are still removed.
+
+## TODO
+
+[*] Build up hierarchy from array;

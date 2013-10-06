@@ -54,18 +54,6 @@ class Node extends Eloquent {
     }
 
     /**
-     * Scope limits query to select just root node.
-     *
-     * @param   \Illuminate\Database\Eloquent\Builder  $query
-     *
-     * @return  \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeWhereIsRoot($query)
-    {
-        return $query->where(static::LFT, '=', 1);
-    }
-
-    /**
      * Relation to the parent.
      *
      * @return BelongsTo
@@ -98,60 +86,53 @@ class Node extends Eloquent {
     }
 
     /**
-     * Query path to specific node including that node itself.
+     * Get query for siblings of the node.
+     * 
+     * @param self::AFTER|self::BEFORE|null $dir
      *
-     * @param   \Illuminate\Database\Eloquent\Builder  $query
-     * @param   integer  $id
-     *
-     * @return  \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopePathTo($query, $id)
+    public function siblings($dir = null)
     {
-        $grammar = $query->getQuery()->getGrammar();
-        $table  = $grammar->wrapTable($this->getTable());
-        $lft    = $grammar->wrap(static::LFT);
-        $rgt    = $grammar->wrap(static::RGT);
-        $id     = (int)$id;
+        $query = $this->newQuery();
 
-        return $query->whereRaw(
-            "(select _.$lft from $table _ where _.id = $id limit 1)".
-            " between $lft and $rgt"
-        );
+        $query->where(static::PARENT_ID, '=', $this->getParentId());
+
+        switch ($dir)
+        {
+            case self::AFTER: 
+                $query->where(static::LFT, '>', $this->getRgt());
+                break;
+
+            case self::BEFORE:
+                $query->where(static::LFT, '<', $this->getLft());
+                break;
+
+            default:
+                $query->where($this->getKeyName(), '<>', $this->getKey());
+        }
+
+        return $query;
     }
 
     /**
-     * Include depth level into result.
+     * Get query for siblings after the node.
      *
-     * @param   \Illuminate\Database\Eloquent\Builder  $query
-     * @param   string  $key The attribute name that will hold the depth level.
-     *
-     * @return  \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeWithDepth($query, $key = 'depth')
+    public function nextSiblings()
     {
-        $grammar = $query->getQuery()->getGrammar();
-        $table   = $grammar->wrapTable($this->getTable());
-        $lft     = $grammar->wrap(static::LFT);
-        $rgt     = $grammar->wrap(static::RGT);
-        $key     = $grammar->wrap($key);
-
-        $column = $query->getQuery()->raw(
-            "((select count(*) from $table _ where $table.$lft between _.$lft and _.$rgt)-1) as $key"
-        );
-
-        return $query->addSelect($column);
+        return $this->siblings(self::AFTER);
     }
 
     /**
-     * Exclude root node from result.
+     * Get query for siblings before the node.
      *
-     * @param   \Illuminate\Database\Eloquent\Builder  $query
-     *
-     * @return  \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeWithoutRoot($query)
+    public function prevSiblings()
     {
-        return $query->where(static::LFT, '<>', 1);
+        return $this->siblings(self::BEFORE);
     }
 
     /**
@@ -281,7 +262,7 @@ class Node extends Eloquent {
             ? $node->attributes['_lft'] 
             : $node->attributes['_rgt'] + 1;
 
-        return $this->insertAt($position, $node->parent);
+        return $this->insertAt($position, $node->getParentId());
     }
 
     /**
@@ -306,12 +287,12 @@ class Node extends Eloquent {
      * Insert node at specific position and related parent.
      *
      * @param  int $position
-     * @param  Node $parent
+     * @param  mixed $parent
      *
      * @return Node
-     * @throws Exceptino If node is inserted in one of it's descendants
+     * @throws Exception If node is inserted in one of it's descendants
      */
-    protected function insertAt($position, Node $parent)
+    protected function insertAt($position, $parent)
     {
         if ($this->exists && $this->getLft() < $position && $position < $this->getRgt()) 
         {
@@ -322,10 +303,18 @@ class Node extends Eloquent {
 
         // We simply update values here. When user calls save() actual
         // transformations are performed.
-        $this->attributes[static::LFT]       = $position;
-        $this->attributes[static::RGT]       = $position + $height - 1;
-        $this->attributes[static::PARENT_ID] = $parent->getKey();
-        $this->relations['parent']           = $parent;
+        $this->attributes[static::LFT] = $position;
+        $this->attributes[static::RGT] = $position + $height - 1;
+
+        if ($parent instanceof Node)
+        {
+            $this->attributes[static::PARENT_ID] = $parent->getKey();
+            $this->relations['parent']           = $parent;
+        }
+        else 
+        {
+            $this->attributes[static::PARENT_ID] = $parent;
+        }
 
         return $this;
     }
@@ -564,15 +553,17 @@ class Node extends Eloquent {
     }
 
     /**
-     * Override default query builder to enabled ordering by lft by default.
+     * Get a new base query builder instance.
      *
-     * @return  \Illuminate\Database\Query\Builder
+     * @return  \Kalnoy\Nestedset\QueryBuilder
      */
     protected function newBaseQueryBuilder()
     {
-        $query = parent::newBaseQueryBuilder();
+        $conn = $this->getConnection();
 
-        return $query->orderBy(static::LFT);
+        $grammar = $conn->getQueryGrammar();
+
+        return new QueryBuilder($conn, $grammar, $conn->getPostProcessor(), $this);
     }
 
     /**

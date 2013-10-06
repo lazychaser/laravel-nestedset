@@ -37,6 +37,9 @@ class Collection extends BaseCollection {
      *
      * To succesfully build tree "id" and "parent_id" keys must present.
      * 
+     * If {@link rootNodeId} is provided, the tree will contain only descendants
+     * of the node with such primary key value.
+     * 
      * @param integer $rootNodeId
      *
      * @return  Collection
@@ -46,19 +49,30 @@ class Collection extends BaseCollection {
         $dictionary = $this->toDictionary();
         $result = new static();
 
-        // If root node is not specified we take first node's parent.
-        // This works since nodes are sorted by lft and first node has least depth.
-        if ($rootNodeId === null) {
-            $rootNodeId = $this->first()->getParentId();
+        // If root node is not specified we take parent id from node with
+        // least lft value as root node id.
+        if ($rootNodeId === null) 
+        {
+            $leastValue = null;
+
+            foreach ($this->items as $item) {
+                if ($leastValue === null || $item->getLft() < $leastValue)
+                {
+                    $leastValue = $item->getLft();
+                    $rootNodeId = $item->getParentId();
+                }
+            }
         }
 
         $result->items = isset($dictionary[$rootNodeId]) ? $dictionary[$rootNodeId] : array();
 
-        if (empty($result->items)) {
+        if (empty($result->items)) 
+        {
             return $result;
         }
 
-        foreach ($this->items as $item) {
+        foreach ($this->items as $item) 
+        {
             $key = $item->getKey();
 
             $children = new BaseCollection(isset($dictionary[$key]) ? $dictionary[$key] : array());
