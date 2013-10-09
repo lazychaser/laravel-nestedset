@@ -24,7 +24,8 @@ Hit `composer update` in the terminal, and you are ready to go next!
 ### Schema
 
 Storing hierarchies in a database requires additional columns for the table, so these
-fields need to be included in the migration. There is a helper for this:
+fields need to be included in the migration. Also, the root node is required.
+So, basic migration looks like this:
 
 ```php
 <?php

@@ -35,7 +35,7 @@ class Collection extends BaseCollection {
     /**
      * Build tree from node list.
      *
-     * To succesfully build tree "id" and "parent_id" keys must present.
+     * To succesfully build tree "id", "_lft" and "parent_id" keys must present.
      * 
      * If {@link rootNodeId} is provided, the tree will contain only descendants
      * of the node with such primary key value.
@@ -49,7 +49,7 @@ class Collection extends BaseCollection {
         $dictionary = $this->toDictionary();
         $result = new static();
 
-        // If root node is not specified we take parent id from node with
+        // If root node is not specified we take parent id of node with
         // least lft value as root node id.
         if ($rootNodeId === null) 
         {

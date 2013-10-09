@@ -86,6 +86,8 @@ class QueryBuilder extends Builder {
             "((select count(*) from $table _ where $table.$lft between _.$lft and _.$rgt)-1) as $key"
         );
 
+        if ($this->columns === null) $this->columns = array('*');
+
         return $this->addSelect($column);
     }
 

@@ -229,6 +229,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(isset($node['level']));
     }
 
+    public function testWithDepthWorksAlongWithDefaultKeys()
+    {
+        $node = Category::withDepth()->first();
+
+        $this->assertTrue(isset($node->name));
+    }
+
     public function testParentIdAttributeAccessorAppendsNode()
     {
         $node = new Category(array('name' => 'lg', 'parent_id' => 5));
