@@ -21,10 +21,22 @@ class NestedSet {
         $table->index(array(Node::LFT, Node::RGT, Node::PARENT_ID), 'nested_set_index');
 
         $table
-            ->foreign(Node::PARENT_ID, 'nested_set_foreign')
+            ->foreign(Node::PARENT_ID, self::getForeignKeyName($table->getTable()))
             ->references($primaryKey)
             ->on($table->getTable())
             ->onDelete('cascade');
+    }
+
+    /**
+     * Get foreign key name for the table.
+     *
+     * @param   string  $table
+     *
+     * @return  string
+     */
+    protected static function getForeignKeyName($table)
+    {
+        return $table.'_nested_set_foreign';
     }
 
     /**
