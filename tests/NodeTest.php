@@ -183,17 +183,17 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertNotEquals('store', $result);
     }
 
-    public function testPathReturnsAncestorsWithoutNodeItself()
+    public function testAncestorsReturnsAncestorsWithoutNodeItself()
     {
         $node = $this->findCategory('apple');
-        $path = $node->path()->lists('name');
+        $path = $node->ancestors()->lists('name');
 
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
 
-    public function testPathToReturnsAncestorsWithNode()
+    public function testAncestorsOfReturnsAncestorsWithNode()
     {
-        $path = Category::pathTo(3)->lists('name');
+        $path = Category::ancestorsOf(3)->lists('name');
 
         $this->assertEquals(array('store', 'notebooks', 'apple'), $path);
     }

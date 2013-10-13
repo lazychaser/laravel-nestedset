@@ -43,13 +43,13 @@ class QueryBuilder extends Builder {
     }
 
     /**
-     * Query path to specific node including that node itself.
+     * Query ancestors of specific node including that node itself.
      *
      * @param   integer  $id
      *
      * @return  \Kalnoy\Nestedset\QueryBuilder
      */
-    public function pathTo($id)
+    public function ancestorsOf($id)
     {
         $grammar = $this->getGrammar();
         $table  = $grammar->wrapTable($this->from);

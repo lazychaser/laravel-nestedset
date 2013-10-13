@@ -136,14 +136,12 @@ class Node extends Eloquent {
     }
 
     /**
-     * Get query for path to the node not including the node itself.
+     * Get query for ancestors to the node not including the node itself.
      *
      * @return  \Illuminate\Database\Eloquent\Builder
      */
-    public function path()
+    public function ancestors()
     {
-        if (!$this->exists) return array();
-
         $query = $this->newQuery();
         $grammar = $query->getQuery()->getGrammar();
         $table = $this->getTable();

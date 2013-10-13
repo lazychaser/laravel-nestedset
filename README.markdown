@@ -117,14 +117,14 @@ _Ancestors_ can be obtained in two ways:
 
 ```php
 // Target node will not be included into result since it is already available
-$path = $node->path()->get();
+$path = $node->ancestors()->get();
 ```
 
 or using the scope:
 
 ```php
 // Target node will be included into result
-$path = Category::pathTo($nodeId)->get();
+$path = Category::ancestorsOf($nodeId)->get();
 ```
 
 _Descendants_ can easily be retrieved in this way:
