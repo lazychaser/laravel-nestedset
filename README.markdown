@@ -195,26 +195,29 @@ if ($sibling = $node->nextSiblings()->first())
 }
 ```
 
-Moving up is a little bit trickier:
+Moving up is similar:
 
 ```php
-if ($sibling = $node->prevSiblings()->reversed()->first())
+if ($sibling = $node->prevSiblings()->first())
 {
     $node->before($sibling)->save();
 }
 ```
-
-To move node up we need to insert it before node that is right at the top of it.
-If we use `$node->prevSiblings()->first()` we'll get the first child of the parent 
-since all nodes are ordered by fixed values. We apply `reversed()` scope to reverse
-default order.
 
 ## Advanced usage
 
 ### Default order
 
 Nodes are ordered by lft column unless there is `limit` or `offset` is provided,
-or when user uses `orderBy`.
+or when user uses `orderBy()`.
+
+Reversed order can be applied using `reversed()` scope. When using `prevSiblings()`
+or `prev()` reversed order is aplied by default. To use the default order, use 
+`defaultOrder()` scope:
+
+```php
+$siblings = $node->prevSiblings()->defaultOrder()->get();
+```
 
 ### Custom collection
 
