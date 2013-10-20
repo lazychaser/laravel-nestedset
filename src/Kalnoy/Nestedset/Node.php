@@ -76,7 +76,7 @@ class Node extends Eloquent {
     /**
      * Get query for descendants of the node.
      *
-     * @return  \Illuminate\Database\Eloquent\Builder
+     * @return  \Kalnoy\Nestedset\QueryBuilder
      */
     public function descendants()
     {
@@ -90,35 +90,38 @@ class Node extends Eloquent {
      * 
      * @param self::AFTER|self::BEFORE|null $dir
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Kalnoy\Nestedset\QueryBuilder
      */
     public function siblings($dir = null)
     {
-        $query = $this->newQuery();
-
-        $query->where(static::PARENT_ID, '=', $this->getParentId());
-
         switch ($dir)
         {
             case self::AFTER: 
-                $query->where(static::LFT, '>', $this->getRgt());
+                $query = $this->next();
+
                 break;
 
             case self::BEFORE:
-                $query->where(static::LFT, '<', $this->getLft());
+                $query = $this->prev();
+
                 break;
 
             default:
-                $query->where($this->getKeyName(), '<>', $this->getKey());
+                $query = $this->newQuery()
+                    ->where($this->getKeyName(), '<>', $this->getKey());
+
+                break;
         }
 
+        $query->where(static::PARENT_ID, '=', $this->getParentId());
+        
         return $query;
     }
 
     /**
      * Get query for siblings after the node.
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Kalnoy\Nestedset\QueryBuilder
      */
     public function nextSiblings()
     {
@@ -128,7 +131,7 @@ class Node extends Eloquent {
     /**
      * Get query for siblings before the node.
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Kalnoy\Nestedset\QueryBuilder
      */
     public function prevSiblings()
     {
@@ -136,9 +139,32 @@ class Node extends Eloquent {
     }
 
     /**
+     * Get query for nodes after current node.
+     *
+     * @return \Kalnoy\Nestedset\QueryBuilder
+     */
+    public function next()
+    {
+        return $this->newQuery()
+            ->where(static::LFT, '>', $this->attributes[static::LFT]);
+    }
+
+    /**
+     * Get query for nodes before current node in reversed order.
+     *
+     * @return \Kalnoy\Nestedset\QueryBuilder
+     */
+    public function prev()
+    {
+        return $this->newQuery()
+            ->where(static::LFT, '<', $this->attributes[static::LFT])
+            ->reversed();
+    }
+
+    /**
      * Get query for ancestors to the node not including the node itself.
      *
-     * @return  \Illuminate\Database\Eloquent\Builder
+     * @return  \Kalnoy\Nestedset\QueryBuilder
      */
     public function ancestors()
     {
@@ -682,5 +708,101 @@ class Node extends Eloquent {
     public function getParentId()
     {
         return $this->attributes[static::PARENT_ID];
+    }
+
+    /**
+     * Shorthand for next()
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Node
+     */
+    public function getNext(array $columns = array('*'))
+    {
+        return $this->next()->first($columns);
+    }
+
+    /**
+     * Shorthand for prev()
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Node
+     */
+    public function getPrev(array $columns = array('*'))
+    {
+        return $this->prev()->first($columns);
+    }
+
+    /**
+     * Shorthand for ancestors()
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function getAncestors(array $columns = array('*'))
+    {
+        return $this->ancestors()->get($columns);
+    }
+
+    /**
+     * Shorthand for descendants()
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function getDescendants(array $columns = array('*'))
+    {
+        return $this->descendants()->get($columns);
+    }
+
+    /**
+     * Shorthand for nextSiblings().
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function getNextSiblings(array $columns = array('*'))
+    {
+        return $this->nextSiblings()->get($columns);
+    }
+
+    /**
+     * Shorthand for prevSiblings().
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function getPrevSiblings(array $columns = array('*'))
+    {
+        return $this->prevSiblings()->get($columns);
+    }
+
+    /**
+     * Get next sibling.
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Node
+     */
+    public function getNextSibling(array $columns = array('*'))
+    {
+        return $this->nextSiblings()->first($columns);
+    }
+
+    /**
+     * Get previous sibling.
+     *
+     * @param  array  $columns
+     *
+     * @return \Kalnoy\Nestedset\Node
+     */
+    public function getPrevSibling(array $columns = array('*'))
+    {
+        return $this->prevSiblings()->reversed()->first($columns);
     }
 }

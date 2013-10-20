@@ -380,4 +380,20 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('samsung', $root->name);
         $this->assertEquals(1, count($root->children));
     }
+
+    public function testRetrievesNextNode()
+    {
+        $node = $this->findCategory('apple');
+        $next = $node->next()->first();
+
+        $this->assertEquals('lenovo', $next->name);
+    }
+
+    public function testRetrievesPrevNode()
+    {
+        $node = $this->findCategory('apple');
+        $next = $node->prev()->first();
+
+        $this->assertEquals('notebooks', $next->name);
+    }
 }
