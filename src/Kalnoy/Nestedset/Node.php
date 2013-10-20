@@ -146,7 +146,8 @@ class Node extends Eloquent {
     public function next()
     {
         return $this->newQuery()
-            ->where(static::LFT, '>', $this->attributes[static::LFT]);
+            ->where(static::LFT, '>', $this->attributes[static::LFT])
+            ->defaultOrder();
     }
 
     /**
