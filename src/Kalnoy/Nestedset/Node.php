@@ -760,6 +760,18 @@ class Node extends Eloquent {
     }
 
     /**
+     * Shorthand for siblings()
+     *
+     * @param   array   $column
+     *
+     * @return  \Kalnoy\Nestedset\Collection
+     */
+    public function getSiblings(array $column = array('*')) 
+    {
+        return $this->siblings()->get($columns);
+    }
+
+    /**
      * Shorthand for nextSiblings().
      *
      * @param  array  $columns

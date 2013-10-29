@@ -142,6 +142,19 @@ There are few more methods:
 *   `nextSiblings()` and `prevSiblings()` to query nodes after and before the node
     respectively.
 
+`Node` is provided with few helper methods for quicker access:
+
+*   `getAncestors`
+*   `getDescendants`
+*   `getSiblings`
+*   `getNextSiblings`
+*   `getPrevSiblings`
+*   `getNextSibling`
+*   `getPrevSibling`
+
+Each of this methods accepts array of columns needed to be selected and returns
+the result of corresponding query.
+
 Nodes can be provided with _nesting level_ if scope `withDepth` is applied:
 
 ```php
@@ -189,7 +202,7 @@ the parent.
 To move node down, this snippet can be used:
 
 ```php
-if ($sibling = $node->nextSiblings()->first())
+if ($sibling = $node->getNextSibling())
 {
     $node->after($sibling)->save();
 }
@@ -198,7 +211,7 @@ if ($sibling = $node->nextSiblings()->first())
 Moving up is similar:
 
 ```php
-if ($sibling = $node->prevSiblings()->first())
+if ($sibling = $node->getPrevSibling())
 {
     $node->before($sibling)->save();
 }
