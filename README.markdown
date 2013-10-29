@@ -6,6 +6,9 @@ your database out-of-box. You can:
     descendants and ancestors;
 *   Forget about performance issues!
 
+Check out [example application](http://github.com/lazychaser/nestedset-app)
+that uses this package!
+
 ## Installation
 
 The package can be installed using Composer, just include it into `required` 
