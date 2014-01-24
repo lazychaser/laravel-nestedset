@@ -1,2 +1,2 @@
 ### 1.0.1
-*   Removed `Collection::toDictionary`. Use `Collection::groupBy`.
+*   `Collection::toDictionary` is now obsolete. Use `Collection::groupBy`.

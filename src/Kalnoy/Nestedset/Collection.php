@@ -5,6 +5,23 @@ use \Illuminate\Database\Eloquent\Collection as BaseCollection;
 class Collection extends BaseCollection {
 
     /**
+     * Convert list of nodes to dictionary with specified key.
+     *
+     * If no key is specified then "parent_id" is used.
+     *
+     * @param string $key
+     *
+     * @return  array
+     * @deprecated since 1.1
+     */
+    public function toDictionary($key = null)
+    {
+        if ($key === null) $key = $this->first()->getParentIdName();
+
+        return $this->groupBy($key)->all();
+    }
+
+    /**
      * Build tree from node list. Each item will have set children relation.
      *
      * To succesfully build tree "id", "_lft" and "parent_id" keys must present.
@@ -27,20 +44,22 @@ class Collection extends BaseCollection {
 
         $rootNodeId = $this->getRootNodeId($rootNodeId);
 
-        if (!isset($dictionary[$rootNodeId]))
+        if (!$dictionary->has($rootNodeId))
         {
             return $result;
         }
 
-        $result->items = $dictionary[$rootNodeId];
+        $result->items = $dictionary->get($rootNodeId);
 
         foreach ($this->items as $item)
         {
             $key = $item->getKey();
 
-            $children = new BaseCollection(isset($dictionary[$key]) ? $dictionary[$key] : array());
+            $children = $dictionary->has($key)
+                ? $dictionary->get($key)
+                : array();
 
-            $item->setRelation('children', $children);
+            $item->setRelation('children', new BaseCollection($children));
         }
 
         return $result;
