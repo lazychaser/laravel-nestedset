@@ -75,7 +75,7 @@ class CreateCategoriesTable extends Migration {
 ### The model
 
 The next step is to create `Eloquent` model. I prefer [Jeffrey Way's generators][1],
-but you can stick to whatever you prefer, just make shure that model is extended 
+but you can stick to whatever you prefer, just make sure that model is extended 
 from `\Kalnoy\Nestedset\Node`, like here:
 
 [1]: https://github.com/JeffreyWay/Laravel-4-Generators
