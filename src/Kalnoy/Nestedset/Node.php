@@ -1,4 +1,6 @@
-<?php namespace Kalnoy\Nestedset;
+<?php
+
+namespace Kalnoy\Nestedset;
 
 use \Illuminate\Database\Eloquent\Model as Eloquent;
 use \Illuminate\Database\Query\Builder;
@@ -40,6 +42,27 @@ class Node extends Eloquent {
      * @var string 
      */
     const AFTER = 'after';
+
+    /**
+     * Whether model uses soft delete.
+     * 
+     * @var bool
+     * 
+     * @since 1.1
+     */
+    static protected $softDelete;
+
+    /**
+     * {@inheritdoc}
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        $instance = new static;
+
+        static::$softDelete = method_exists($instance, 'withTrashed');
+    }
 
     /**
      * Get the root node.
@@ -300,7 +323,7 @@ class Node extends Eloquent {
      */
     protected function checkTarget(Node $node)
     {
-        if (!$node->exists || $node->isDirty(static::LFT)) 
+        if ( ! $node->exists || $node->isDirty(static::LFT)) 
         {
             throw new Exception("Target node is updated but not saved.");
         }
@@ -361,19 +384,19 @@ class Node extends Eloquent {
         {
             if ($this->exists) 
             {
-                if ($this->isDirty(static::LFT) && !$this->updateTree())
+                if ($this->isDirty(static::LFT) && ! $this->updateTree())
                 {
                     return false;
                 }
             }
             else
             {
-                if (!isset($this->attributes[static::LFT]))
+                if ( ! isset($this->attributes[static::LFT]))
                 {
                     throw new Exception("Cannot save node until it is inserted.");
                 }
 
-                if (!$this->updateTree()) return false;
+                if ( ! $this->updateTree()) return false;
             }
         }
 
@@ -382,7 +405,7 @@ class Node extends Eloquent {
             throw new Exception("Cannot delete root node.");
         }
 
-        if ($event === 'deleted' && !$this->softDelete) $this->deleteNode();
+        if ($event === 'deleted' && ! static::$softDelete) $this->deleteNode();
 
         return parent::fireModelEvent($event, $halt);
     }
@@ -592,6 +615,16 @@ class Node extends Eloquent {
     }
 
     /**
+     * Get a new query including deleted nodes.
+     * 
+     * @since 1.1
+     */
+    protected function newQueryWithDeleted()
+    {
+        return static::$softDelete ? $this->withTrashed() : $this->newQuery();
+    }
+
+    /**
      * Create a new NestedSet Collection instance.
      *
      * @param   array   $models
@@ -610,7 +643,7 @@ class Node extends Eloquent {
      */
     public function getNodeHeight()
     {
-        if (!$this->exists) return 2;
+        if ( ! $this->exists) return 2;
 
         return $this->attributes[static::RGT] - $this->attributes[static::LFT] + 1;
     }
@@ -635,7 +668,7 @@ class Node extends Eloquent {
      */
     public function setParentIdAttribute($value)
     {
-        if (!isset($this->attributes[static::PARENT_ID]) || $this->attributes[static::PARENT_ID] != $value) 
+        if ( ! isset($this->attributes[static::PARENT_ID]) || $this->attributes[static::PARENT_ID] != $value) 
         {
             $this->appendTo(static::findOrFail($value));
         }

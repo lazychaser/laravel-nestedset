@@ -48,7 +48,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         // Check if lft and rgt values are unique
         $checks[] = "from $table c1, $table c2 where c1.id <> c2.id and ".
             "(c1._lft=c2._lft or c1._rgt=c2._rgt or c1._lft=c2._rgt or c1._rgt=c2._lft)";
-        
+
         // Check if parent_id is set correctly
         $checks[] = "from $table c, $table p, $table m where c.parent_id=p.id and m.id <> p.id and m.id <> c.id and ".
              "(c._lft not between p._lft and p._rgt or c._lft between m._lft and m._rgt and m._lft between p._lft and p._rgt)";
