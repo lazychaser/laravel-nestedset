@@ -39,7 +39,7 @@ class QueryBuilder extends Builder {
      */
     public function whereIsRoot()
     {
-        return $this->where($this->node->getLftName(), '=', 1);
+        return $this->whereNull($this->node->getParentIdName());
     }
 
     /**
@@ -98,7 +98,7 @@ class QueryBuilder extends Builder {
      */
     public function withoutRoot()
     {
-        return $this->where($this->node->getLftName(), '<>', 1);
+        return $this->whereNotNull($this->node->getParentIdName());
     }
 
     /**
