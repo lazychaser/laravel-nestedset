@@ -44,7 +44,7 @@ class Collection extends BaseCollection {
 
         $rootNodeId = $this->getRootNodeId($rootNodeId);
 
-        if (!$dictionary->has($rootNodeId))
+        if ( ! $dictionary->has($rootNodeId))
         {
             return $result;
         }
@@ -53,11 +53,7 @@ class Collection extends BaseCollection {
 
         foreach ($this->items as $item)
         {
-            $key = $item->getKey();
-
-            $children = $dictionary->has($key)
-                ? $dictionary->get($key)
-                : array();
+            $children = $dictionary->get($item->getKey(), []);
 
             $item->setRelation('children', new BaseCollection($children));
         }

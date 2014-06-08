@@ -106,6 +106,7 @@ class Node extends Eloquent {
         {
             static::deleting(function ($model)
             {
+                // We will need fresh data to delete node safely
                 $model->refreshNode();
             });
 
@@ -286,9 +287,7 @@ class Node extends Eloquent {
     {
         if ( ! $this->exists || static::$actionsPerformed === 0) return;
 
-        $attributes = $this->newServiceQuery()
-            ->where($this->getKeyName(), '=', $this->getKey())
-            ->first([ static::LFT, static::RGT ]);
+        $attributes = $this->newServiceQuery()->getNodeData($this->getKey());
 
         $this->attributes = array_merge($this->attributes, $attributes);
     }
@@ -332,9 +331,7 @@ class Node extends Eloquent {
      */
     public function descendants()
     {
-        $query = $this->newQuery();
-
-        return $query->whereBetween(static::LFT, array($this->getLft() + 1, $this->getRgt()));
+        return $this->newQuery()->whereDescendantOf($this->getKey());
     }
 
     /**
@@ -397,9 +394,7 @@ class Node extends Eloquent {
      */
     public function next()
     {
-        return $this->newQuery()
-            ->where(static::LFT, '>', $this->attributes[static::LFT])
-            ->defaultOrder();
+        return $this->newQuery()->whereIsAfter($this->getKey())->defaultOrder();
     }
 
     /**
@@ -409,9 +404,7 @@ class Node extends Eloquent {
      */
     public function prev()
     {
-        return $this->newQuery()
-            ->where(static::LFT, '<', $this->attributes[static::LFT])
-            ->reversed();
+        return $this->newQuery()->whereIsBefore($this->getKey())->reversed();
     }
 
     /**
@@ -421,17 +414,7 @@ class Node extends Eloquent {
      */
     public function ancestors()
     {
-        $query = $this->newQuery();
-        $grammar = $query->getQuery()->getGrammar();
-        $table = $this->getTable();
-        $lft   = $grammar->wrap(static::LFT);
-        $rgt   = $grammar->wrap(static::RGT);
-
-        $lftValue = $this->getLft();
-
-        return $query
-            ->whereRaw("? between $lft and $rgt", array($lftValue))
-            ->where(static::LFT, "<>", $lftValue);
+        return $this->newQuery()->whereAncestorOf($this->getKey());
     }
 
     /**
@@ -639,7 +622,7 @@ class Node extends Eloquent {
 
         $params = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
 
-        $query = $this->newServiceQuery()
+        $query = $this->newServiceQuery()->getQuery()
             ->whereBetween(static::LFT, array($from, $to))
             ->orWhereBetween(static::RGT, array($from, $to));
 
@@ -679,7 +662,7 @@ class Node extends Eloquent {
     {
         $params = compact('cut', 'height');
         
-        $query = $this->newServiceQuery();
+        $query = $this->newServiceQuery()->getQuery();
 
         return $query
             ->where(static::LFT, '>=', $cut)
@@ -743,7 +726,7 @@ class Node extends Eloquent {
     protected function deleteNode()
     {
         // DBMS with support of foreign keys will remove descendant nodes automatically
-        $this->descendants()->delete();
+        $this->newQuery()->whereNodeBetween([ $this->getLft(), $this->getRgt() ])->delete();
 
         // In case if user wants to re-create the node
         $this->makeRoot();
@@ -752,17 +735,13 @@ class Node extends Eloquent {
     }
 
     /**
-     * Get a new base query builder instance.
-     *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * {@inheritdoc}
+     * 
+     * @since 1.2
      */
-    protected function newBaseQueryBuilder()
+    public function newEloquentBuilder($query)
     {
-        $conn = $this->getConnection();
-
-        $grammar = $conn->getQueryGrammar();
-
-        return new QueryBuilder($conn, $grammar, $conn->getPostProcessor(), $this);
+        return new QueryBuilder($query);
     }
 
     /**
@@ -772,15 +751,11 @@ class Node extends Eloquent {
      */
     protected function newServiceQuery()
     {
-        return with(static::$softDelete ? $this->withTrashed() : $this->newQuery())->getQuery();
+        return static::$softDelete ? $this->withTrashed() : $this->newQuery();
     }
 
     /**
-     * Create a new NestedSet Collection instance.
-     *
-     * @param   array   $models
-     *
-     * @return  \Kalnoy\Nestedset\Collection
+     * {@inheritdoc}
      */
     public function newCollection(array $models = array())
     {
@@ -941,7 +916,7 @@ class Node extends Eloquent {
      */
     public function getAncestors(array $columns = array('*'))
     {
-        return $this->ancestors()->get($columns);
+        return $this->newQuery()->ancestorsOf($this->getKey(), $columns);
     }
 
     /**
@@ -953,7 +928,7 @@ class Node extends Eloquent {
      */
     public function getDescendants(array $columns = array('*'))
     {
-        return $this->descendants()->get($columns);
+        return $this->newQuery()->descendantsOf($this->getKey(), $columns);
     }
 
     /**
@@ -1014,5 +989,17 @@ class Node extends Eloquent {
     public function getPrevSibling(array $columns = array('*'))
     {
         return $this->prevSiblings()->reversed()->first($columns);
+    }
+
+    /**
+     * Get whether a node is a descendant of other node.
+     * 
+     * @param \Kalnoy\Nestedset\Node $other
+     * 
+     * @return bool
+     */
+    public function isDescendantOf(Node $other)
+    {
+        return $this->getLft() > $other->getLft() and $this->getLft() < $other->getRgt();
     }
 }

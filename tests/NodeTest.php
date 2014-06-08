@@ -92,6 +92,20 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         return array($node->_lft, $node->_rgt, $node->parent_id);
     }
 
+    public function testGetsNodeData()
+    {
+        $data = Category::getNodeData(3);
+
+        $this->assertEquals([ '_lft' => 3, '_rgt' => 4 ], $data);
+    }
+
+    public function testGetsPlainNodeData()
+    {
+        $data = Category::getPlainNodeData(3);
+
+        $this->assertEquals([ 3, 4 ], $data);
+    }
+
     public function testRecievesValidValuesWhenAppendedTo()
     {
         $node = new Category([ 'name' => 'test' ]);
@@ -179,13 +193,6 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $path = $node->ancestors()->lists('name');
 
         $this->assertEquals(array('store', 'notebooks'), $path);
-    }
-
-    public function testAncestorsOfReturnsAncestorsWithNode()
-    {
-        $path = Category::ancestorsOf(3)->lists('name');
-
-        $this->assertEquals(array('store', 'notebooks', 'apple'), $path);
     }
 
     public function testDescendantsQueried()
