@@ -6,7 +6,7 @@
     data (lft and rgt values).
 *   The root node is not required now. You can use `saveAsRoot` or `makeRoot` method.
     New model is saved as root by default.
-*   You can now create as many nodes and in any order as possible within single 
+*   You can now create as many nodes and in any order as you want within single 
     request.
 *   Laravel 2 is supported but not required.
 *   `ancestorsOf` now doesn't include target node into results.
@@ -15,6 +15,8 @@
 *   Default order is not applied by default.
 *   New method `descendantsOf` that allows to get descendants by id of the node.
 *   Added `countErrors` and `isBroken` methods to check whether the tree is broken.
+*   `NestedSet::createRoot` has been removed.
+*   `NestedSet::column` doesn't create a foreign key anymore.
 
 ### 1.1.0
 
