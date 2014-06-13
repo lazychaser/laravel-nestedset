@@ -15,8 +15,8 @@ class NestedSet {
      */
     public static function columns(Blueprint $table, $primaryKey = 'id')
     {
-        $table->integer(Node::LFT);
-        $table->integer(Node::RGT);
+        $table->unsignedInteger(Node::LFT);
+        $table->unsignedInteger(Node::RGT);
         $table->unsignedInteger(Node::PARENT_ID)->nullable();
 
         $table->index(self::getDefaultColumns());
