@@ -1,4 +1,4 @@
-### 1.2.0
+### 2.0.0
 
 *   Added `insertAfter`, `insertBefore` methods.
 *   `prepend` and `append` methods now save target model.
