@@ -2,6 +2,7 @@
 
 namespace Kalnoy\Nestedset;
 
+use LogicException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Grammars\Grammar;
@@ -12,6 +13,8 @@ class QueryBuilder extends Builder {
 
     /**
      * Get node's `lft` and `rgt` values.
+     * 
+     * @since 2.0
      * 
      * @param mixed $id
      * 
@@ -26,6 +29,8 @@ class QueryBuilder extends Builder {
 
     /**
      * Get plain node data.
+     * 
+     * @since 2.0
      * 
      * @param mixed $id
      *
@@ -50,6 +55,8 @@ class QueryBuilder extends Builder {
 
     /**
      * Limit results to ancestors of specified node.
+     * 
+     * @since 2.0
      *
      * @param mixed $id
      *
@@ -57,10 +64,10 @@ class QueryBuilder extends Builder {
      */
     public function whereAncestorOf($id)
     {
-        $table = $this->wrapTable();
+        $table = $this->wrappedTable();
         $keyName = $this->model->getKeyName();
 
-        list($lft, $rgt) = $this->wrapColumns();
+        list($lft, $rgt) = $this->wrappedColumns();
 
         $key = $this->query->getGrammar()->wrap($keyName);
 
@@ -80,6 +87,8 @@ class QueryBuilder extends Builder {
     /**
      * Get ancestors of specified node.
      * 
+     * @since 2.0
+     * 
      * @param mixed $id
      * @param array $columns
      * 
@@ -92,6 +101,8 @@ class QueryBuilder extends Builder {
 
     /**
      * Add node selection statement between specified range.
+     * 
+     * @since 2.0
      * 
      * @param array $values
      * @param string $boolean
@@ -109,6 +120,8 @@ class QueryBuilder extends Builder {
     /**
      * Add node selection statement between specified range joined with `or` operator.
      * 
+     * @since 2.0
+     * 
      * @param array $values
      * 
      * @return $this
@@ -120,6 +133,8 @@ class QueryBuilder extends Builder {
 
     /**
      * Add constraint statement to descendants of specified node.
+     * 
+     * @since 2.0
      *
      * @param mixed $id
      * @param string $boolean
@@ -140,6 +155,8 @@ class QueryBuilder extends Builder {
     /**
      * Get descendants of specified node.
      * 
+     * @since 2.0
+     * 
      * @param mixed $id
      * @param array $columns
      * 
@@ -153,6 +170,8 @@ class QueryBuilder extends Builder {
     /**
      * Constraint nodes to those that are after specified node.
      * 
+     * @since 2.0
+     * 
      * @param mixed $id
      * @param string $boolean
      * 
@@ -160,9 +179,9 @@ class QueryBuilder extends Builder {
      */
     public function whereIsAfter($id, $boolean = 'and')
     {
-        $table = $this->wrapTable();
-        list($lft, $rgt) = $this->wrapColumns();
-        $key = $this->wrapKey();
+        $table = $this->wrappedTable();
+        list($lft, $rgt) = $this->wrappedColumns();
+        $key = $this->wrappedKey();
 
         $this->query->whereRaw("{$lft} > (select _n.{$lft} from {$table} _n where _n.{$key} = ?)", [ $id ], $boolean);
 
@@ -172,6 +191,8 @@ class QueryBuilder extends Builder {
     /**
      * Constraint nodes to those that are before specified node.
      * 
+     * @since 2.0
+     * 
      * @param mixed $id
      * @param string $boolean
      * 
@@ -179,9 +200,9 @@ class QueryBuilder extends Builder {
      */
     public function whereIsBefore($id, $boolean = 'and')
     {
-        $table = $this->wrapTable();
-        list($lft, $rgt) = $this->wrapColumns();
-        $key = $this->wrapKey();
+        $table = $this->wrappedTable();
+        list($lft, $rgt) = $this->wrappedColumns();
+        $key = $this->wrappedKey();
 
         $this->query->whereRaw("{$lft} < (select _b.{$lft} from {$table} _b where _b.{$key} = ?)", [ $id ], $boolean);
 
@@ -197,9 +218,9 @@ class QueryBuilder extends Builder {
      */
     public function withDepth($key = 'depth')
     {
-        $table = $this->wrapTable();
+        $table = $this->wrappedTable();
         
-        list($lft, $rgt) = $this->wrapColumns();
+        list($lft, $rgt) = $this->wrappedColumns();
 
         $key = $this->query->getGrammar()->wrap($key);
 
@@ -218,9 +239,11 @@ class QueryBuilder extends Builder {
     /**
      * Get wrapped `lft` and `rgt` column names.
      * 
+     * @since 2.0
+     * 
      * @return array
      */
-    protected function wrapColumns()
+    protected function wrappedColumns()
     {
         $grammar = $this->query->getGrammar();
 
@@ -234,9 +257,11 @@ class QueryBuilder extends Builder {
     /**
      * Get a wrapped table name.
      * 
+     * @since 2.0
+     * 
      * @return string
      */
-    protected function wrapTable()
+    protected function wrappedTable()
     {
         return $this->query->getGrammar()->wrap($this->getQuery()->from);
     }
@@ -244,9 +269,11 @@ class QueryBuilder extends Builder {
     /**
      * Wrap model's key name.
      * 
+     * @since 2.0
+     * 
      * @return string
      */
-    protected function wrapKey()
+    protected function wrappedKey()
     {
         return $this->query->getGrammar()->wrap($this->model->getKeyName());
     }
@@ -266,6 +293,8 @@ class QueryBuilder extends Builder {
     /**
      * Equivalent of `withouRoot`.
      * 
+     * @since 2.0
+     * 
      * @return $this
      */
     public function hasParent()
@@ -278,11 +307,13 @@ class QueryBuilder extends Builder {
     /**
      * Get only nodes that have children.
      * 
+     * @since 2.0
+     * 
      * @return $this
      */
     public function hasChildren()
     {
-        list($lft, $rgt) = $this->wrapColumns();
+        list($lft, $rgt) = $this->wrappedColumns();
 
         $this->query->whereRaw("{$rgt} > {$lft} + 1");
 
@@ -313,5 +344,164 @@ class QueryBuilder extends Builder {
     public function reversed()
     {
         return $this->defaultOrder('desc');
+    }
+
+    /**
+     * Move a node to the new position.
+     * 
+     * @param int $key
+     * @param int $position
+     *
+     * @return int
+     * 
+     * @throws \LogicException
+     */
+    public function moveNode($key, $position)
+    {
+        list($lft, $rgt) = $this->model->newQuery()->getPlainNodeData($key);
+        
+        if ($lft < $position && $position < $rgt)
+        {
+            throw new LogicException('Cannot move node into itself.');
+        }
+
+        // Get boundaries of nodes that should be moved to new position
+        $from = min($lft, $position);
+        $to   = max($rgt, $position - 1);
+
+        // The height of node that is being moved
+        $height = $rgt - $lft + 1;
+
+        // The distance that our node will travel to reach it's destination
+        $distance = $to - $from + 1 - $height;
+
+        if ($position > $lft) $height *= -1; else $distance *= -1;
+
+        $params = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
+
+        $boundary = [ $from, $to ];
+
+        $query = $this->query->where(function ($inner) use ($boundary)
+        {
+            $inner->whereBetween($this->model->getLftName(), $boundary);
+            $inner->orWhereBetween($this->model->getRgtName(), $boundary);
+        });
+
+        return $query->update($this->patch($params));
+    }
+
+    /**
+     * Make or remove gap in the tree. Negative height will remove gap.
+     * 
+     * @since 2.0
+     *
+     * @param int $cut
+     * @param int $height
+     *
+     * @return int
+     */
+    public function makeGap($cut, $height)
+    {
+        $params = compact('cut', 'height');
+
+        $this->query->where(function ($inner) use ($cut)
+        {
+            $inner->where($this->model->getLftName(), '>=', $cut);
+            $inner->orWhere($this->model->getRgtName(), '>=', $cut);
+        });
+
+        return $this->query->update($this->patch($params));
+    }
+
+    /**
+     * Get patch for columns.
+     * 
+     * @since 2.0
+     *
+     * @param array $params
+     *
+     * @return array
+     */
+    protected function patch(array $params)
+    {
+        $grammar = $this->query->getGrammar();
+
+        $columns = array();
+
+        foreach ([ $this->model->getLftName(), $this->model->getRgtName() ] as $col) 
+        {
+            $columns[$col] = $this->columnPatch($grammar->wrap($col), $params);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Get patch for single column.
+     * 
+     * @since 2.0
+     *
+     * @param string $col
+     * @param array  $params
+     *
+     * @return string
+     */
+    protected function columnPatch($col, array $params)
+    {
+        extract($params);
+
+        if ($height > 0) $height = '+'.$height;
+
+        if (isset($cut)) 
+        {
+            return new Expression("case when {$col} >= {$cut} then {$col}{$height} else {$col} end");
+        }
+
+        if ($distance > 0) $distance = '+'.$distance;
+
+        return new Expression("case ".
+            "when {$col} between {$lft} and {$rgt} then {$col}{$distance} ". // Move the node
+            "when {$col} between {$from} and {$to} then {$col}{$height} ". // Move other nodes
+            "else {$col} end"
+        );
+    }
+
+    /**
+     * Get statistics of errors of the tree.
+     * 
+     * @since 2.0
+     * 
+     * @return array
+     */
+    public function countErrors()
+    {
+        $table = $this->wrappedTable();
+        list($lft, $rgt) = $this->wrappedColumns();
+
+        $checks = array();
+
+        // Check if lft and rgt values are ok
+        $checks['oddness'] = "from {$table} where {$lft} >= {$rgt} or ({$rgt} - {$lft}) % 2 = 0";
+
+        // Check if lft and rgt values are unique
+        $checks['duplicates'] = "from {$table} c1, {$table} c2 where c1.id <> c2.id and ".
+            "(c1.{$lft}=c2.{$lft} or c1.{$rgt}=c2.{$rgt} or c1.{$lft}=c2.{$rgt} or c1.{$rgt}=c2.{$lft})";
+
+        // Check if parent_id is set correctly
+        $checks['wrong_parent'] = 
+            "from {$table} c, {$table} p, $table m ".
+            "where c.parent_id=p.id and m.id <> p.id and m.id <> c.id and ".
+             "(c.{$lft} not between p.{$lft} and p.{$rgt} or c.{$lft} between m.{$lft} and m.{$rgt} and m.{$lft} between p.{$lft} and p.{$rgt})";
+
+        $query = $this->query->newQuery();
+
+        foreach ($checks as $key => $check)
+        {
+            $sql = 'select count(1) '.$check;
+
+            $query->addSelect(new Expression('(select count(1) '.$check.') as '.$key));
+        }
+
+        return $query->first();
     }
 }

@@ -64,6 +64,14 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array('errors' => null), $actual, "The tree structure of $table is broken!");
     }
 
+    public function dumpTree($items)
+    {
+        foreach ($items as $item)
+        {
+            echo $item->name." ".$item->getLft()." ".$item->getRgt().PHP_EOL;
+        }
+    }
+
     public function assertNodeRecievesValidValues($node)
     {
         $lft = $node->getLft();
@@ -154,8 +162,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $target->append($node);
 
-        $this->assertTreeNotBroken();
         $this->assertNodeRecievesValidValues($node);
+        $this->assertTreeNotBroken();
     }
 
     public function testCategoryMovesUp()
@@ -405,5 +413,12 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($node->up(2));
 
         $this->assertEquals($node->_lft, 9);
+    }
+
+    public function testCountsTreeErrors()
+    {
+        $errors = with(new Category)->countErrors();
+
+        $this->assertEquals([ 'oddness' => 0, 'duplicates' => 0, 'wrong_parent' => 0 ], $errors);
     }
 }

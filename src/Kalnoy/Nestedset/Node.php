@@ -66,7 +66,7 @@ class Node extends Eloquent {
      * 
      * @var int
      */
-    static $actionsPerformed = 0;
+    protected static $actionsPerformed = 0;
 
     /**
      * {@inheritdoc}
@@ -290,6 +290,7 @@ class Node extends Eloquent {
         $attributes = $this->newServiceQuery()->getNodeData($this->getKey());
 
         $this->attributes = array_merge($this->attributes, $attributes);
+        $this->original = array_merge($this->original, $attributes);
     }
 
     /**
@@ -414,7 +415,7 @@ class Node extends Eloquent {
      */
     public function ancestors()
     {
-        return $this->newQuery()->whereAncestorOf($this->getKey());
+        return $this->newQuery()->whereAncestorOf($this->getKey())->defaultOrder();
     }
 
     /**
@@ -576,67 +577,35 @@ class Node extends Eloquent {
      */
     protected function insertAt($position)
     {
-        $this->refreshNode();
-
-        if ($this->exists && $this->getLft() < $position && $position < $this->getRgt()) 
-        {
-            throw new Exception("Trying to insert node into one of it's descendants.");
-        }
-
-        if ($this->exists)
-        {
-            $this->moveNode($position);
-        }
-        else
-        {
-            $this->insertNode($position);
-        }
-
         ++static::$actionsPerformed;
+
+        $result = $this->exists ? $this->moveNode($position) : $this->insertNode($position);
+
+        return $result;
     }
 
     /**
-     * Move a node to new position.
+     * Move a node to the new position.
+     * 
+     * @since 2.0
      *
-     * @param int $lft
-     * @param int $rgt
-     * @param int $pos
+     * @param int $position
      *
      * @return int
      */
-    protected function moveNode($pos)
+    protected function moveNode($position)
     {
-        $lft = $this->getLft();
-        $rgt = $this->getRgt();
+        $updated = $this->newServiceQuery()->moveNode($this->getKey(), $position);
 
-        $from = min($lft, $pos);
-        $to   = max($rgt, $pos - 1);
+        if ($updated) $this->refreshNode();
 
-        // The height of node that is being moved
-        $height = $rgt - $lft + 1;
-
-        // The distance that our node will travel to reach it's destination
-        $distance = $to - $from + 1 - $height;
-
-        if ($pos > $lft) $height *= -1; else $distance *= -1;
-
-        $params = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
-
-        $query = $this->newServiceQuery()->getQuery()
-            ->whereBetween(static::LFT, array($from, $to))
-            ->orWhereBetween(static::RGT, array($from, $to));
-
-        $grammar = $query->getGrammar();
-
-        // Sync with original since those attributes are updated after prev operation
-        $this->original[static::LFT] = $this->attributes[static::LFT] += $distance;
-        $this->original[static::RGT] = $this->attributes[static::RGT] += $distance;
-
-        return $query->update($this->getColumnsPatch($params, $grammar));
+        return $updated > 0;
     }
 
     /**
      * Insert new node at specified position.
+     * 
+     * @since 2.0
      * 
      * @param int $position
      */
@@ -648,74 +617,8 @@ class Node extends Eloquent {
 
         $this->setAttribute(static::LFT, $position);
         $this->setAttribute(static::RGT, $position + $height - 1);
-    }
 
-    /**
-     * Make or remove gap in the tree. Negative height will remove gap.
-     *
-     * @param int $cut
-     * @param int $height
-     *
-     * @return int the number of updated nodes.
-     */
-    protected function makeGap($cut, $height)
-    {
-        $params = compact('cut', 'height');
-        
-        $query = $this->newServiceQuery()->getQuery();
-
-        return $query
-            ->where(static::LFT, '>=', $cut)
-            ->orWhere(static::RGT, '>=', $cut)
-            ->update($this->getColumnsPatch($params, $query->getGrammar()));
-    }
-
-    /**
-     * Get patch for columns.
-     *
-     * @param  array  $params
-     * @param  \Illuminate\Database\Query\Grammars\Grammar $grammar
-     *
-     * @return array
-     */
-    protected function getColumnsPatch(array $params, $grammar)
-    {
-        $columns = array();
-
-        foreach (array(static::LFT, static::RGT) as $col) 
-        {
-            $columns[$col] = $this->getColumnPatch($grammar->wrap($col), $params);
-        }
-
-        return $columns;
-    }
-
-    /**
-     * Get patch for single column.
-     *
-     * @param  string $col
-     * @param  array  $params
-     *
-     * @return string
-     */
-    protected function getColumnPatch($col, array $params)
-    {
-        extract($params);
-
-        if ($height > 0) $height = '+'.$height;
-
-        if (isset($cut)) 
-        {
-            return new Expression("case when $col >= $cut then $col $height else $col end");
-        }
-
-        if ($distance > 0) $distance = '+'.$distance;
-
-        return new Expression("case ".
-            "when $col between $lft and $rgt then $col $distance ".
-            "when $col between $from and $to then $col $height ".
-            "else $col end"
-        );
+        return true;
     }
 
     /**
@@ -737,7 +640,7 @@ class Node extends Eloquent {
     /**
      * {@inheritdoc}
      * 
-     * @since 1.2
+     * @since 2.0
      */
     public function newEloquentBuilder($query)
     {
@@ -775,7 +678,7 @@ class Node extends Eloquent {
     }
 
     /**
-     * Get node size (rgt-lft).
+     * Get node height (rgt - lft + 1).
      *
      * @return int
      */
@@ -1001,5 +904,41 @@ class Node extends Eloquent {
     public function isDescendantOf(Node $other)
     {
         return $this->getLft() > $other->getLft() and $this->getLft() < $other->getRgt();
+    }
+
+    /**
+     * Get statistics of errors of the tree.
+     * 
+     * @since 2.0
+     * 
+     * @return array
+     */
+    public function countErrors()
+    {
+        return $this->newServiceQuery()->countErrors();
+    }
+
+    /**
+     * Get the number of total errors of the tree.
+     * 
+     * @since 2.0
+     * 
+     * @return int
+     */
+    public function getTotalErrors()
+    {
+        return array_sum($this->countErrors());
+    }
+
+    /**
+     * Get whether the tree is broken.
+     * 
+     * @since 2.0
+     * 
+     * @return bool
+     */
+    public function isBroken()
+    {
+        return $this->getTotalErrors() > 0;
     }
 }
