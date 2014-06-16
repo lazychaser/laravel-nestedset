@@ -23,7 +23,7 @@ a way to effectively store hierarchical data in a relational table. From wikiped
 
 NSM shows good performance when tree is updated rarely. It is tuned to be fast for
 getting related nodes. It'is ideally suited for building multi-depth menu or 
-categories in shop.
+categories for shop.
 
 Manipulating nodes
 ------------------
@@ -283,7 +283,7 @@ $result = Category::withDepth()->having('depth', '=', 1)->get();
 
 Each node has it's own unique value that determines its position in the tree. If
 you want node to be ordered by this value, you can use `defaultOrder` method on
-query builder:
+the query builder:
 
 ```php
 // All nodes will now be ordered by lft value
