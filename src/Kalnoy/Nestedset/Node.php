@@ -4,9 +4,10 @@ namespace Kalnoy\Nestedset;
 
 use Exception;
 use LogicException;
-use \Illuminate\Database\Eloquent\Model as Eloquent;
-use \Illuminate\Database\Query\Builder;
-use \Illuminate\Database\Query\Expression;
+use Illuminate\Database\Eloquent\Model as Eloquent;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class Node extends Eloquent {
 
@@ -699,6 +700,37 @@ class Node extends Eloquent {
         $instance->clearAction();
 
         return $instance;
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * Use `children` key on `$attributes` to create child nodes.
+     * 
+     * @param \Kalnoy\Nestedset\Node $parent
+     * 
+     */
+    public static function create(array $attributes, Node $parent = null)
+    {
+        $children = array_pull($attributes, 'children', []);
+
+        $instance = new static($attributes);
+
+        if ($parent) $instance->appendTo($parent);
+
+        $instance->save();
+
+        // Now create children
+        $relation = new EloquentCollection;
+
+        foreach ($children as $child)
+        {
+            $relation->add($child = static::create($child, $instance));
+
+            $child->setRelation('parent', $instance);
+        }
+
+        return $instance->setRelation('children', $relation);
     }
 
     /**

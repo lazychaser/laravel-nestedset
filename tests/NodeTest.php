@@ -421,4 +421,26 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $this->assertEquals([ 'oddness' => 0, 'duplicates' => 0, 'wrong_parent' => 0 ], $errors);
     }
+
+    public function testCreatesNode()
+    {
+        $node = Category::create([ 'name' => 'test' ]);
+
+        $this->assertEquals(19, $node->getLft());
+    }
+
+    public function testCreatesTree()
+    {
+        $node = Category::create(
+        [
+            'name' => 'test',
+            'children' =>
+            [
+                [ 'name' => 'test2' ],
+            ],
+        ]);
+
+        $this->assertTrue(isset($node->children));
+        $this->assertCount(1, $node->children);
+    }
 }

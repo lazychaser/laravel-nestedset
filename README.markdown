@@ -2,7 +2,7 @@ This is a Laravel 4 package for working with trees in a database.
 
 __Contents:__
 
-- [Theory](#what-are-nested-sets?)
+- [Theory](#what-are-nested-sets)
 - [Manipulating nodes](#manipulating-nodes)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -18,6 +18,12 @@ a way to effectively store hierarchical data in a relational table. From wikiped
 > at both visits. This leaves two numbers for each node, which are stored as two
 > attributes. Querying becomes inexpensive: hierarchy membership can be tested by
 > comparing these numbers. Updating requires renumbering and is therefore expensive.
+
+### Applications
+
+NSM shows good performance when tree is updated rarely. It is tuned to be fast for
+getting related nodes. It'is ideally suited for building multi-depth menu or 
+categories in shop.
 
 Manipulating nodes
 ------------------
@@ -101,6 +107,9 @@ $node->parent()->associate($parent)->save();
 // #6 Using the parent attribute
 $node->parent_id = $parent->id;
 $node->save();
+
+// #7 Using static method
+Category::create($attributes, $parent);
 ```
 
 And only a couple ways to prepend:
@@ -139,6 +148,30 @@ $bool = $node->up();
 // Make node lower by 3 siblings
 $bool = $node->down(3);
 ```
+
+#### Building a tree from array
+
+When using static method `create` on node, it checks whether attributes contains
+`children` key. If it does, it creates more nodes recursively.
+
+```php
+$node = Category::create(
+[
+    'name' => 'Foo',
+    'children' =>
+    [
+        [
+            'name' => 'Bar',
+            'children' =>
+            [
+                [ 'name' => 'Baz' ],
+            ],
+        ],
+    ],
+]);
+```
+
+`$node->children` now contains a list of created child nodes.
 
 ### Getting related nodes
 
@@ -208,6 +241,19 @@ $result = $node->getPrevSiblings();
 
 // Get all siblings using a query
 $result = $node->prevSiblings()->get();
+```
+
+#### Getting related models from other table
+
+Imagine that each category `has many` goods. I.e. `HasMany` relationship is established.
+How can you get all goods of all categories that are descendants of some node? Easy!
+
+```php
+// Get ids of descendants
+$descendants = $node->descendants()->lists('id');
+
+// Get goods
+$goods = Goods::whereIn('category_id', $descendants)->get();
 ```
 
 #### Manipulating a query
