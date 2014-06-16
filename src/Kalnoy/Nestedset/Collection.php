@@ -55,6 +55,11 @@ class Collection extends BaseCollection {
         {
             $children = $dictionary->get($item->getKey(), []);
 
+            foreach ($children as $child)
+            {
+                $child->setRelation('parent', $item);
+            }
+
             $item->setRelation('children', new BaseCollection($children));
         }
 
