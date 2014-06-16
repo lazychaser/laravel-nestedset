@@ -1,337 +1,405 @@
-Say hi to Laravel 4 extension that will allow to create and manage hierarchies in
-your database out-of-box. You can:
+This is a Laravel 4 package for working with trees in a database.
 
-*   Create multi-level menus and select items of specific level;
-*   Create categories for the store with no limit of nesting level, query for
-    descendants and ancestors;
-*   Forget about performance issues!
+__Contents:__
 
-Check out [example application](http://github.com/lazychaser/nestedset-app)
-that uses this package!
+- [Theory](#what-are-nested-sets?)
+- [Manipulating nodes](#manipulating-nodes)
+- [Requirements](#requirements)
+- [Installation](#installation)
 
-## Installation
+What are nested sets?
+---------------------
 
-The package can be installed using Composer, just include it into `required` 
-section of your `composer.json` file:
+Nested sets or [Nested Set Model](http://en.wikipedia.org/wiki/Nested_set_model) is
+a way to effectively store hierarchical data in a relational table. From wikipedia:
 
-```json
-"required": {
-    "kalnoy/nestedset": "1.0.*"
-}
-```
-    
-Hit `composer update` in the terminal, and you are ready to go next!
+> The nested set model is to number the nodes according to a tree traversal,
+> which visits each node twice, assigning numbers in the order of visiting, and
+> at both visits. This leaves two numbers for each node, which are stored as two
+> attributes. Querying becomes inexpensive: hierarchy membership can be tested by
+> comparing these numbers. Updating requires renumbering and is therefore expensive.
 
-## Basic usage
+Manipulating nodes
+------------------
 
-### Schema
+Suppose that we have a model `Category`; a `$node` variable is an instance of that model
+and the node that we are manipulating. It can be a fresh model or one from database.
 
-Storing hierarchies in a database requires additional columns for the table, so these
-fields need to be included in the migration. Also, the root node is required.
-So, basic migration looks like this:
+### Relationships
+
+Node has two predefined relationships: `parent` and `children`. They are fully
+functional, except for Laravel's `has` due to limitations of the framework.
+You can use `hasChildren` or `hasParent` to apply constraints:
 
 ```php
-<?php
+$items = Category::hasChildren()->get();
+```
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Kalnoy\Nestedset\NestedSet;
+### Inserting nodes
 
-class CreateCategoriesTable extends Migration {
+Moving and inserting nodes includes several database queries, so __transaction is
+automatically started__ when node is saved. It is safe to use global transaction 
+if you work with several models.
 
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
-    {
-        Schema::create('categories', function(Blueprint $table) {
-            $table->increments('id');
-            $table->string('title');
-            $table->timestamps();
+Another important note is that __structural manipulations are deferred__ until you
+hit `save` on model (some methods implicitly call `save` and return boolean result
+of the operation).
 
-            NestedSet::columns($table);
-        });
+If model is successfully saved it doesn't mean that node has moved. To check whether
+it has, use `hasMoved` function:
 
-        // The root node is required
-        NestedSet::createRoot('categories', array(
-            'title' => 'Store',
-        ));
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::drop('categories');
-    }
+```php
+if ($node->save())
+{
+    $moved = $node->hasMoved();
 }
 ```
 
-### The model
+#### Creating a new node
 
-The next step is to create `Eloquent` model. I prefer [Jeffrey Way's generators][1],
-but you can stick to whatever you prefer, just make sure that model is extended 
-from `\Kalnoy\Nestedset\Node`, like here:
-
-[1]: https://github.com/JeffreyWay/Laravel-4-Generators
+When you just create a node, it will be appended to the end of the tree:
 
 ```php
-<?php
-
-class Category extends \Kalnoy\Nestedset\Node {}
+Category::create($attributes);
 ```
 
-### Queries
+In this case the node is considered a _root_ which means that it doesn't have a parent.
 
-You can insert nodes using several methods:
+#### Making a root from existing node
 
 ```php
-$node = new Category(array('title' => 'TV\'s'));
-$target = Category::root();
+// #1 Implicit save
+$node->saveAsRoot();
 
-$node->appendTo($target)->save();
-$node->prependTo($target)->save();
+// #2 Explicit save
+$node->makeRoot()->save();
 ```
 
-The parent can be changed via mass asignment:
+The node will be appended to the end of the tree.
+
+#### Appending and prepending to the specified parent
+
+If you want to make node a child of other node, you can make it last or first child.
+
+`$parent` variable is the node that exists in database, no matter how we get it.
+
+There are few ways to append a node:
 
 ```php
-// The equivalent of $node->appendTo(Category::find($parent_id))
-$node->parent_id = $parent_id;
+// #1 Using deferred insert
+$node->appendTo($parent)->save();
+
+// #2 Using parent node
+$parent->append($node);
+
+// #3 Using parent's children relationship
+$parent->children()->create($attributes);
+
+// #5 Using node's parent relationship
+$node->parent()->associate($parent)->save();
+
+// #6 Using the parent attribute
+$node->parent_id = $parent->id;
 $node->save();
 ```
 
-You can insert the node right next to or before the other node:
+And only a couple ways to prepend:
 
 ```php
-$srcNode = Category::find($src_id);
-$targetNode = Category::find($target_id);
+// #1
+$node->prependTo($parent)->save();
 
-$srcNode->after($targetNode)->save();
-$srcNode->before($targetNode)->save();
+// #2
+$parent->prepend($node);
 ```
 
-_Ancestors_ can be obtained in two ways:
+#### Inserting before or after specified node
+
+You can make a `$node` to be a neighbor of the `$neighbor` node using following methods:
+
+_Neighbor is existing node, target node can be fresh. If target node is exists, 
+it will be moved to the new position and parent will be changed if it's needed._
 
 ```php
-// Target node will not be included into result since it is already available
-$path = $node->ancestors()->get();
+# Explicit save
+$node->after($neighbor)->save();
+$node->before($neighbor)->save();
+
+# Implicit save
+$node->insertAfter($neighbor);
+$node->insertBefore($neighbor);
 ```
 
-or using the scope:
+#### Moving node up or down
 
 ```php
-// Target node will be included into result
-$path = Category::ancestorsOf($nodeId)->get();
+$bool = $node->down();
+$bool = $node->up();
+
+// Make node lower by 3 siblings
+$bool = $node->down(3);
 ```
 
-_Descendants_ can easily be retrieved in this way:
+### Getting related nodes
+
+In some cases we will use an `$id` variable which is an id of the target node.
+
+#### Getting ancestors
 
 ```php
-$descendants = $node->descendants()->get();
+// #1 Using accessor
+$result = $node->getAncestors();
+
+// #2 Using a query 
+$result = $node->ancestors()->get();
+
+// #3 Getting ancestors by id of the node
+$result = Category::ancestorsOf($id);
+
+// #4 Applying constraints
+$result = Category::whereAncestorOf($id)->get();
 ```
 
-This method returns query builder, so you can apply any constraints or eager load
-some relations. 
-
-There are few more methods:
-
-*   `siblings()` for querying siblings of the node;
-*   `nextSiblings()` and `prevSiblings()` to query nodes after and before the node
-    respectively.
-
-`Node` is provided with few helper methods for quicker access:
-
-*   `getAncestors`
-*   `getDescendants`
-*   `getSiblings`
-*   `getNextSiblings`
-*   `getPrevSiblings`
-*   `getNextSibling`
-*   `getPrevSibling`
-
-Each of this methods accepts array of columns needed to be selected and returns
-the result of corresponding query.
-
-Nodes can be provided with _nesting level_ if scope `withDepth` is applied:
+#### Getting descendants
 
 ```php
-// Each node instance will recieve 'depth' attribute with depth level starting at
-// zero for the root node.
-$nodes = Category::withDepth()->get();
+// #1 Using accessor
+$result = $node->getDescendants();
+
+// #2 Using a query 
+$result = $node->descendants()->get();
+
+// #3 Getting ancestors by id of the node
+$result = Category::descendantsOf($id);
+
+// #4 Applying constraints
+$result = Category::whereDescendantOf($id)->get();
 ```
 
-Using `depth` attribute it is possible to get nodes with maximum level of nesting:
+#### Getting siblings of the node
 
 ```php
-$menu = Menu::withDepth()->having('depth', '<=', 2)->get();
+$result = $node->getSiblings();
+
+$result = $node->siblings()->get();
 ```
 
-The root node can be filtered out using scope `withoutRoot`:
+To get just next siblings ([default order](#default-order) is applied here):
 
 ```php
-$nodes = Category::withoutRoot()->get();
+// Get a sibling that is immediately after the node
+$result = $node->getNextSibling();
+
+// Get all siblings that are after the node 
+$result = $node->getNextSiblings();
+
+// Get all siblings using a query
+$result = $node->nextSiblings()->get();
 ```
 
-Nothing changes when you need to remove the node:
+To get previous siblings ([reversed order](#default-order) is applied):
 
 ```php
-$node->delete();
+// Get a sibling that is immediately before the node
+$result = $node->getPrevSibling();
+
+// Get all siblings that are before the node 
+$result = $node->getPrevSiblings();
+
+// Get all siblings using a query
+$result = $node->prevSiblings()->get();
 ```
 
-### Relations
+#### Manipulating a query
 
-There are two relations provided by `Node`: _children_ and _parent_.
+You have noticed that some methods return a query builder instance. It has some
+features.
 
-### Insertion, re-insertion and deletion of nodes
+##### Including depth level into result
 
-Operations such as insertion and deletion of nodes imply extra queries
-before node is actually saved. That is why if something goes wrong, the whole tree
-might be broken. To avoid such situations, each call of `save()` has to be enclosed 
-in the transaction.
-
-## How-tos
-
-### Move node up or down
-
-Sometimes there is need to move nodes around while remaining in boundaries of 
-the parent.
-
-To move node down, this snippet can be used:
+If you need to know at which level the node is:
 
 ```php
-if ($sibling = $node->getNextSibling())
+$result = Category::withDepth()->find($id);
+
+$depth = $result->depth;
+```
+
+Root node will be at level 0. Children of root nodes will have a level of 1, etc.
+
+To get nodes of specified level, you can apply `having` constraint:
+
+```php
+$result = Category::withDepth()->having('depth', '=', 1)->get();
+```
+
+##### Default order
+
+Each node has it's own unique value that determines its position in the tree. If
+you want node to be ordered by this value, you can use `defaultOrder` method on
+query builder:
+
+```php
+// All nodes will now be ordered by lft value
+$result = Category::defaultOrder()->get();
+```
+
+You can get nodes in reversed order:
+
+```php
+$result = Category::reversed()->get();
+```
+
+##### Constraints
+
+-   __whereIsRoot()__ to get only root nodes;
+-   __hasChildren()__ to get nodes that have children;
+-   __hasParent()__ to get non-root nodes;
+-   __whereIsAfter($id)__ to get every node (not just siblings) that are after a node
+    with specified id;
+-   __whereIsBefore($id)__ to get every node that is before a node with specified id.
+
+### Other methods
+
+To check if node is a descendant of other node:
+
+```php
+$bool = $node->isDescendantOf($parent);
+```
+
+To check whether the node is root:
+
+```php
+$bool = $node->isRoot();
+```
+
+### Checking consistency
+
+You can check whether a tree is broken (i.e. has some structural errors):
+
+```php
+$bool = Category::isBroken();
+```
+
+It is possible to get error statistics:
+
+```php
+$data = Category::countErrors();
+```
+
+It will return an array with following keys:
+
+-   `oddness` -- the number of nodes that have wrong set of `lft` and `rgt` values;
+-   `duplicates` -- the number of nodes that have same `lft` or `rgt` values;
+-   `wrong_parent` -- the number of nodes that have invalid `parent_id` value that
+    doesn't correspond to `lft` and `rgt` values.
+
+Requirements
+------------
+
+- PHP >= 5.4
+- Laravel >= 4.1
+
+Models are extended from new base class rather than `Eloquent`, so it's not possible
+to use another framework that overrides `Eloquent`.
+
+It is highly suggested to use database that supports transactions (like MySql's InnoDb) 
+to secure a tree from possible corruption.
+
+Installation
+------------
+
+To install the package, in terminal:
+
+```
+composer require kalnoy/nestedset:dev-develop@dev
+```
+
+Add some aliases:
+
+```php
+'aliases' => array(
+    ...
+    'NestedSet' => 'Kalnoy\Nestedset\NestedSet',
+    'Node' => 'Kalnoy\Nestedset\Node',
+),
+```
+
+### Adding required columns
+
+You can use a method to add needed columns with default names:
+
+```php
+Schema::create('table', function (Blueprint $table)
 {
-    $node->after($sibling)->save();
+    ...
+    NestedSet::columns($table);
+});
+```
+
+To drop columns:
+
+```php
+Schema::table('table', function (Blueprint $table)
+{
+    NestedSet::dropColumns($table);
+});
+```
+
+If, for some reasons, you want to init everything by yourself, this is preferred schema:
+
+```php
+$table->unsignedInteger('_lft');
+$table->unsignedInteger('_rgt');
+$table->unsignedInteger('parent_id')->nullable();
+```
+
+You can change names of the columns, in this case you need to [alter constants](#changing-column-names)
+on your model class.
+
+### Transforming a model
+
+Your model is now extended from `Node` class, not `Eloquent`:
+
+```php
+class Foo extends Node {
+    
 }
 ```
 
-Moving up is similar:
+#### Changing column names
+
+If you're using custom columns, you need to make shure that it's reflected on
+the model:
 
 ```php
-if ($sibling = $node->getPrevSibling())
-{
-    $node->before($sibling)->save();
+class Foo extends Node {
+    
+    const LFT = 'lft';
+
+    const RGT = 'rgt';
+
+    const PARENT_ID = 'parent';
+
+    protected $guarded = [ 'lft', 'rgt' ];
+
+    // To allow mass asignment on parent attribute
+    public function setParentAttribute($value)
+    {
+        $this->setParentIdAttribute($value);
+    }
 }
 ```
 
-## Advanced usage
+__Important!__ Make sure that `lft` and `rgt` columns are guarded!
 
-### Default order
+License
+=======
 
-Nodes are ordered by lft column unless there is `limit` or `offset` is provided,
-or when user uses `orderBy()`.
+Copyright (c) 2014 Alexander Kalnoy
 
-Reversed order can be applied using `reversed()` scope. When using `prevSiblings()`
-or `prev()` reversed order is aplied by default. To use the default order, use 
-`defaultOrder()` scope:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-```php
-$siblings = $node->prevSiblings()->defaultOrder()->get();
-```
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-### Custom collection
-
-This package also provides custom collection, which has two additional functions:
-`toDictionary` and `toTree`. The latter builds a tree from the list of nodes just like
-if you would query only root node with all of the children, and children of that
-children, etc. This function restores parent-child relations, so the resulting collection
-will contain only top-level nodes and each of this node will have `children` relation
-filled. The interesting thing is that when some node is rejected by a query constraint,
-whole subtree will be rejected during building the tree.
-
-Consider the tree of categories:
-
-```
-Catalog
-- Mobile
--- Apple
--- Samsung
-- Notebooks
--- Netbooks
---- Apple
---- Samsung
--- Ultrabooks
-```
-
-Let's see what we have in PHP:
-
-```php
-$tree = Category::where('title', '<>', 'Netbooks')->withoutRoot()->get()->toTree();
-echo $tree;
-```
-
-This is what we are going to get:
-
-```js
-[{
-    "title": "Mobile",
-    "children": [{ "title": "Apple", "children": [] }, { "title": "Samsung", "children": [] }]
-},
-
-{
-    "title": "Notebooks",
-    "children": [{ "title": "Ultrabooks", "children": [] }]
-}];
-```
-
-Even though the query returned all nodes but _Netbooks_, the resulting tree does 
-not contain any child from that node. This is very helpful when nodes are soft deleted. 
-Active children of soft deleted nodes will inevitably show up in query results, 
-which is not desired in most situations.
-
-### Multiple node insertion
-
-_DO NOT MAKE MULTIPLE INSERTIONS DURING SINGLE HTTP REQUEST_
-
-Since when node is inserted or re-inserted tree is changed in database, nodes
-that are already loaded might also have changed and need to be refreshed. This
-doesn't happen automatically with exception of one scenario.
-
-Consider this example:
-
-```php
-$nodes = Category::whereIn('id', Input::get('selected_ids'))->get();
-$target = Category::find(Input::get('target_id'));
-
-foreach ($nodes as $node) {
-    $node->appendTo($target)->save();
-}
-```
-
-This is the example of situation when user picks up several nodes and moves them
-into new parent. When we call `appendTo` nothing is really changed but internal
-variables. Actual transformations are performed when `save` is called. When that
-happens, values of internal variables are definately changed for `$target` and
-might change for some nodes in `$nodes` list. But this changes happen in database
-and do not reflect into memory for loaded nodes. Calling `appendTo` with outdated 
-values brakes the tree.
-
-In this case only values of `$target` are crucial. The system always updates crucial
-attributes of parent of node being saved. Since `$target` becomes new parent for
-every node, the data of that node will always be up to date and this example will
-work just fine.
-
-_THIS IS THE ONLY CASE WHEN MULTIPLE NODES CAN BE INSERTED AND/OR RE-INSERTED 
-DURING SINGLE HTTP REQUEST WITHOUT REFRESHING DATA_
-
-### Deleting nodes
-
-To delete a node, you just call `$node->delete()` as usual. If node is soft deleted, 
-nothing happens. But if node is hard deleted, tree updates. But what if this node has
-children?
-
-When you create your table's schema and use `NestedSet::columns`, it creates foreign
-key for you, since nodes are connected by `parent_id` attribute. When you hard delete
-the node, all of descendants are cascaded.
-
-In case when DBMS doesn't support foreign keys, descendants are still removed.
-
-## TODO
-
-[*] Build up hierarchy from array;
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
