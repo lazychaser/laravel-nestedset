@@ -62,6 +62,13 @@ class Node extends Eloquent {
     protected $pending = [ 'root' ];
 
     /**
+     * Whether the node has moved since last save.
+     * 
+     * @var bool
+     */
+    protected $moved = false;
+
+    /**
      * Keep track of the number of performed operations.
      * 
      * @var int
@@ -118,6 +125,20 @@ class Node extends Eloquent {
     }
 
     /**
+     * {@inheritdoc}
+     * 
+     * Saves a node in a transaction.
+     * 
+     */
+    public function save(array $options = array())
+    {
+        return $this->getConnection()->transaction(function () use ($options)
+        {
+            return parent::save($options);
+        });
+    }
+
+    /**
      * Set an action.
      * 
      * @param string $action
@@ -144,6 +165,8 @@ class Node extends Eloquent {
      */
     protected function callPendingAction()
     {
+        $this->moved = false;
+
         if ( ! $this->pending) return;
 
         $method = 'action'.ucfirst(array_shift($this->pending));
@@ -151,7 +174,7 @@ class Node extends Eloquent {
 
         $this->pending = null;
 
-        return call_user_func_array([ $this, $method ], $parameters);
+        $this->moved = call_user_func_array([ $this, $method ], $parameters);
     }
 
     /**
@@ -169,6 +192,8 @@ class Node extends Eloquent {
 
             return true;
         }
+
+        if ($this->isRoot()) return false;
 
         // Reset parent object
         $this->setParent(null);
@@ -290,7 +315,6 @@ class Node extends Eloquent {
         $attributes = $this->newServiceQuery()->getNodeData($this->getKey());
 
         $this->attributes = array_merge($this->attributes, $attributes);
-        $this->original = array_merge($this->original, $attributes);
     }
 
     /**
@@ -595,11 +619,11 @@ class Node extends Eloquent {
      */
     protected function moveNode($position)
     {
-        $updated = $this->newServiceQuery()->moveNode($this->getKey(), $position);
+        $updated = $this->newServiceQuery()->moveNode($this->getKey(), $position) > 0;
 
         if ($updated) $this->refreshNode();
 
-        return $updated > 0;
+        return $updated;
     }
 
     /**
@@ -940,5 +964,15 @@ class Node extends Eloquent {
     public function isBroken()
     {
         return $this->getTotalErrors() > 0;
+    }
+
+    /**
+     * Get whether the node has moved since last save.
+     * 
+     * @return bool
+     */
+    public function hasMoved()
+    {
+        return $this->moved;
     }
 }

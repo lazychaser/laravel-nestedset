@@ -375,6 +375,9 @@ class QueryBuilder extends Builder {
         // The distance that our node will travel to reach it's destination
         $distance = $to - $from + 1 - $height;
 
+        // If no distance to travel, just return
+        if ($distance === 0) return 0;
+
         if ($position > $lft) $height *= -1; else $distance *= -1;
 
         $params = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
