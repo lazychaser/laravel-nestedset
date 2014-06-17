@@ -1,68 +1,210 @@
-<?php namespace Kalnoy\Nestedset;
+<?php
 
-use Illuminate\Database\Query\Builder;
+namespace Kalnoy\Nestedset;
+
+use LogicException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Database\Query\Processors\Processor;
 use Illuminate\Database\Query\Expression;
 
 class QueryBuilder extends Builder {
-    /**
-     * The node that has created this builder.
-     *
-     * @var \Kalnoy\Nestedset\Node
-     */
-    protected $node;
 
     /**
-     * Create a new QueryBuilder instance.
-     *
-     * @param \Illuminate\Database\ConnectionInterface          $connection
-     * @param \Illuminate\Database\Query\Grammars\Grammar       $grammar
-     * @param \Illuminate\Database\Query\Processors\Processor   $processor
-     * @param \Kalnoy\Nestedset\Node                            $node
+     * Get node's `lft` and `rgt` values.
+     * 
+     * @since 2.0
+     * 
+     * @param mixed $id
+     * 
+     * @return array
      */
-    public function __construct(ConnectionInterface $connection,
-                                Grammar $grammar,
-                                Processor $processor,
-                                Node $node)
+    public function getNodeData($id)
     {
-        parent::__construct($connection, $grammar, $processor);
+        $this->query->where($this->model->getKeyName(), '=', $id);
 
-        $this->node = $node;
+        return (array)$this->query->first([ $this->model->getLftName(), $this->model->getRgtName() ]);
+    }
+
+    /**
+     * Get plain node data.
+     * 
+     * @since 2.0
+     * 
+     * @param mixed $id
+     *
+     * @return array
+     */
+    public function getPlainNodeData($id)
+    {
+        return array_values($this->getNodeData($id));
     }
 
     /**
      * Scope limits query to select just root node.
      *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * @return $this
      */
     public function whereIsRoot()
     {
-        return $this->where($this->node->getLftName(), '=', 1);
+        $this->query->whereNull($this->model->getParentIdName());
+
+        return $this;
     }
 
     /**
-     * Query ancestors of specific node including that node itself.
+     * Limit results to ancestors of specified node.
+     * 
+     * @since 2.0
      *
-     * @param   integer  $id
+     * @param mixed $id
      *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * @return $this
      */
-    public function ancestorsOf($id)
+    public function whereAncestorOf($id)
     {
-        $grammar = $this->getGrammar();
-        $table  = $grammar->wrapTable($this->from);
-        $lft    = $grammar->wrap($this->node->getLftName());
-        $rgt    = $grammar->wrap($this->node->getRgtName());
-        $key    = $grammar->wrap($this->node->getKeyName());
+        $table = $this->wrappedTable();
+        $keyName = $this->model->getKeyName();
 
-        $this->whereRaw(
-            "(select _.$lft from $table _ where _.$key = ? limit 1)".
-            " between $lft and $rgt"
+        list($lft, $rgt) = $this->wrappedColumns();
+
+        $key = $this->query->getGrammar()->wrap($keyName);
+
+        $this->query->whereRaw(
+            "(select _.{$lft} from {$table} _ where _.{$key} = ? limit 1)".
+            " between {$lft} and {$rgt}"
         );
 
-        $this->bindings[] = $id;
+        // Exclude the node
+        $this->where($keyName, '<>', $id);
+
+        $this->query->addBinding($id, 'where');
+
+        return $this;
+    }
+
+    /**
+     * Get ancestors of specified node.
+     * 
+     * @since 2.0
+     * 
+     * @param mixed $id
+     * @param array $columns
+     * 
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function ancestorsOf($id, array $columns = array('*'))
+    {
+        return $this->whereAncestorsOf($id)->get($columns);
+    }
+
+    /**
+     * Add node selection statement between specified range.
+     * 
+     * @since 2.0
+     * 
+     * @param array $values
+     * @param string $boolean
+     * @param bool $not
+     * 
+     * @return $this
+     */
+    public function whereNodeBetween($values, $boolean = 'and', $not = false)
+    {
+        $this->query->whereBetween($this->model->getLftName(), $values, $boolean, $not);
+
+        return $this;
+    }
+
+    /**
+     * Add node selection statement between specified range joined with `or` operator.
+     * 
+     * @since 2.0
+     * 
+     * @param array $values
+     * 
+     * @return $this
+     */
+    public function orWhereNodeBetween($values)
+    {
+        return $this->whereNodeBetween($values, 'or');
+    }
+
+    /**
+     * Add constraint statement to descendants of specified node.
+     * 
+     * @since 2.0
+     *
+     * @param mixed $id
+     * @param string $boolean
+     * @param bool $not
+     * 
+     * @return $this
+     */
+    public function whereDescendantOf($id, $boolean = 'and', $not = false)
+    {
+        $data = $this->model->newQuery()->getPlainNodeData($id);
+
+        // Don't include the node
+        ++$data[0];
+
+        return $this->whereNodeBetween($data, $boolean, $not);
+    }
+
+    /**
+     * Get descendants of specified node.
+     * 
+     * @since 2.0
+     * 
+     * @param mixed $id
+     * @param array $columns
+     * 
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function descendantsOf($id, array $columns = array('*'))
+    {
+        return $this->whereDescendantOf($id)->get($columns);
+    }
+
+    /**
+     * Constraint nodes to those that are after specified node.
+     * 
+     * @since 2.0
+     * 
+     * @param mixed $id
+     * @param string $boolean
+     * 
+     * @return $this
+     */
+    public function whereIsAfter($id, $boolean = 'and')
+    {
+        $table = $this->wrappedTable();
+        list($lft, $rgt) = $this->wrappedColumns();
+        $key = $this->wrappedKey();
+
+        $this->query->whereRaw("{$lft} > (select _n.{$lft} from {$table} _n where _n.{$key} = ?)", [ $id ], $boolean);
+
+        return $this;
+    }
+
+    /**
+     * Constraint nodes to those that are before specified node.
+     * 
+     * @since 2.0
+     * 
+     * @param mixed $id
+     * @param string $boolean
+     * 
+     * @return $this
+     */
+    public function whereIsBefore($id, $boolean = 'and')
+    {
+        $table = $this->wrappedTable();
+        list($lft, $rgt) = $this->wrappedColumns();
+        $key = $this->wrappedKey();
+
+        $this->query->whereRaw("{$lft} < (select _b.{$lft} from {$table} _b where _b.{$key} = ?)", [ $id ], $boolean);
 
         return $this;
     }
@@ -70,73 +212,299 @@ class QueryBuilder extends Builder {
     /**
      * Include depth level into the result.
      *
-     * @param   string  $key The attribute name that will hold the depth level.
+     * @param string $key
      *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * @return $this
      */
     public function withDepth($key = 'depth')
     {
-        $grammar = $this->getGrammar();
-        $table   = $grammar->wrapTable($this->from);
-        $lft     = $grammar->wrap($this->node->getLftName());
-        $rgt     = $grammar->wrap($this->node->getRgtName());
-        $key     = $grammar->wrap($key);
+        $table = $this->wrappedTable();
+        
+        list($lft, $rgt) = $this->wrappedColumns();
 
-        $column = new Expression(
-            "((select count(*) from $table _ where $table.$lft between _.$lft and _.$rgt)-1) as $key"
+        $key = $this->query->getGrammar()->wrap($key);
+
+        $column = $this->query->raw(
+            "((select count(*) from {$table} _d ".
+            "where {$table}.{$lft} between _d.{$lft} and _d.{$rgt})-1) as {$key}"
         );
 
-        if ($this->columns === null) $this->columns = array('*');
+        if ($this->query->columns === null) $this->query->columns = array('*');
 
-        return $this->addSelect($column);
+        $this->query->addSelect($column);
+
+        return $this;
+    }
+
+    /**
+     * Get wrapped `lft` and `rgt` column names.
+     * 
+     * @since 2.0
+     * 
+     * @return array
+     */
+    protected function wrappedColumns()
+    {
+        $grammar = $this->query->getGrammar();
+
+        return
+        [
+            $grammar->wrap($this->model->getLftName()),
+            $grammar->wrap($this->model->getRgtName()),
+        ];
+    }
+
+    /**
+     * Get a wrapped table name.
+     * 
+     * @since 2.0
+     * 
+     * @return string
+     */
+    protected function wrappedTable()
+    {
+        return $this->query->getGrammar()->wrap($this->getQuery()->from);
+    }
+
+    /**
+     * Wrap model's key name.
+     * 
+     * @since 2.0
+     * 
+     * @return string
+     */
+    protected function wrappedKey()
+    {
+        return $this->query->getGrammar()->wrap($this->model->getKeyName());
     }
 
     /**
      * Exclude root node from the result.
      *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * @return $this
      */
     public function withoutRoot()
     {
-        return $this->where($this->node->getLftName(), '<>', 1);
+        $this->query->whereNotNull($this->model->getParentIdName());
+
+        return $this;
     }
 
     /**
-     * Reverse the order of nodes.
+     * Equivalent of `withouRoot`.
+     * 
+     * @since 2.0
+     * 
+     * @return $this
+     */
+    public function hasParent()
+    {
+        $this->query->whereNotNull($this->model->getParentIdName());
+
+        return $this;
+    }
+
+    /**
+     * Get only nodes that have children.
+     * 
+     * @since 2.0
+     * 
+     * @return $this
+     */
+    public function hasChildren()
+    {
+        list($lft, $rgt) = $this->wrappedColumns();
+
+        $this->query->whereRaw("{$rgt} > {$lft} + 1");
+
+        return $this;
+    }
+
+    /**
+     * Order by node position.
+     * 
+     * @param string $dir
      *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * @return $this
+     */
+    public function defaultOrder($dir = 'asc')
+    {
+        $this->query->orders = null;
+
+        $this->query->orderBy($this->model->getLftName(), $dir);
+
+        return $this;
+    }
+
+    /**
+     * Order by reversed node position.
+     *
+     * @return $this
      */
     public function reversed()
     {
-        $this->orders = null;
-
-        return $this->orderBy($this->node->getLftName(), 'desc');
+        return $this->defaultOrder('desc');
     }
 
     /**
-     * Get the SQL representation of the query.
+     * Move a node to the new position.
+     * 
+     * @param int $key
+     * @param int $position
+     *
+     * @return int
+     * 
+     * @throws \LogicException
+     */
+    public function moveNode($key, $position)
+    {
+        list($lft, $rgt) = $this->model->newQuery()->getPlainNodeData($key);
+        
+        if ($lft < $position && $position < $rgt)
+        {
+            throw new LogicException('Cannot move node into itself.');
+        }
+
+        // Get boundaries of nodes that should be moved to new position
+        $from = min($lft, $position);
+        $to   = max($rgt, $position - 1);
+
+        // The height of node that is being moved
+        $height = $rgt - $lft + 1;
+
+        // The distance that our node will travel to reach it's destination
+        $distance = $to - $from + 1 - $height;
+
+        // If no distance to travel, just return
+        if ($distance === 0) return 0;
+
+        if ($position > $lft) $height *= -1; else $distance *= -1;
+
+        $params = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
+
+        $boundary = [ $from, $to ];
+
+        $query = $this->query->where(function ($inner) use ($boundary)
+        {
+            $inner->whereBetween($this->model->getLftName(), $boundary);
+            $inner->orWhereBetween($this->model->getRgtName(), $boundary);
+        });
+
+        return $query->update($this->patch($params));
+    }
+
+    /**
+     * Make or remove gap in the tree. Negative height will remove gap.
+     * 
+     * @since 2.0
+     *
+     * @param int $cut
+     * @param int $height
+     *
+     * @return int
+     */
+    public function makeGap($cut, $height)
+    {
+        $params = compact('cut', 'height');
+
+        $this->query->where(function ($inner) use ($cut)
+        {
+            $inner->where($this->model->getLftName(), '>=', $cut);
+            $inner->orWhere($this->model->getRgtName(), '>=', $cut);
+        });
+
+        return $this->query->update($this->patch($params));
+    }
+
+    /**
+     * Get patch for columns.
+     * 
+     * @since 2.0
+     *
+     * @param array $params
+     *
+     * @return array
+     */
+    protected function patch(array $params)
+    {
+        $grammar = $this->query->getGrammar();
+
+        $columns = array();
+
+        foreach ([ $this->model->getLftName(), $this->model->getRgtName() ] as $col) 
+        {
+            $columns[$col] = $this->columnPatch($grammar->wrap($col), $params);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Get patch for single column.
+     * 
+     * @since 2.0
+     *
+     * @param string $col
+     * @param array  $params
      *
      * @return string
      */
-    public function toSql()
+    protected function columnPatch($col, array $params)
     {
-        if ($this->orders === null && $this->limit === null && $this->offset === null)
+        extract($params);
+
+        if ($height > 0) $height = '+'.$height;
+
+        if (isset($cut)) 
         {
-            $this->defaultOrder();
+            return new Expression("case when {$col} >= {$cut} then {$col}{$height} else {$col} end");
         }
 
-        return parent::toSql();
+        if ($distance > 0) $distance = '+'.$distance;
+
+        return new Expression("case ".
+            "when {$col} between {$lft} and {$rgt} then {$col}{$distance} ". // Move the node
+            "when {$col} between {$from} and {$to} then {$col}{$height} ". // Move other nodes
+            "else {$col} end"
+        );
     }
 
     /**
-     * Apply default order which is order by node position.
-     *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * Get statistics of errors of the tree.
+     * 
+     * @since 2.0
+     * 
+     * @return array
      */
-    public function defaultOrder()
+    public function countErrors()
     {
-        $this->orders = null;
+        $table = $this->wrappedTable();
+        list($lft, $rgt) = $this->wrappedColumns();
 
-        return $this->orderBy($this->node->getLftName());
+        $checks = array();
+
+        // Check if lft and rgt values are ok
+        $checks['oddness'] = "from {$table} where {$lft} >= {$rgt} or ({$rgt} - {$lft}) % 2 = 0";
+
+        // Check if lft and rgt values are unique
+        $checks['duplicates'] = "from {$table} c1, {$table} c2 where c1.id <> c2.id and ".
+            "(c1.{$lft}=c2.{$lft} or c1.{$rgt}=c2.{$rgt} or c1.{$lft}=c2.{$rgt} or c1.{$rgt}=c2.{$lft})";
+
+        // Check if parent_id is set correctly
+        $checks['wrong_parent'] = 
+            "from {$table} c, {$table} p, $table m ".
+            "where c.parent_id=p.id and m.id <> p.id and m.id <> c.id and ".
+             "(c.{$lft} not between p.{$lft} and p.{$rgt} or c.{$lft} between m.{$lft} and m.{$rgt} and m.{$lft} between p.{$lft} and p.{$rgt})";
+
+        $query = $this->query->newQuery();
+
+        foreach ($checks as $key => $check)
+        {
+            $sql = 'select count(1) '.$check;
+
+            $query->addSelect(new Expression('(select count(1) '.$check.') as '.$key));
+        }
+
+        return $query->first();
     }
 }

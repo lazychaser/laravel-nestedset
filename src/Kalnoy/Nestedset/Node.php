@@ -2,12 +2,15 @@
 
 namespace Kalnoy\Nestedset;
 
-use \Illuminate\Database\Eloquent\Model as Eloquent;
-use \Illuminate\Database\Query\Builder;
-use \Illuminate\Database\Query\Expression;
 use Exception;
+use LogicException;
+use Illuminate\Database\Eloquent\Model as Eloquent;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class Node extends Eloquent {
+
     /**
      * The name of "lft" column.
      *
@@ -50,7 +53,37 @@ class Node extends Eloquent {
      * 
      * @since 1.1
      */
-    static protected $softDelete;
+    static protected $_softDelete;
+
+    /**
+     * Whether the node is being deleted.
+     * 
+     * @since 2.0
+     *
+     * @var bool
+     */
+    static protected $deleting;
+
+    /**
+     * Pending operation.
+     * 
+     * @var array
+     */
+    protected $pending = [ 'root' ];
+
+    /**
+     * Whether the node has moved since last save.
+     * 
+     * @var bool
+     */
+    protected $moved = false;
+
+    /**
+     * Keep track of the number of performed operations.
+     * 
+     * @var int
+     */
+    protected static $actionsPerformed = 0;
 
     /**
      * {@inheritdoc}
@@ -59,9 +92,254 @@ class Node extends Eloquent {
     {
         parent::boot();
 
+        static::$_softDelete = static::getIsSoftDelete();
+
+        static::signOnEvents();
+    }
+
+    /**
+     * Get whether model uses soft delete.
+     * 
+     * @return bool
+     */
+    protected static function getIsSoftDelete()
+    {
         $instance = new static;
 
-        static::$softDelete = method_exists($instance, 'withTrashed');
+        return method_exists($instance, 'withTrashed');
+    }
+
+    /**
+     * Sign on model events.
+     */
+    protected static function signOnEvents()
+    {
+        static::saving(function ($model)
+        {
+            return $model->callPendingAction();
+        });
+
+        if ( ! static::$_softDelete)
+        {
+            static::deleting(function ($model)
+            {
+                // We will need fresh data to delete node safely
+                $model->refreshNode();
+            });
+
+            static::deleted(function ($model)
+            {
+                $model->deleteNode();
+            });
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * Saves a node in a transaction.
+     * 
+     */
+    public function save(array $options = array())
+    {
+        return $this->getConnection()->transaction(function () use ($options)
+        {
+            return parent::save($options);
+        });
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * Delete a node in transaction if model is not soft deleting.
+     */
+    public function delete()
+    {
+        if (static::$_softDelete) return parent::delete();
+
+        return $this->getConnection()->transaction(function ()
+        {
+            return parent::delete();
+        });
+    }
+
+    /**
+     * Set an action.
+     * 
+     * @param string $action
+     */
+    protected function setAction($action)
+    {
+        $this->pending = func_get_args();
+
+        return $this;
+    }
+
+    /**
+     * Clear pending action.
+     */
+    protected function clearAction()
+    {
+        $this->pending = null;
+    }
+
+    /**
+     * Call pending action.
+     *
+     * @return null|false
+     */
+    protected function callPendingAction()
+    {
+        $this->moved = false;
+
+        if ( ! $this->pending) return;
+
+        $method = 'action'.ucfirst(array_shift($this->pending));
+        $parameters = $this->pending;
+
+        $this->pending = null;
+
+        $this->moved = call_user_func_array([ $this, $method ], $parameters);
+    }
+
+    /**
+     * Make a root node.
+     */
+    protected function actionRoot()
+    {
+        // Simplest case that do not affect other nodes.
+        if ( ! $this->exists)
+        {
+            $cut = $this->getLowerBound() + 1;
+
+            $this->setAttribute(static::LFT, $cut);
+            $this->setAttribute(static::RGT, $cut + 1);
+
+            return true;
+        }
+
+        if ($this->isRoot()) return false;
+
+        // Reset parent object
+        $this->setParent(null);
+
+        return $this->insertAt($this->getLowerBound() + 1);
+    }
+
+    /**
+     * Get the lower bound.
+     * 
+     * @return int
+     */
+    protected function getLowerBound()
+    {
+        return $this->newServiceQuery()->max(static::RGT);
+    }
+
+    /**
+     * Append a node to the parent.
+     *
+     * @param \Kalnoy\Nestedset\Node $parent
+     */
+    protected function actionAppendTo(Node $parent)
+    {
+        return $this->actionAppendOrPrepend($parent);
+    }
+
+    /**
+     * Prepend a node to the parent.
+     * 
+     * @param \Kalnoy\Nestedset\Node $parent
+     */
+    protected function actionPrependTo(Node $parent)
+    {
+        return $this->actionAppendOrPrepend($parent, true);
+    }
+
+    /**
+     * Append or prepend a node to the parent.
+     * 
+     * @param \Kalnoy\Nestedset\Node $parent
+     * @param bool $prepend
+     */
+    protected function actionAppendOrPrepend(Node $parent, $prepend = false)
+    {
+        if ( ! $parent->exists)
+        {
+            throw new LogicException('Cannot use non-existing node as a parent.');
+        }
+
+        $this->setParent($parent);
+
+        $parent->refreshNode();
+
+        return $this->insertAt($prepend ? $parent->getLft() + 1 : $parent->getRgt());
+    }
+
+    /**
+     * Apply parent model.
+     * 
+     * @param \Kalnoy\Nestedset\Node|null $value
+     */
+    protected function setParent($value)
+    {
+        $this->attributes[static::PARENT_ID] = $value ? $value->getKey() : null;
+        $this->setRelation('parent', $value);
+    }
+
+    /**
+     * Insert node before or after another node.
+     * 
+     * @param \Kalnoy\Nestedset\Node $node
+     * @param bool $after
+     */
+    protected function actionBeforeOrAfter(Node $node, $after = false)
+    {
+        if ( ! $node->exists)
+        {
+            throw new LogicException('Cannot insert before/after non-existing node.');
+        }
+
+        if ($this->getParentId() <> $node->getParentId())
+        {
+            $this->setParent($node->getAttribute('parent'));
+        }
+
+        $node->refreshNode();
+
+        return $this->insertAt($after ? $node->getRgt() + 1 : $node->getLft());
+    }
+
+    /**
+     * Insert node before other node.
+     * 
+     * @param \Kalnoy\Nestedset\Node $node
+     */
+    protected function actionBefore(Node $node)
+    {
+        return $this->actionBeforeOrAfter($node);
+    }
+
+    /**
+     * Insert node after other node.
+     * 
+     * @param \Kalnoy\Nestedset\Node $node
+     */
+    protected function actionAfter(Node $node)
+    {
+        return $this->actionBeforeOrAfter($node, true);
+    }
+
+    /**
+     * Refresh node's crucial attributes.
+     */
+    public function refreshNode()
+    {
+        if ( ! $this->exists || static::$actionsPerformed === 0) return;
+
+        $attributes = $this->newServiceQuery()->getNodeData($this->getKey());
+
+        $this->attributes = array_merge($this->attributes, $attributes);
     }
 
     /**
@@ -103,9 +381,7 @@ class Node extends Eloquent {
      */
     public function descendants()
     {
-        $query = $this->newQuery();
-
-        return $query->whereBetween(static::LFT, array($this->getLft() + 1, $this->getRgt()));
+        return $this->newQuery()->whereDescendantOf($this->getKey());
     }
 
     /**
@@ -168,9 +444,7 @@ class Node extends Eloquent {
      */
     public function next()
     {
-        return $this->newQuery()
-            ->where(static::LFT, '>', $this->attributes[static::LFT])
-            ->defaultOrder();
+        return $this->newQuery()->whereIsAfter($this->getKey())->defaultOrder();
     }
 
     /**
@@ -180,9 +454,7 @@ class Node extends Eloquent {
      */
     public function prev()
     {
-        return $this->newQuery()
-            ->where(static::LFT, '<', $this->attributes[static::LFT])
-            ->reversed();
+        return $this->newQuery()->whereIsBefore($this->getKey())->reversed();
     }
 
     /**
@@ -192,444 +464,258 @@ class Node extends Eloquent {
      */
     public function ancestors()
     {
-        $query = $this->newQuery();
-        $grammar = $query->getQuery()->getGrammar();
-        $table = $this->getTable();
-        $lft   = $grammar->wrap(static::LFT);
-        $rgt   = $grammar->wrap(static::RGT);
-
-        $lftValue = $this->getLft();
-
-        return $query
-            ->whereRaw("? between $lft and $rgt", array($lftValue))
-            ->where(static::LFT, "<>", $lftValue);
+        return $this->newQuery()->whereAncestorOf($this->getKey())->defaultOrder();
     }
 
     /**
-     * Insert node at the end of the list.
+     * Make this node a root node.
+     * 
+     * @return $this
+     */
+    public function makeRoot()
+    {
+        return $this->setAction('root');
+    }
+
+    /**
+     * Save node as root.
+     * 
+     * @return bool
+     */
+    public function saveAsRoot()
+    {
+        return $this->makeRoot()->save();
+    }
+
+    /**
+     * Append and save a node.
      *
-     * @param  Node   $node
+     * @param \Kalnoy\Nestedset\Node $node
      *
-     * @return Node self
+     * @return bool
      */
     public function append(Node $node)
     {
-        $node->appendTo($this);
-
-        return $this;
+        return $node->appendTo($this)->save();
     }
 
     /**
-     * Insert node at the top of the list.
+     * Prepend and save a node.
      *
-     * @param  Node   $node
+     * @param \Kalnoy\Nestedset\Node $node
      *
-     * @return Node self
+     * @return bool
      */ 
     public function prepend(Node $node)
     {
-        $node->prependTo($this);
-
-        return $this;
+        return $node->prependTo($this)->save();
     }
 
     /**
-     * Insert self as last child of specified parent.
+     * Append a node to the new parent.
      *
-     * @param  Node   $parent
+     * @param \Kalnoy\Nestedset\Node $parent
      *
-     * @return Node self
+     * @return $this
      */
     public function appendTo(Node $parent)
     {
-        return $this
-            ->checkTarget($parent)
-            ->insertAt($parent->attributes[static::RGT], $parent);
+        return $this->setAction('appendTo', $parent);
     }
 
     /**
-     * Insert self as first child of specified parent.
+     * Prepend a node to the new parent.
      *
-     * @param  Node   $parent
+     * @param \Kalnoy\Nestedset\Node $parent
      *
-     * @return Node self
+     * @return $this
      */
     public function prependTo(Node $parent)
     {        
-        return $this
-            ->checkTarget($parent)
-            ->insertAt($parent->attributes[static::LFT] + 1, $parent);
+        return $this->setAction('prependTo', $parent);
     }
 
     /**
-     * Insert self after node.
+     * Insert self after a node.
      *
-     * @param  Node   $node
+     * @param \Kalnoy\Nestedset\Node $node
      *
-     * @return Node self
-     * @throws Exception If node doesn't exists
+     * @return $this
      */
     public function after(Node $node)
     {
-        return $this->beforeOrAfter($node, self::AFTER); 
+        return $this->setAction('after', $node);
+    }
+
+    /**
+     * Insert self after a node and save.
+     * 
+     * @param \Kalnoy\Nestedset\Node $node
+     * 
+     * @return bool
+     */
+    public function insertAfter(Node $node)
+    {
+        return $this->after($node)->save();
     }
 
     /**
      * Insert self before node.
      *
-     * @param  Node   $node
+     * @param \Kalnoy\Nestedset\Node $node
      *
-     * @return Node
-     * @throws Exception If node doesn't exists
+     * @return $this
      */
     public function before(Node $node)
     {
-        return $this->beforeOrAfter($node, self::BEFORE);
+        return $this->setAction('before', $node);
     }
 
     /**
-     * Insert self before or after node.
-     *
-     * @param  Node   $node
-     * @param  self::BEFORE|self::AFTER $dir
-     *
-     * @return Node
-     * @throws Exception If $node is not a valid target.
-     * @throws Exception If $node is the root.
+     * Insert self before a node and save.
+     * 
+     * @param \Kalnoy\Nestedset\Node $node
+     * 
+     * @return bool
      */
-    protected function beforeOrAfter(Node $node, $dir)
+    public function insertBefore(Node $node)
     {
-        $this->checkTarget($node);
+        return $this->before($node)->save();
+    }
 
-        if ($node->isRoot()) 
+    /**
+     * Move node up given amount of positions.
+     * 
+     * @param int $amount
+     * 
+     * @return bool
+     */
+    public function up($amount = 1)
+    {
+        if ($sibling = $this->prevSiblings()->skip($amount - 1)->first())
         {
-            throw new Exception("Cannot insert node $dir root node.");
+            return $this->insertBefore($sibling);
         }
 
-        $position = $dir === self::BEFORE 
-            ? $node->attributes['_lft'] 
-            : $node->attributes['_rgt'] + 1;
-
-        return $this->insertAt($position, $node->getParentId());
+        return false;
     }
 
     /**
-     * Check if target node is saved.
-     *
-     * @param  Node   $node
-     *
-     * @return Node
-     * @throws Exception If target fails conditions.
+     * Move node down given amount of positions.
+     * 
+     * @param int $amount
+     * 
+     * @return bool
      */
-    protected function checkTarget(Node $node)
+    public function down($amount = 1)
     {
-        if ( ! $node->exists || $node->isDirty(static::LFT)) 
+        if ($sibling = $this->nextSiblings()->skip($amount - 1)->first())
         {
-            throw new Exception("Target node is updated but not saved.");
+            return $this->insertAfter($sibling);
         }
 
-        return $this;
+        return false;
     }
 
     /**
-     * Insert node at specific position and related parent.
+     * Insert node at specific position.
      *
      * @param  int $position
-     * @param  mixed $parent
      *
-     * @return Node
-     * @throws Exception If node is inserted in one of it's descendants
+     * @return bool
      */
-    protected function insertAt($position, $parent)
+    protected function insertAt($position)
     {
-        if ($this->exists && $this->getLft() < $position && $position < $this->getRgt()) 
-        {
-            throw new Exception("Trying to insert node into one of it's descendants.");
-        }
+        ++static::$actionsPerformed;
+
+        $result = $this->exists ? $this->moveNode($position) : $this->insertNode($position);
+
+        return $result;
+    }
+
+    /**
+     * Move a node to the new position.
+     * 
+     * @since 2.0
+     *
+     * @param int $position
+     *
+     * @return int
+     */
+    protected function moveNode($position)
+    {
+        $updated = $this->newServiceQuery()->moveNode($this->getKey(), $position) > 0;
+
+        if ($updated) $this->refreshNode();
+
+        return $updated;
+    }
+
+    /**
+     * Insert new node at specified position.
+     * 
+     * @since 2.0
+     * 
+     * @param int $position
+     */
+    protected function insertNode($position)
+    {
+        $this->makeGap($position, 2);
 
         $height = $this->getNodeHeight();
 
-        // We simply update values here. When user calls save() actual
-        // transformations are performed.
-        $this->attributes[static::LFT] = $position;
-        $this->attributes[static::RGT] = $position + $height - 1;
+        $this->setAttribute(static::LFT, $position);
+        $this->setAttribute(static::RGT, $position + $height - 1);
 
-        if ($parent instanceof Node)
-        {
-            $this->attributes[static::PARENT_ID] = $parent->getKey();
-            $this->relations['parent']           = $parent;
-        }
-        else 
-        {
-            $this->attributes[static::PARENT_ID] = $parent;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Catch "creating" and "updating" event to check if tree needs to be updated.
-     * Catch "deleting" to see if user tries to delete root node.
-     *
-     * @param  string  $event
-     * @param  boolean $halt
-     *
-     * @return boolean
-     */
-    public function fireModelEvent($event, $halt = true)
-    {
-        // We need to capture 'saving' event to be able to control dirty values.
-        // 'updating' event is called after dirty values are retrieved.
-        if ($event === 'saving') 
-        {
-            if ($this->exists) 
-            {
-                if ($this->isDirty(static::LFT) && ! $this->updateTree())
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if ( ! isset($this->attributes[static::LFT]))
-                {
-                    throw new Exception("Cannot save node until it is inserted.");
-                }
-
-                if ( ! $this->updateTree()) return false;
-            }
-        }
-
-        if ($event === 'deleting' && $this->isRoot())
-        {
-            throw new Exception("Cannot delete root node.");
-        }
-
-        if ($event === 'deleted' && ! static::$softDelete) $this->deleteNode();
-
-        return parent::fireModelEvent($event, $halt);
-    }
-
-    /**
-     * Perform needed NestedSet processing to insert or re-insert node.
-     *
-     * @return boolean whether update succeeded.
-     */
-    protected function updateTree()
-    {
-        $cut = $this->attributes[static::LFT];
-
-        if ($this->exists) 
-        {
-            $lft = $this->original[static::LFT];
-            $rgt = $this->original[static::RGT];
-
-            return $this->rearrange($lft, $rgt, $cut) > 0;
-        }
-
-        return $this->makeGap($cut, 2) > 0;
-    }
-
-    /**
-     * Rearrange the tree to put the node into the new position.
-     *
-     * @param  integer $lft
-     * @param  integer $rgt
-     * @param  integer $pos
-     *
-     * @return integer the number of updated nodes.
-     */
-    public function rearrange($lft, $rgt, $pos)
-    {
-        $from = min($lft, $pos);
-        $to   = max($rgt, $pos - 1);
-
-        $query = $this->newQueryWithDeleted()->getQuery()
-            ->whereBetween(static::LFT, array($from, $to))
-            ->orWhereBetween(static::RGT, array($from, $to));
-
-        // The height of node that is being moved
-        $height = $rgt - $lft + 1;
-
-        // The distance that our node will travel to reach it's destination
-        $distance = $to - $from + 1 - $height;
-
-        if ($pos > $lft) $height *= -1; else $distance *= -1;
-
-        $params  = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
-        $grammar = $query->getGrammar();
-        $updated = $query->update($this->getColumnsPatch($params, $grammar));
-
-        // Sync the attributes
-        $this->original[static::LFT] = $this->attributes[static::LFT] = $lft += $distance;
-        $this->original[static::RGT] = $this->attributes[static::RGT] = $rgt += $distance;
-
-        $this->updateParent($height, $from, $to);
-
-        return $updated;
+        return true;
     }
 
     /**
      * Update the tree when the node is removed physically.
-     *
-     * @return void
      */
     protected function deleteNode()
     {
-        // DBMS with support of foreign keys will remove descendant nodes automatically
-        $this->descendants()->delete();
+        if (static::$deleting) return;
 
         $lft = $this->getLft();
         $rgt = $this->getRgt();
+        $height = $rgt - $lft + 1;
 
-        // Unset this attributes to indicate that node has'n been inserted.
-        unset($this->attributes[static::LFT], $this->attributes[static::RGT]);
+        // Make sure that inner nodes are just deleted and don't touch the tree
+        static::$deleting = true;
 
-        return $this->makeGap($rgt + 1, $lft - $rgt - 1);
+        $this->newQuery()->whereNodeBetween([ $lft, $rgt ])->delete();
+        
+        static::$deleting = false;
+
+        $this->makeGap($rgt + 1, -$height);
+
+        // In case if user wants to re-create the node
+        $this->makeRoot();
     }
 
     /**
-     * Make or remove gap in the tree. Negative height will remove gap.
-     *
-     * @param  integer $cut
-     * @param  integer $height
-     *
-     * @return integer the number of updated nodes.
-     */
-    protected function makeGap($cut, $height)
-    {
-        $params = compact('cut', 'height');
-        $query = $this->newQueryWithDeleted()->getQuery();
-        $updated = $query
-            ->where(static::LFT, '>=', $cut)
-            ->orWhere(static::RGT, '>=', $cut)
-            ->update($this->getColumnsPatch($params, $query->getGrammar()));
-
-        $this->updateParent($height);
-
-        return $updated;
-    }
-
-    /**
-     * Update parent to keep it synced.
+     * {@inheritdoc}
      * 
-     * When node is inserted, either lft or rgt is updated. If node doesn't exists
-     * it is always rgt and it is simply increased or decreased by height depending
-     * on whether node was deleted or it is being inserted.
-     * 
-     * When node is exists and it is moved, parent is updated within specific
-     * boundaries and column is selected based on where node moved - up (rgt) or
-     * down (lft).
-     *
-     * @param  integer $height
-     * @param  integer $from
-     * @param  integer $to
-     *
-     * @return void
+     * @since 2.0
      */
-    protected function updateParent($height, $from = null, $to = null)
+    public function newEloquentBuilder($query)
     {
-        if (!isset($this->relations['parent'])) return;
-
-        $parent = $this->relations['parent'];
-
-        if ($from === null)
-        {
-            $parent->attributes[static::RGT] += $height;
-        }
-        else
-        {
-            $col = $height < 0 ? static::LFT : static::RGT;
-            $value = $parent->attributes[$col];
-
-            if ($to === null) $to = $value;
-
-            if ($from <= $value and $value <= $to)
-            {
-                $parent->attributes[$col] += $height;
-            }
-        }
-
-        $parent->updateParent($height, $from, $to);
+        return new QueryBuilder($query);
     }
 
     /**
-     * Get patch for columns.
-     *
-     * @param  array  $params
-     * @param  \Illuminate\Database\Query\Grammars\Grammar $grammar
-     *
-     * @return array
-     */
-    protected function getColumnsPatch(array $params, $grammar)
-    {
-        $columns = array();
-        foreach (array(static::LFT, static::RGT) as $col) 
-        {
-            $columns[$col] = $this->getColumnPatch($grammar->wrap($col), $params);
-        }
-
-        return $columns;
-    }
-
-    /**
-     * Get patch for single column.
-     *
-     * @param  string $col
-     * @param  array  $params
-     *
-     * @return string
-     */
-    protected function getColumnPatch($col, array $params)
-    {
-        extract($params);
-
-        if ($height > 0) $height = '+'.$height;
-
-        if (isset($cut)) 
-        {
-            return new Expression("case when $col >= $cut then $col $height else $col end");
-        }
-
-        if ($distance > 0) $distance = '+'.$distance;
-
-        return new Expression("case ".
-            "when $col between $lft and $rgt then $col $distance ".
-            "when $col between $from and $to then $col $height ".
-            "else $col end"
-        );
-    }
-
-    /**
-     * Get a new base query builder instance.
-     *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
-     */
-    protected function newBaseQueryBuilder()
-    {
-        $conn = $this->getConnection();
-
-        $grammar = $conn->getQueryGrammar();
-
-        return new QueryBuilder($conn, $grammar, $conn->getPostProcessor(), $this);
-    }
-
-    /**
-     * Get a new query including deleted nodes.
+     * Get a new base query that includes deleted nodes.
      * 
      * @since 1.1
      */
-    protected function newQueryWithDeleted()
+    protected function newServiceQuery()
     {
-        return static::$softDelete ? $this->withTrashed() : $this->newQuery();
+        return static::$_softDelete ? $this->withTrashed() : $this->newQuery();
     }
 
     /**
-     * Create a new NestedSet Collection instance.
-     *
-     * @param   array   $models
-     *
-     * @return  \Kalnoy\Nestedset\Collection
+     * {@inheritdoc}
      */
     public function newCollection(array $models = array())
     {
@@ -637,7 +723,50 @@ class Node extends Eloquent {
     }
 
     /**
-     * Get node size (rgt-lft).
+     * {@inheritdoc}
+     */
+    public function newFromBuilder($attributes = array())
+    {
+        $instance = parent::newFromBuilder($attributes);
+
+        $instance->clearAction();
+
+        return $instance;
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * Use `children` key on `$attributes` to create child nodes.
+     * 
+     * @param \Kalnoy\Nestedset\Node $parent
+     * 
+     */
+    public static function create(array $attributes, Node $parent = null)
+    {
+        $children = array_pull($attributes, 'children', []);
+
+        $instance = new static($attributes);
+
+        if ($parent) $instance->appendTo($parent);
+
+        $instance->save();
+
+        // Now create children
+        $relation = new EloquentCollection;
+
+        foreach ($children as $child)
+        {
+            $relation->add($child = static::create($child, $instance));
+
+            $child->setRelation('parent', $instance);
+        }
+
+        return $instance->setRelation('children', $relation);
+    }
+
+    /**
+     * Get node height (rgt - lft + 1).
      *
      * @return int
      */
@@ -645,7 +774,7 @@ class Node extends Eloquent {
     {
         if ( ! $this->exists) return 2;
 
-        return $this->attributes[static::RGT] - $this->attributes[static::LFT] + 1;
+        return $this->getRgt() - $this->getLft() + 1;
     }
 
     /**
@@ -664,11 +793,12 @@ class Node extends Eloquent {
      * Behind the scenes node is appended to found parent node.
      *
      * @param int $value
+     * 
      * @throws Exception If parent node doesn't exists
      */
     public function setParentIdAttribute($value)
     {
-        if ( ! isset($this->attributes[static::PARENT_ID]) || $this->attributes[static::PARENT_ID] != $value) 
+        if ($this->getAttribute(static::PARENT_ID) != $value) 
         {
             $this->appendTo(static::findOrFail($value));
         }
@@ -681,7 +811,7 @@ class Node extends Eloquent {
      */
     public function isRoot()
     {
-        return $this->attributes[static::LFT] == 1;
+        return $this->getAttribute(static::PARENT_ID) === null;
     }
 
     /**
@@ -721,7 +851,7 @@ class Node extends Eloquent {
      */
     public function getLft()
     {
-        return $this->attributes[static::LFT];
+        return isset($this->attributes[static::LFT]) ? $this->attributes[static::LFT] : null;
     }
 
     /**
@@ -731,7 +861,7 @@ class Node extends Eloquent {
      */
     public function getRgt()
     {
-        return $this->attributes[static::RGT];
+        return isset($this->attributes[static::RGT]) ? $this->attributes[static::RGT] : null;
     }
 
     /**
@@ -741,7 +871,7 @@ class Node extends Eloquent {
      */
     public function getParentId()
     {
-        return $this->attributes[static::PARENT_ID];
+        return $this->getAttribute(static::PARENT_ID);
     }
 
     /**
@@ -777,7 +907,7 @@ class Node extends Eloquent {
      */
     public function getAncestors(array $columns = array('*'))
     {
-        return $this->ancestors()->get($columns);
+        return $this->newQuery()->ancestorsOf($this->getKey(), $columns);
     }
 
     /**
@@ -789,7 +919,7 @@ class Node extends Eloquent {
      */
     public function getDescendants(array $columns = array('*'))
     {
-        return $this->descendants()->get($columns);
+        return $this->newQuery()->descendantsOf($this->getKey(), $columns);
     }
 
     /**
@@ -850,5 +980,63 @@ class Node extends Eloquent {
     public function getPrevSibling(array $columns = array('*'))
     {
         return $this->prevSiblings()->reversed()->first($columns);
+    }
+
+    /**
+     * Get whether a node is a descendant of other node.
+     * 
+     * @param \Kalnoy\Nestedset\Node $other
+     * 
+     * @return bool
+     */
+    public function isDescendantOf(Node $other)
+    {
+        return $this->getLft() > $other->getLft() and $this->getLft() < $other->getRgt();
+    }
+
+    /**
+     * Get statistics of errors of the tree.
+     * 
+     * @since 2.0
+     * 
+     * @return array
+     */
+    public function countErrors()
+    {
+        return $this->newServiceQuery()->countErrors();
+    }
+
+    /**
+     * Get the number of total errors of the tree.
+     * 
+     * @since 2.0
+     * 
+     * @return int
+     */
+    public function getTotalErrors()
+    {
+        return array_sum($this->countErrors());
+    }
+
+    /**
+     * Get whether the tree is broken.
+     * 
+     * @since 2.0
+     * 
+     * @return bool
+     */
+    public function isBroken()
+    {
+        return $this->getTotalErrors() > 0;
+    }
+
+    /**
+     * Get whether the node has moved since last save.
+     * 
+     * @return bool
+     */
+    public function hasMoved()
+    {
+        return $this->moved;
     }
 }

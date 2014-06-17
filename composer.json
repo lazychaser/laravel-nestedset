@@ -1,7 +1,7 @@
 {
     "name": "kalnoy/nestedset",
     "description": "Nested Set Model for Laravel 4",
-    "keywords": ["laravel", "nested sets", "database", "hierarchy"],
+    "keywords": ["laravel", "nested sets", "nsm", "database", "hierarchy"],
     "licence": "MIT",
 
     "authors": [
@@ -13,8 +13,8 @@
 
     "require": {
         "php": ">=5.4.0",
-        "illuminate/support": "~4.2.1",
-        "illuminate/database": "~4.2.1"
+        "illuminate/support": "~4.1",
+        "illuminate/database": "~4.1"
     },
 
     "require-dev": {
