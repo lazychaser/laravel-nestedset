@@ -24,7 +24,7 @@ class QueryBuilder extends Builder {
     {
         $this->query->where($this->model->getKeyName(), '=', $id);
 
-        return $this->query->first([ $this->model->getLftName(), $this->model->getRgtName() ]);
+        return (array)$this->query->first([ $this->model->getLftName(), $this->model->getRgtName() ]);
     }
 
     /**

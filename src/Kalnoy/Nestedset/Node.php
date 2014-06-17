@@ -53,7 +53,16 @@ class Node extends Eloquent {
      * 
      * @since 1.1
      */
-    static protected $softDelete;
+    static protected $_softDelete;
+
+    /**
+     * Whether the node is being deleted.
+     * 
+     * @since 2.0
+     *
+     * @var bool
+     */
+    static protected $deleting;
 
     /**
      * Pending operation.
@@ -83,7 +92,7 @@ class Node extends Eloquent {
     {
         parent::boot();
 
-        static::$softDelete = static::getIsSoftDelete();
+        static::$_softDelete = static::getIsSoftDelete();
 
         static::signOnEvents();
     }
@@ -110,7 +119,7 @@ class Node extends Eloquent {
             return $model->callPendingAction();
         });
 
-        if ( ! static::$softDelete)
+        if ( ! static::$_softDelete)
         {
             static::deleting(function ($model)
             {
@@ -136,6 +145,21 @@ class Node extends Eloquent {
         return $this->getConnection()->transaction(function () use ($options)
         {
             return parent::save($options);
+        });
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * Delete a node in transaction if model is not soft deleting.
+     */
+    public function delete()
+    {
+        if (static::$_softDelete) return parent::delete();
+
+        return $this->getConnection()->transaction(function ()
+        {
+            return parent::delete();
         });
     }
 
@@ -648,18 +672,26 @@ class Node extends Eloquent {
 
     /**
      * Update the tree when the node is removed physically.
-     *
-     * @return void
      */
     protected function deleteNode()
     {
-        // DBMS with support of foreign keys will remove descendant nodes automatically
-        $this->newQuery()->whereNodeBetween([ $this->getLft(), $this->getRgt() ])->delete();
+        if (static::$deleting) return;
+
+        $lft = $this->getLft();
+        $rgt = $this->getRgt();
+        $height = $rgt - $lft + 1;
+
+        // Make sure that inner nodes are just deleted and don't touch the tree
+        static::$deleting = true;
+
+        $this->newQuery()->whereNodeBetween([ $lft, $rgt ])->delete();
+        
+        static::$deleting = false;
+
+        $this->makeGap($rgt + 1, -$height);
 
         // In case if user wants to re-create the node
         $this->makeRoot();
-
-        return $this->makeGap($this->getRgt() + 1, - $this->getNodeHeight());
     }
 
     /**
@@ -679,7 +711,7 @@ class Node extends Eloquent {
      */
     protected function newServiceQuery()
     {
-        return static::$softDelete ? $this->withTrashed() : $this->newQuery();
+        return static::$_softDelete ? $this->withTrashed() : $this->newQuery();
     }
 
     /**

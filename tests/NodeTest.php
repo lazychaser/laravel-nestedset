@@ -251,13 +251,16 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
     public function testNodeIsDeletedWithDescendants()
     {
-        $node = $this->findCategory('notebooks');
+        $node = $this->findCategory('mobile');
         $this->assertTrue($node->delete());
 
         $this->assertTreeNotBroken();
 
-        $nodes = Category::whereIn('id', array(2, 3, 4))->count();
+        $nodes = Category::whereIn('id', array(5, 6, 7, 8, 9))->count();
         $this->assertEquals(0, $nodes);
+
+        $root = Category::root();
+        $this->assertEquals(8, $root->getRgt());
     }
 
     /**
