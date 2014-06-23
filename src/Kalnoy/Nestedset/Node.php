@@ -233,7 +233,7 @@ class Node extends Eloquent {
      */
     protected function getLowerBound()
     {
-        return $this->newServiceQuery()->max(static::RGT);
+        return (int)$this->newServiceQuery()->max(static::RGT);
     }
 
     /**
@@ -800,7 +800,14 @@ class Node extends Eloquent {
     {
         if ($this->getAttribute(static::PARENT_ID) != $value) 
         {
-            $this->appendTo(static::findOrFail($value));
+            if ($value)
+            {
+                $this->appendTo(static::findOrFail($value));
+            }
+            else
+            {
+                $this->makeRoot();
+            }
         }
     }
 
