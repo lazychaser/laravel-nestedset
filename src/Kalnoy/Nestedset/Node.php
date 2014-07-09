@@ -744,7 +744,7 @@ class Node extends Eloquent {
      */
     public static function create(array $attributes, Node $parent = null)
     {
-        $children = array_pull($attributes, 'children', []);
+        $children = array_pull($attributes, 'children');
 
         $instance = new static($attributes);
 
@@ -755,7 +755,7 @@ class Node extends Eloquent {
         // Now create children
         $relation = new EloquentCollection;
 
-        foreach ($children as $child)
+        foreach ((array)$children as $child)
         {
             $relation->add($child = static::create($child, $instance));
 
