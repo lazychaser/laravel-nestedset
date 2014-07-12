@@ -1,5 +1,7 @@
 This is a Laravel 4 package for working with trees in a database.
 
+__[Support this project](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
+
 __Contents:__
 
 - [Theory](#what-are-nested-sets)
