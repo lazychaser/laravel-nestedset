@@ -210,6 +210,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
 
+    public function testGetsAncestorsDirect()
+    {
+        $path = Category::find(8)->getAncestors()->lists('id');
+
+        $this->assertEquals(array(1, 5, 7), $path);
+    }
+
     public function testDescendantsQueried()
     {
         $node = $this->findCategory('mobile');
@@ -427,7 +434,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
     public function testCountsTreeErrors()
     {
-        $errors = with(new Category)->countErrors();
+        $errors = Category::countErrors();
 
         $this->assertEquals([ 'oddness' => 0, 'duplicates' => 0, 'wrong_parent' => 0 ], $errors);
     }

@@ -1008,9 +1008,11 @@ class Node extends Eloquent {
      * 
      * @return array
      */
-    public function countErrors()
+    public static function countErrors()
     {
-        return $this->newServiceQuery()->countErrors();
+        $model = new static;
+
+        return $model->newServiceQuery()->countErrors();
     }
 
     /**
@@ -1020,9 +1022,9 @@ class Node extends Eloquent {
      * 
      * @return int
      */
-    public function getTotalErrors()
+    public static function getTotalErrors()
     {
-        return array_sum($this->countErrors());
+        return array_sum(static::countErrors());
     }
 
     /**
@@ -1032,9 +1034,9 @@ class Node extends Eloquent {
      * 
      * @return bool
      */
-    public function isBroken()
+    public static function isBroken()
     {
-        return $this->getTotalErrors() > 0;
+        return static::getTotalErrors() > 0;
     }
 
     /**
