@@ -505,6 +505,6 @@ class QueryBuilder extends Builder {
             $query->addSelect(new Expression('(select count(1) '.$check.') as '.$key));
         }
 
-        return $query->first();
+        return (array)$query->first();
     }
 }
