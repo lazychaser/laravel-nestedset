@@ -203,6 +203,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
 
+    public function testGetsAncestorsByStatic()
+    {
+        $path = Category::ancestorsOf(3)->lists('name');
+
+        $this->assertEquals(array('store', 'notebooks'), $path);
+    }
+
     public function testDescendantsQueried()
     {
         $node = $this->findCategory('mobile');
