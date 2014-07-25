@@ -233,7 +233,7 @@ class Node extends Eloquent {
      */
     protected function getLowerBound()
     {
-        return $this->newServiceQuery()->max(static::RGT);
+        return (int)$this->newServiceQuery()->max(static::RGT);
     }
 
     /**
@@ -744,7 +744,7 @@ class Node extends Eloquent {
      */
     public static function create(array $attributes, Node $parent = null)
     {
-        $children = array_pull($attributes, 'children', []);
+        $children = array_pull($attributes, 'children');
 
         $instance = new static($attributes);
 
@@ -755,7 +755,7 @@ class Node extends Eloquent {
         // Now create children
         $relation = new EloquentCollection;
 
-        foreach ($children as $child)
+        foreach ((array)$children as $child)
         {
             $relation->add($child = static::create($child, $instance));
 
@@ -800,7 +800,14 @@ class Node extends Eloquent {
     {
         if ($this->getAttribute(static::PARENT_ID) != $value) 
         {
-            $this->appendTo(static::findOrFail($value));
+            if ($value)
+            {
+                $this->appendTo(static::findOrFail($value));
+            }
+            else
+            {
+                $this->makeRoot();
+            }
         }
     }
 
@@ -1001,9 +1008,11 @@ class Node extends Eloquent {
      * 
      * @return array
      */
-    public function countErrors()
+    public static function countErrors()
     {
-        return $this->newServiceQuery()->countErrors();
+        $model = new static;
+
+        return $model->newServiceQuery()->countErrors();
     }
 
     /**
@@ -1013,9 +1022,9 @@ class Node extends Eloquent {
      * 
      * @return int
      */
-    public function getTotalErrors()
+    public static function getTotalErrors()
     {
-        return array_sum($this->countErrors());
+        return array_sum(static::countErrors());
     }
 
     /**
@@ -1025,9 +1034,9 @@ class Node extends Eloquent {
      * 
      * @return bool
      */
-    public function isBroken()
+    public static function isBroken()
     {
-        return $this->getTotalErrors() > 0;
+        return static::getTotalErrors() > 0;
     }
 
     /**

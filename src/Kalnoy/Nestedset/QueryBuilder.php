@@ -96,7 +96,7 @@ class QueryBuilder extends Builder {
      */
     public function ancestorsOf($id, array $columns = array('*'))
     {
-        return $this->whereAncestorsOf($id)->get($columns);
+        return $this->whereAncestorOf($id)->get($columns);
     }
 
     /**
