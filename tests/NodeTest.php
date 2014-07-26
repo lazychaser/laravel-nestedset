@@ -119,10 +119,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = new Category([ 'name' => 'test' ]);
         $root = Category::root();
 
+        $accepted = array($root->_rgt, $root->_rgt + 1, $root->id);
+
         $root->append($node);
 
-        $this->assertEquals(array($root->_rgt, $root->_rgt + 1, $root->id), $this->nodeValues($node));
+        $this->assertEquals($accepted, $this->nodeValues($node));
         $this->assertTreeNotBroken();
+        $this->assertFalse($node->isDirty());
     }
 
     public function testRecievesValidValuesWhenPrependedTo()
@@ -143,6 +146,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $this->assertEquals(array($target->_rgt + 1, $target->_rgt + 2, $target->parent->id), $this->nodeValues($node));
         $this->assertTreeNotBroken();
+        $this->assertFalse($node->isDirty());
     }
 
     public function testRecievesValidValuesWhenInsertedBefore()
@@ -446,6 +450,15 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(19, $node->getLft());
     }
 
+    public function testCreatesViaRelationship()
+    {
+        $node = $this->findCategory('apple');
+
+        $child = $node->children()->create([ 'name' => 'test' ]);
+
+        $this->assertTreeNotBroken();
+    }
+
     public function testCreatesTree()
     {
         $node = Category::create(
@@ -454,10 +467,12 @@ class NodeTest extends PHPUnit_Framework_TestCase {
             'children' =>
             [
                 [ 'name' => 'test2' ],
+                [ 'name' => 'test3' ],
             ],
         ]);
 
+        $this->assertTreeNotBroken();
         $this->assertTrue(isset($node->children));
-        $this->assertCount(1, $node->children);
+        $this->assertCount(2, $node->children);
     }
 }

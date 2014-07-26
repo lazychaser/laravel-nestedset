@@ -273,7 +273,14 @@ class Node extends Eloquent {
 
         $parent->refreshNode();
 
-        return $this->insertAt($prepend ? $parent->getLft() + 1 : $parent->getRgt());
+        if ($this->insertAt($prepend ? $parent->getLft() + 1 : $parent->getRgt()))
+        {
+            $parent->refreshNode();
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -340,6 +347,7 @@ class Node extends Eloquent {
         $attributes = $this->newServiceQuery()->getNodeData($this->getKey());
 
         $this->attributes = array_merge($this->attributes, $attributes);
+        $this->original = array_merge($this->original, $attributes);
     }
 
     /**
@@ -580,7 +588,15 @@ class Node extends Eloquent {
      */
     public function insertBefore(Node $node)
     {
-        return $this->before($node)->save();
+        if ($this->before($node)->save())
+        {
+            // We'll' update the target node since it will be moved
+            $node->refreshNode();
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
