@@ -952,7 +952,7 @@ class Node extends Eloquent {
      *
      * @return  \Kalnoy\Nestedset\Collection
      */
-    public function getSiblings(array $column = array('*')) 
+    public function getSiblings(array $columns = array('*')) 
     {
         return $this->siblings()->get($columns);
     }
