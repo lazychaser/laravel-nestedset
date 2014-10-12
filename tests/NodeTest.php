@@ -79,8 +79,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $nodeInDb = $this->findCategory($node->name);
 
         $this->assertEquals(
-            [ $nodeInDb->getLft(), $nodeInDb->getRgt() ], 
-            [ $lft, $rgt ], 
+            [ $nodeInDb->getLft(), $nodeInDb->getRgt() ],
+            [ $lft, $rgt ],
             'Node is not synced with database after save.'
         );
     }
@@ -390,7 +390,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $child = new Category([ 'name' => 'test' ]);
 
         $parent->append($child);
-        
+
         $child->append(new Category([ 'name' => 'sub' ]));
 
         $parent->append(new Category([ 'name' => 'test2' ]));
