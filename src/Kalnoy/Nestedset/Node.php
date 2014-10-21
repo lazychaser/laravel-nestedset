@@ -14,50 +14,50 @@ class Node extends Eloquent {
     /**
      * The name of "lft" column.
      *
-     * @var string 
+     * @var string
      */
     const LFT = '_lft';
 
     /**
      * The name of "rgt" column.
      *
-     * @var string 
+     * @var string
      */
     const RGT = '_rgt';
 
     /**
      * The name of "parent id" column.
      *
-     * @var string 
+     * @var string
      */
     const PARENT_ID = 'parent_id';
 
     /**
      * Insert direction.
      *
-     * @var string 
+     * @var string
      */
     const BEFORE = 'before';
 
     /**
      * Insert direction.
      *
-     * @var string 
+     * @var string
      */
     const AFTER = 'after';
 
     /**
      * Whether model uses soft delete.
-     * 
+     *
      * @var bool
-     * 
+     *
      * @since 1.1
      */
     static protected $_softDelete;
 
     /**
      * Whether the node is being deleted.
-     * 
+     *
      * @since 2.0
      *
      * @var bool
@@ -66,21 +66,21 @@ class Node extends Eloquent {
 
     /**
      * Pending operation.
-     * 
+     *
      * @var array
      */
     protected $pending = [ 'root' ];
 
     /**
      * Whether the node has moved since last save.
-     * 
+     *
      * @var bool
      */
     protected $moved = false;
 
     /**
      * Keep track of the number of performed operations.
-     * 
+     *
      * @var int
      */
     protected static $actionsPerformed = 0;
@@ -99,7 +99,7 @@ class Node extends Eloquent {
 
     /**
      * Get whether model uses soft delete.
-     * 
+     *
      * @return bool
      */
     protected static function getIsSoftDelete()
@@ -114,7 +114,7 @@ class Node extends Eloquent {
      */
     protected static function signOnEvents()
     {
-        static::saving(function ($model)
+        static::saving(function (Node $model)
         {
             return $model->callPendingAction();
         });
@@ -136,9 +136,8 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Saves a node in a transaction.
-     * 
      */
     public function save(array $options = array())
     {
@@ -150,7 +149,7 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Delete a node in transaction if model is not soft deleting.
      */
     public function delete()
@@ -165,8 +164,10 @@ class Node extends Eloquent {
 
     /**
      * Set an action.
-     * 
+     *
      * @param string $action
+     *
+     * @return $this
      */
     protected function setAction($action)
     {
@@ -228,7 +229,7 @@ class Node extends Eloquent {
 
     /**
      * Get the lower bound.
-     * 
+     *
      * @return int
      */
     protected function getLowerBound()
@@ -240,6 +241,8 @@ class Node extends Eloquent {
      * Append a node to the parent.
      *
      * @param \Kalnoy\Nestedset\Node $parent
+     *
+     * @return bool
      */
     protected function actionAppendTo(Node $parent)
     {
@@ -248,8 +251,10 @@ class Node extends Eloquent {
 
     /**
      * Prepend a node to the parent.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $parent
+     *
+     * @return bool
      */
     protected function actionPrependTo(Node $parent)
     {
@@ -258,9 +263,11 @@ class Node extends Eloquent {
 
     /**
      * Append or prepend a node to the parent.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $parent
      * @param bool $prepend
+     *
+     * @return bool
      */
     protected function actionAppendOrPrepend(Node $parent, $prepend = false)
     {
@@ -285,7 +292,7 @@ class Node extends Eloquent {
 
     /**
      * Apply parent model.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node|null $value
      */
     protected function setParent($value)
@@ -296,7 +303,7 @@ class Node extends Eloquent {
 
     /**
      * Insert node before or after another node.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $node
      * @param bool $after
      */
@@ -319,7 +326,7 @@ class Node extends Eloquent {
 
     /**
      * Insert node before other node.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $node
      */
     protected function actionBefore(Node $node)
@@ -329,7 +336,7 @@ class Node extends Eloquent {
 
     /**
      * Insert node after other node.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $node
      */
     protected function actionAfter(Node $node)
@@ -394,7 +401,7 @@ class Node extends Eloquent {
 
     /**
      * Get query for siblings of the node.
-     * 
+     *
      * @param self::AFTER|self::BEFORE|null $dir
      *
      * @return \Kalnoy\Nestedset\QueryBuilder
@@ -403,7 +410,7 @@ class Node extends Eloquent {
     {
         switch ($dir)
         {
-            case self::AFTER: 
+            case self::AFTER:
                 $query = $this->next();
 
                 break;
@@ -421,7 +428,7 @@ class Node extends Eloquent {
         }
 
         $query->where(static::PARENT_ID, '=', $this->getParentId());
-        
+
         return $query;
     }
 
@@ -477,7 +484,7 @@ class Node extends Eloquent {
 
     /**
      * Make this node a root node.
-     * 
+     *
      * @return $this
      */
     public function makeRoot()
@@ -487,7 +494,7 @@ class Node extends Eloquent {
 
     /**
      * Save node as root.
-     * 
+     *
      * @return bool
      */
     public function saveAsRoot()
@@ -513,7 +520,7 @@ class Node extends Eloquent {
      * @param \Kalnoy\Nestedset\Node $node
      *
      * @return bool
-     */ 
+     */
     public function prepend(Node $node)
     {
         return $node->prependTo($this)->save();
@@ -539,7 +546,7 @@ class Node extends Eloquent {
      * @return $this
      */
     public function prependTo(Node $parent)
-    {        
+    {
         return $this->setAction('prependTo', $parent);
     }
 
@@ -557,9 +564,9 @@ class Node extends Eloquent {
 
     /**
      * Insert self after a node and save.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $node
-     * 
+     *
      * @return bool
      */
     public function insertAfter(Node $node)
@@ -581,9 +588,9 @@ class Node extends Eloquent {
 
     /**
      * Insert self before a node and save.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $node
-     * 
+     *
      * @return bool
      */
     public function insertBefore(Node $node)
@@ -601,9 +608,9 @@ class Node extends Eloquent {
 
     /**
      * Move node up given amount of positions.
-     * 
+     *
      * @param int $amount
-     * 
+     *
      * @return bool
      */
     public function up($amount = 1)
@@ -618,9 +625,9 @@ class Node extends Eloquent {
 
     /**
      * Move node down given amount of positions.
-     * 
+     *
      * @param int $amount
-     * 
+     *
      * @return bool
      */
     public function down($amount = 1)
@@ -651,7 +658,7 @@ class Node extends Eloquent {
 
     /**
      * Move a node to the new position.
-     * 
+     *
      * @since 2.0
      *
      * @param int $position
@@ -669,9 +676,9 @@ class Node extends Eloquent {
 
     /**
      * Insert new node at specified position.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @param int $position
      */
     protected function insertNode($position)
@@ -701,7 +708,7 @@ class Node extends Eloquent {
         static::$deleting = true;
 
         $this->newQuery()->whereNodeBetween([ $lft, $rgt ])->delete();
-        
+
         static::$deleting = false;
 
         $this->makeGap($rgt + 1, -$height);
@@ -712,7 +719,7 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * @since 2.0
      */
     public function newEloquentBuilder($query)
@@ -722,7 +729,7 @@ class Node extends Eloquent {
 
     /**
      * Get a new base query that includes deleted nodes.
-     * 
+     *
      * @since 1.1
      */
     protected function newServiceQuery()
@@ -752,11 +759,11 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Use `children` key on `$attributes` to create child nodes.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $parent
-     * 
+     *
      */
     public static function create(array $attributes, Node $parent = null)
     {
@@ -809,12 +816,12 @@ class Node extends Eloquent {
      * Behind the scenes node is appended to found parent node.
      *
      * @param int $value
-     * 
+     *
      * @throws Exception If parent node doesn't exists
      */
     public function setParentIdAttribute($value)
     {
-        if ($this->getAttribute(static::PARENT_ID) != $value) 
+        if ($this->getAttribute(static::PARENT_ID) != $value)
         {
             if ($value)
             {
@@ -838,7 +845,7 @@ class Node extends Eloquent {
     }
 
     /**
-     * Get the lft key name.    
+     * Get the lft key name.
      *
      * @return  string
      */
@@ -952,7 +959,7 @@ class Node extends Eloquent {
      *
      * @return  \Kalnoy\Nestedset\Collection
      */
-    public function getSiblings(array $columns = array('*')) 
+    public function getSiblings(array $columns = array('*'))
     {
         return $this->siblings()->get($columns);
     }
@@ -1007,9 +1014,9 @@ class Node extends Eloquent {
 
     /**
      * Get whether a node is a descendant of other node.
-     * 
+     *
      * @param \Kalnoy\Nestedset\Node $other
-     * 
+     *
      * @return bool
      */
     public function isDescendantOf(Node $other)
@@ -1019,9 +1026,9 @@ class Node extends Eloquent {
 
     /**
      * Get statistics of errors of the tree.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @return array
      */
     public static function countErrors()
@@ -1033,9 +1040,9 @@ class Node extends Eloquent {
 
     /**
      * Get the number of total errors of the tree.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @return int
      */
     public static function getTotalErrors()
@@ -1045,9 +1052,9 @@ class Node extends Eloquent {
 
     /**
      * Get whether the tree is broken.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @return bool
      */
     public static function isBroken()
@@ -1057,7 +1064,7 @@ class Node extends Eloquent {
 
     /**
      * Get whether the node has moved since last save.
-     * 
+     *
      * @return bool
      */
     public function hasMoved()
