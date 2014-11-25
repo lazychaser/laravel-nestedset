@@ -1081,4 +1081,17 @@ class Node extends Eloquent {
     {
         return $this->moved;
     }
+
+    /**
+     * @return array
+     */
+    protected function getArrayableRelations()
+    {
+        $result = parent::getArrayableRelations();
+
+        // To fix #17 when converting tree to json falling to infinite recursion.
+        unset($result['parent']);
+
+        return $result;
+    }
 }
