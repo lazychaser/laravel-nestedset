@@ -3,10 +3,10 @@
 namespace Kalnoy\Nestedset;
 
 use Exception;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 use Illuminate\Database\Eloquent\Model as Eloquent;
-use Illuminate\Database\Query\Builder;
-use Illuminate\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class Node extends Eloquent {
@@ -14,50 +14,50 @@ class Node extends Eloquent {
     /**
      * The name of "lft" column.
      *
-     * @var string 
+     * @var string
      */
     const LFT = '_lft';
 
     /**
      * The name of "rgt" column.
      *
-     * @var string 
+     * @var string
      */
     const RGT = '_rgt';
 
     /**
      * The name of "parent id" column.
      *
-     * @var string 
+     * @var string
      */
     const PARENT_ID = 'parent_id';
 
     /**
      * Insert direction.
      *
-     * @var string 
+     * @var string
      */
     const BEFORE = 'before';
 
     /**
      * Insert direction.
      *
-     * @var string 
+     * @var string
      */
     const AFTER = 'after';
 
     /**
      * Whether model uses soft delete.
-     * 
+     *
      * @var bool
-     * 
+     *
      * @since 1.1
      */
     static protected $_softDelete;
 
     /**
      * Whether the node is being deleted.
-     * 
+     *
      * @since 2.0
      *
      * @var bool
@@ -66,21 +66,21 @@ class Node extends Eloquent {
 
     /**
      * Pending operation.
-     * 
+     *
      * @var array
      */
     protected $pending = [ 'root' ];
 
     /**
      * Whether the node has moved since last save.
-     * 
+     *
      * @var bool
      */
     protected $moved = false;
 
     /**
      * Keep track of the number of performed operations.
-     * 
+     *
      * @var int
      */
     protected static $actionsPerformed = 0;
@@ -99,7 +99,7 @@ class Node extends Eloquent {
 
     /**
      * Get whether model uses soft delete.
-     * 
+     *
      * @return bool
      */
     protected static function getIsSoftDelete()
@@ -114,7 +114,7 @@ class Node extends Eloquent {
      */
     protected static function signOnEvents()
     {
-        static::saving(function ($model)
+        static::saving(function (Node $model)
         {
             return $model->callPendingAction();
         });
@@ -136,9 +136,8 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Saves a node in a transaction.
-     * 
      */
     public function save(array $options = array())
     {
@@ -150,7 +149,7 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Delete a node in transaction if model is not soft deleting.
      */
     public function delete()
@@ -165,8 +164,10 @@ class Node extends Eloquent {
 
     /**
      * Set an action.
-     * 
+     *
      * @param string $action
+     *
+     * @return $this
      */
     protected function setAction($action)
     {
@@ -228,7 +229,7 @@ class Node extends Eloquent {
 
     /**
      * Get the lower bound.
-     * 
+     *
      * @return int
      */
     protected function getLowerBound()
@@ -239,7 +240,9 @@ class Node extends Eloquent {
     /**
      * Append a node to the parent.
      *
-     * @param \Kalnoy\Nestedset\Node $parent
+     * @param Node $parent
+     *
+     * @return bool
      */
     protected function actionAppendTo(Node $parent)
     {
@@ -248,8 +251,10 @@ class Node extends Eloquent {
 
     /**
      * Prepend a node to the parent.
-     * 
-     * @param \Kalnoy\Nestedset\Node $parent
+     *
+     * @param Node $parent
+     *
+     * @return bool
      */
     protected function actionPrependTo(Node $parent)
     {
@@ -258,9 +263,11 @@ class Node extends Eloquent {
 
     /**
      * Append or prepend a node to the parent.
-     * 
-     * @param \Kalnoy\Nestedset\Node $parent
+     *
+     * @param Node $parent
      * @param bool $prepend
+     *
+     * @return bool
      */
     protected function actionAppendOrPrepend(Node $parent, $prepend = false)
     {
@@ -285,8 +292,8 @@ class Node extends Eloquent {
 
     /**
      * Apply parent model.
-     * 
-     * @param \Kalnoy\Nestedset\Node|null $value
+     *
+     * @param Node|null $value
      */
     protected function setParent($value)
     {
@@ -296,9 +303,11 @@ class Node extends Eloquent {
 
     /**
      * Insert node before or after another node.
-     * 
-     * @param \Kalnoy\Nestedset\Node $node
+     *
+     * @param Node $node
      * @param bool $after
+     *
+     * @return bool
      */
     protected function actionBeforeOrAfter(Node $node, $after = false)
     {
@@ -319,8 +328,10 @@ class Node extends Eloquent {
 
     /**
      * Insert node before other node.
-     * 
-     * @param \Kalnoy\Nestedset\Node $node
+     *
+     * @param Node $node
+     *
+     * @return bool
      */
     protected function actionBefore(Node $node)
     {
@@ -329,8 +340,10 @@ class Node extends Eloquent {
 
     /**
      * Insert node after other node.
-     * 
-     * @param \Kalnoy\Nestedset\Node $node
+     *
+     * @param Node $node
+     *
+     * @return bool
      */
     protected function actionAfter(Node $node)
     {
@@ -385,7 +398,7 @@ class Node extends Eloquent {
     /**
      * Get query for descendants of the node.
      *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * @return  QueryBuilder
      */
     public function descendants()
     {
@@ -394,16 +407,16 @@ class Node extends Eloquent {
 
     /**
      * Get query for siblings of the node.
-     * 
+     *
      * @param self::AFTER|self::BEFORE|null $dir
      *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * @return QueryBuilder
      */
     public function siblings($dir = null)
     {
         switch ($dir)
         {
-            case self::AFTER: 
+            case self::AFTER:
                 $query = $this->next();
 
                 break;
@@ -421,14 +434,14 @@ class Node extends Eloquent {
         }
 
         $query->where(static::PARENT_ID, '=', $this->getParentId());
-        
+
         return $query;
     }
 
     /**
      * Get query for siblings after the node.
      *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * @return QueryBuilder
      */
     public function nextSiblings()
     {
@@ -438,7 +451,7 @@ class Node extends Eloquent {
     /**
      * Get query for siblings before the node.
      *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * @return QueryBuilder
      */
     public function prevSiblings()
     {
@@ -448,7 +461,7 @@ class Node extends Eloquent {
     /**
      * Get query for nodes after current node.
      *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * @return QueryBuilder
      */
     public function next()
     {
@@ -458,7 +471,7 @@ class Node extends Eloquent {
     /**
      * Get query for nodes before current node in reversed order.
      *
-     * @return \Kalnoy\Nestedset\QueryBuilder
+     * @return QueryBuilder
      */
     public function prev()
     {
@@ -468,7 +481,7 @@ class Node extends Eloquent {
     /**
      * Get query for ancestors to the node not including the node itself.
      *
-     * @return  \Kalnoy\Nestedset\QueryBuilder
+     * @return  QueryBuilder
      */
     public function ancestors()
     {
@@ -477,7 +490,7 @@ class Node extends Eloquent {
 
     /**
      * Make this node a root node.
-     * 
+     *
      * @return $this
      */
     public function makeRoot()
@@ -487,7 +500,7 @@ class Node extends Eloquent {
 
     /**
      * Save node as root.
-     * 
+     *
      * @return bool
      */
     public function saveAsRoot()
@@ -498,7 +511,7 @@ class Node extends Eloquent {
     /**
      * Append and save a node.
      *
-     * @param \Kalnoy\Nestedset\Node $node
+     * @param Node $node
      *
      * @return bool
      */
@@ -510,10 +523,10 @@ class Node extends Eloquent {
     /**
      * Prepend and save a node.
      *
-     * @param \Kalnoy\Nestedset\Node $node
+     * @param Node $node
      *
      * @return bool
-     */ 
+     */
     public function prepend(Node $node)
     {
         return $node->prependTo($this)->save();
@@ -522,7 +535,7 @@ class Node extends Eloquent {
     /**
      * Append a node to the new parent.
      *
-     * @param \Kalnoy\Nestedset\Node $parent
+     * @param Node $parent
      *
      * @return $this
      */
@@ -534,19 +547,19 @@ class Node extends Eloquent {
     /**
      * Prepend a node to the new parent.
      *
-     * @param \Kalnoy\Nestedset\Node $parent
+     * @param Node $parent
      *
      * @return $this
      */
     public function prependTo(Node $parent)
-    {        
+    {
         return $this->setAction('prependTo', $parent);
     }
 
     /**
      * Insert self after a node.
      *
-     * @param \Kalnoy\Nestedset\Node $node
+     * @param Node $node
      *
      * @return $this
      */
@@ -557,9 +570,9 @@ class Node extends Eloquent {
 
     /**
      * Insert self after a node and save.
-     * 
-     * @param \Kalnoy\Nestedset\Node $node
-     * 
+     *
+     * @param Node $node
+     *
      * @return bool
      */
     public function insertAfter(Node $node)
@@ -570,7 +583,7 @@ class Node extends Eloquent {
     /**
      * Insert self before node.
      *
-     * @param \Kalnoy\Nestedset\Node $node
+     * @param Node $node
      *
      * @return $this
      */
@@ -581,9 +594,9 @@ class Node extends Eloquent {
 
     /**
      * Insert self before a node and save.
-     * 
-     * @param \Kalnoy\Nestedset\Node $node
-     * 
+     *
+     * @param Node $node
+     *
      * @return bool
      */
     public function insertBefore(Node $node)
@@ -601,9 +614,9 @@ class Node extends Eloquent {
 
     /**
      * Move node up given amount of positions.
-     * 
+     *
      * @param int $amount
-     * 
+     *
      * @return bool
      */
     public function up($amount = 1)
@@ -618,9 +631,9 @@ class Node extends Eloquent {
 
     /**
      * Move node down given amount of positions.
-     * 
+     *
      * @param int $amount
-     * 
+     *
      * @return bool
      */
     public function down($amount = 1)
@@ -651,7 +664,7 @@ class Node extends Eloquent {
 
     /**
      * Move a node to the new position.
-     * 
+     *
      * @since 2.0
      *
      * @param int $position
@@ -669,14 +682,16 @@ class Node extends Eloquent {
 
     /**
      * Insert new node at specified position.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @param int $position
+     *
+     * @return bool
      */
     protected function insertNode($position)
     {
-        $this->makeGap($position, 2);
+        $this->newServiceQuery()->makeGap($position, 2);
 
         $height = $this->getNodeHeight();
 
@@ -700,8 +715,8 @@ class Node extends Eloquent {
         // Make sure that inner nodes are just deleted and don't touch the tree
         static::$deleting = true;
 
-        $this->newQuery()->whereNodeBetween([ $lft, $rgt ])->delete();
-        
+        $this->newServiceQuery()->whereNodeBetween([ $lft, $rgt ])->delete();
+
         static::$deleting = false;
 
         $this->makeGap($rgt + 1, -$height);
@@ -712,7 +727,7 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * @since 2.0
      */
     public function newEloquentBuilder($query)
@@ -722,8 +737,10 @@ class Node extends Eloquent {
 
     /**
      * Get a new base query that includes deleted nodes.
-     * 
+     *
      * @since 1.1
+     *
+     * @return QueryBuilder
      */
     protected function newServiceQuery()
     {
@@ -752,11 +769,11 @@ class Node extends Eloquent {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Use `children` key on `$attributes` to create child nodes.
-     * 
-     * @param \Kalnoy\Nestedset\Node $parent
-     * 
+     *
+     * @param Node $parent
+     *
      */
     public static function create(array $attributes, Node $parent = null)
     {
@@ -809,12 +826,12 @@ class Node extends Eloquent {
      * Behind the scenes node is appended to found parent node.
      *
      * @param int $value
-     * 
+     *
      * @throws Exception If parent node doesn't exists
      */
     public function setParentIdAttribute($value)
     {
-        if ($this->getAttribute(static::PARENT_ID) != $value) 
+        if ($this->getAttribute(static::PARENT_ID) != $value)
         {
             if ($value)
             {
@@ -838,7 +855,7 @@ class Node extends Eloquent {
     }
 
     /**
-     * Get the lft key name.    
+     * Get the lft key name.
      *
      * @return  string
      */
@@ -902,7 +919,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Node
+     * @return Node
      */
     public function getNext(array $columns = array('*'))
     {
@@ -914,7 +931,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Node
+     * @return Node
      */
     public function getPrev(array $columns = array('*'))
     {
@@ -926,7 +943,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Collection
+     * @return Collection
      */
     public function getAncestors(array $columns = array('*'))
     {
@@ -938,7 +955,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Collection
+     * @return Collection
      */
     public function getDescendants(array $columns = array('*'))
     {
@@ -948,11 +965,11 @@ class Node extends Eloquent {
     /**
      * Shorthand for siblings()
      *
-     * @param   array   $column
+     * @param array $columns
      *
-     * @return  \Kalnoy\Nestedset\Collection
+     * @return Collection
      */
-    public function getSiblings(array $columns = array('*')) 
+    public function getSiblings(array $columns = array('*'))
     {
         return $this->siblings()->get($columns);
     }
@@ -962,7 +979,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Collection
+     * @return Collection
      */
     public function getNextSiblings(array $columns = array('*'))
     {
@@ -974,7 +991,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Collection
+     * @return Collection
      */
     public function getPrevSiblings(array $columns = array('*'))
     {
@@ -986,7 +1003,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Node
+     * @return Node
      */
     public function getNextSibling(array $columns = array('*'))
     {
@@ -998,7 +1015,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return \Kalnoy\Nestedset\Node
+     * @return Node
      */
     public function getPrevSibling(array $columns = array('*'))
     {
@@ -1007,9 +1024,9 @@ class Node extends Eloquent {
 
     /**
      * Get whether a node is a descendant of other node.
-     * 
-     * @param \Kalnoy\Nestedset\Node $other
-     * 
+     *
+     * @param Node $other
+     *
      * @return bool
      */
     public function isDescendantOf(Node $other)
@@ -1019,9 +1036,9 @@ class Node extends Eloquent {
 
     /**
      * Get statistics of errors of the tree.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @return array
      */
     public static function countErrors()
@@ -1033,9 +1050,9 @@ class Node extends Eloquent {
 
     /**
      * Get the number of total errors of the tree.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @return int
      */
     public static function getTotalErrors()
@@ -1045,9 +1062,9 @@ class Node extends Eloquent {
 
     /**
      * Get whether the tree is broken.
-     * 
+     *
      * @since 2.0
-     * 
+     *
      * @return bool
      */
     public static function isBroken()
@@ -1057,11 +1074,24 @@ class Node extends Eloquent {
 
     /**
      * Get whether the node has moved since last save.
-     * 
+     *
      * @return bool
      */
     public function hasMoved()
     {
         return $this->moved;
+    }
+
+    /**
+     * @return array
+     */
+    protected function getArrayableRelations()
+    {
+        $result = parent::getArrayableRelations();
+
+        // To fix #17 when converting tree to json falling to infinite recursion.
+        unset($result['parent']);
+
+        return $result;
     }
 }
