@@ -22,8 +22,8 @@
     },
 
     "autoload": {
-        "psr-0": {
-            "Kalnoy\\Nestedset": "src/"
-        }
-    }
+        "psr-0": { "Kalnoy\\Nestedset": "src/" }
+    },
+
+    "minimum-stability": "stable"
 }

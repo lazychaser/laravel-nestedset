@@ -85,6 +85,11 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         );
     }
 
+    /**
+     * @param $name
+     *
+     * @return \Kalnoy\Nestedset\Node
+     */
     public function findCategory($name)
     {
         return Category::whereName($name)->first();
@@ -93,6 +98,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testTreeNotBroken()
     {
         $this->assertTreeNotBroken();
+        $this->assertFalse(Category::isBroken());
     }
 
     public function nodeValues($node)
@@ -123,9 +129,11 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $root->append($node);
 
+        $this->assertTrue($node->hasMoved());
         $this->assertEquals($accepted, $this->nodeValues($node));
         $this->assertTreeNotBroken();
         $this->assertFalse($node->isDirty());
+        $this->assertTrue($node->isDescendantOf($root));
     }
 
     public function testRecievesValidValuesWhenPrependedTo()
@@ -134,8 +142,10 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = new Category([ 'name' => 'test' ]);
         $root->prepend($node);
 
+        $this->assertTrue($node->hasMoved());
         $this->assertEquals(array($root->_lft + 1, $root->_lft + 2, $root->id), $this->nodeValues($node));
         $this->assertTreeNotBroken();
+        $this->assertTrue($node->isDescendantOf($root));
     }
 
     public function testRecievesValidValuesWhenInsertedAfter()
@@ -144,6 +154,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = new Category([ 'name' => 'test' ]);
         $node->after($target)->save();
 
+        $this->assertTrue($node->hasMoved());
         $this->assertEquals(array($target->_rgt + 1, $target->_rgt + 2, $target->parent->id), $this->nodeValues($node));
         $this->assertTreeNotBroken();
         $this->assertFalse($node->isDirty());
@@ -155,6 +166,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = new Category([ 'name' => 'test' ]);
         $node->before($target)->save();
 
+        $this->assertTrue($node->hasMoved());
         $this->assertEquals(array($target->_lft, $target->_lft + 1, $target->parent->id), $this->nodeValues($node));
         $this->assertTreeNotBroken();
     }
@@ -166,6 +178,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $target->append($node);
 
+        $this->assertTrue($node->hasMoved());
         $this->assertNodeRecievesValidValues($node);
         $this->assertTreeNotBroken();
     }
@@ -177,6 +190,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $target->append($node);
 
+        $this->assertTrue($node->hasMoved());
         $this->assertTreeNotBroken();
         $this->assertNodeRecievesValidValues($node);
     }
@@ -221,12 +235,18 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array(1, 5, 7), $path);
     }
 
-    public function testDescendantsQueried()
+    public function testDescendants()
     {
         $node = $this->findCategory('mobile');
         $descendants = $node->descendants()->lists('name');
+        $expected = array('nokia', 'samsung', 'galaxy', 'sony');
 
-        $this->assertEquals(array('nokia', 'samsung', 'galaxy', 'sony'), $descendants);
+        $this->assertEquals($expected, $descendants);
+
+        $descendants = $node->getDescendants()->lists('name');
+
+        $this->assertEquals(count($descendants), $node->getDescendantCount());
+        $this->assertEquals($expected, $descendants);
     }
 
     public function testWithDepthWorks()
@@ -256,6 +276,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node->save();
 
         $this->assertEquals(5, $node->parent_id);
+        $this->assertEquals(5, $node->getParentId());
+
+        $node->parent_id = null;
+        $node->save();
+
+        $this->assertEquals(null, $node->parent_id);
+        $this->assertTrue($node->isRoot());
     }
 
     /**
@@ -292,28 +319,30 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node->appendTo($parent)->save();
     }
 
-    public function testGetsSiblings()
+    public function testSiblings()
     {
         $node = $this->findCategory('samsung');
         $siblings = $node->siblings()->lists('id');
+        $next = $node->nextSiblings()->lists('id');
+        $prev = $node->prevSiblings()->lists('id');
 
         $this->assertEquals(array(6, 9), $siblings);
-    }
+        $this->assertEquals(array(9), $next);
+        $this->assertEquals(array(6), $prev);
 
-    public function testGetsNextSiblings()
-    {
-        $node = $this->findCategory('samsung');
-        $siblings = $node->nextSiblings()->lists('id');
+        $siblings = $node->getSiblings()->lists('id');
+        $next = $node->getNextSiblings()->lists('id');
+        $prev = $node->getPrevSiblings()->lists('id');
 
-        $this->assertEquals(array(9), $siblings);
-    }
+        $this->assertEquals(array(6, 9), $siblings);
+        $this->assertEquals(array(9), $next);
+        $this->assertEquals(array(6), $prev);
 
-    public function testGetsPrevSiblings()
-    {
-        $node = $this->findCategory('samsung');
-        $siblings = $node->prevSiblings()->lists('id');
+        $next = $node->getNextSibling();
+        $prev = $node->getPrevSibling();
 
-        $this->assertEquals(array(6), $siblings);
+        $this->assertEquals(9, $next->id);
+        $this->assertEquals(6, $prev->id);
     }
 
     public function testFetchesReversed()

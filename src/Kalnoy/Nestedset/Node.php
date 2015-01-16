@@ -955,7 +955,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getDescendants(array $columns = array('*'))
     {
@@ -967,7 +967,7 @@ class Node extends Eloquent {
      *
      * @param array $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getSiblings(array $columns = array('*'))
     {
@@ -979,7 +979,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getNextSiblings(array $columns = array('*'))
     {
@@ -991,7 +991,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getPrevSiblings(array $columns = array('*'))
     {
