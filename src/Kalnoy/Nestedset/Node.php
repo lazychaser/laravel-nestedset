@@ -1036,6 +1036,42 @@ class Node extends Eloquent {
     }
 
     /**
+     * Get whether the node is immediate children of other node.
+     *
+     * @param Node $other
+     *
+     * @return bool
+     */
+    public function isChildOf(Node $other)
+    {
+        return $this->getParentId() == $other->getKey();
+    }
+
+    /**
+     * Get whether the node is a sibling of another node.
+     *
+     * @param Node $other
+     *
+     * @return bool
+     */
+    public function isSiblingOf(Node $other)
+    {
+        return $this->getParentId() == $other->getParentId();
+    }
+
+    /**
+     * Get whether the node is an ancestor of other node, including immediate parent.
+     *
+     * @param Node $other
+     *
+     * @return bool
+     */
+    public function isAncestorOf(Node $other)
+    {
+        return $other->isDescendantOf($this);
+    }
+
+    /**
      * Get statistics of errors of the tree.
      *
      * @since 2.0
