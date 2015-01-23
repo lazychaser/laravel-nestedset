@@ -428,6 +428,7 @@ class Node extends Eloquent {
 
             default:
                 $query = $this->newQuery()
+                    ->defaultOrder()
                     ->where($this->getKeyName(), '<>', $this->getKey());
 
                 break;
@@ -947,7 +948,7 @@ class Node extends Eloquent {
      */
     public function getAncestors(array $columns = array('*'))
     {
-        return $this->newQuery()->ancestorsOf($this->getKey(), $columns);
+        return $this->newQuery()->defaultOrder()->ancestorsOf($this->getKey(), $columns);
     }
 
     /**
@@ -959,7 +960,7 @@ class Node extends Eloquent {
      */
     public function getDescendants(array $columns = array('*'))
     {
-        return $this->newQuery()->descendantsOf($this->getKey(), $columns);
+        return $this->newQuery()->defaultOrder()->descendantsOf($this->getKey(), $columns);
     }
 
     /**
@@ -971,7 +972,7 @@ class Node extends Eloquent {
      */
     public function getSiblings(array $columns = array('*'))
     {
-        return $this->siblings()->get($columns);
+        return $this->siblings()->defaultOrder()->get($columns);
     }
 
     /**
