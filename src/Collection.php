@@ -1,4 +1,6 @@
-<?php namespace Kalnoy\Nestedset;
+<?php
+
+namespace Kalnoy\Nestedset;
 
 use \Illuminate\Database\Eloquent\Collection as BaseCollection;
 

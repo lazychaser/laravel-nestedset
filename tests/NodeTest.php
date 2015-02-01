@@ -146,6 +146,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array($root->_lft + 1, $root->_lft + 2, $root->id), $this->nodeValues($node));
         $this->assertTreeNotBroken();
         $this->assertTrue($node->isDescendantOf($root));
+        $this->assertTrue($root->isAncestorOf($node));
+        $this->assertTrue($node->isChildOf($root));
     }
 
     public function testRecievesValidValuesWhenInsertedAfter()
@@ -158,6 +160,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array($target->_rgt + 1, $target->_rgt + 2, $target->parent->id), $this->nodeValues($node));
         $this->assertTreeNotBroken();
         $this->assertFalse($node->isDirty());
+        $this->assertTrue($node->isSiblingOf($target));
     }
 
     public function testRecievesValidValuesWhenInsertedBefore()
