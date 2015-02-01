@@ -372,7 +372,7 @@ Installation
 To install the package, in terminal:
 
 ```
-composer require kalnoy/nestedset:~2.0@beta
+composer require kalnoy/nestedset:~2.0
 ```
 
 Add some aliases:
