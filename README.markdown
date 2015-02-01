@@ -327,6 +327,12 @@ To check whether the node is root:
 $bool = $node->isRoot();
 ```
 
+Other checks:
+
+*   `$node->isChildOf($other);`
+*   `$node->isAncestorOf($other);`
+*   `$node->isSiblingOf($other);`
+
 ### Checking consistency
 
 You can check whether a tree is broken (i.e. has some structural errors):
@@ -366,7 +372,7 @@ Installation
 To install the package, in terminal:
 
 ```
-composer require kalnoy/nestedset:~2.0@beta
+composer require kalnoy/nestedset:~2.0
 ```
 
 Add some aliases:

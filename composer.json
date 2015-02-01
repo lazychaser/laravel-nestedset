@@ -18,11 +18,7 @@
         "illuminate/events": "5.0.*"
     },
 
-    "autoload": {
-        "psr-0": {
-            "Kalnoy\\Nestedset": "src/"
-        }
-    },
+    "autoload": { "psr-4": { "Kalnoy\\Nestedset\\": "src/" } },
 
     "minimum-stability": "dev"
 }

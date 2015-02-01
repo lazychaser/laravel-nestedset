@@ -428,6 +428,7 @@ class Node extends Eloquent {
 
             default:
                 $query = $this->newQuery()
+                    ->defaultOrder()
                     ->where($this->getKeyName(), '<>', $this->getKey());
 
                 break;
@@ -947,7 +948,7 @@ class Node extends Eloquent {
      */
     public function getAncestors(array $columns = array('*'))
     {
-        return $this->newQuery()->ancestorsOf($this->getKey(), $columns);
+        return $this->newQuery()->defaultOrder()->ancestorsOf($this->getKey(), $columns);
     }
 
     /**
@@ -955,11 +956,11 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getDescendants(array $columns = array('*'))
     {
-        return $this->newQuery()->descendantsOf($this->getKey(), $columns);
+        return $this->newQuery()->defaultOrder()->descendantsOf($this->getKey(), $columns);
     }
 
     /**
@@ -967,11 +968,11 @@ class Node extends Eloquent {
      *
      * @param array $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getSiblings(array $columns = array('*'))
     {
-        return $this->siblings()->get($columns);
+        return $this->siblings()->defaultOrder()->get($columns);
     }
 
     /**
@@ -979,7 +980,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getNextSiblings(array $columns = array('*'))
     {
@@ -991,7 +992,7 @@ class Node extends Eloquent {
      *
      * @param  array  $columns
      *
-     * @return Collection
+     * @return Collection|Node[]
      */
     public function getPrevSiblings(array $columns = array('*'))
     {
@@ -1032,6 +1033,42 @@ class Node extends Eloquent {
     public function isDescendantOf(Node $other)
     {
         return $this->getLft() > $other->getLft() and $this->getLft() < $other->getRgt();
+    }
+
+    /**
+     * Get whether the node is immediate children of other node.
+     *
+     * @param Node $other
+     *
+     * @return bool
+     */
+    public function isChildOf(Node $other)
+    {
+        return $this->getParentId() == $other->getKey();
+    }
+
+    /**
+     * Get whether the node is a sibling of another node.
+     *
+     * @param Node $other
+     *
+     * @return bool
+     */
+    public function isSiblingOf(Node $other)
+    {
+        return $this->getParentId() == $other->getParentId();
+    }
+
+    /**
+     * Get whether the node is an ancestor of other node, including immediate parent.
+     *
+     * @param Node $other
+     *
+     * @return bool
+     */
+    public function isAncestorOf(Node $other)
+    {
+        return $other->isDescendantOf($this);
     }
 
     /**
