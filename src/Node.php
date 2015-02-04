@@ -119,19 +119,16 @@ class Node extends Eloquent {
             return $model->callPendingAction();
         });
 
-        if ( ! static::$_softDelete)
+        static::deleting(function (Node $model)
         {
-            static::deleting(function ($model)
-            {
-                // We will need fresh data to delete node safely
-                $model->refreshNode();
-            });
+            // We will need fresh data to delete node safely
+            if ($model->hardDeleting()) $model->refreshNode();
+        });
 
-            static::deleted(function ($model)
-            {
-                $model->deleteNode();
-            });
-        }
+        static::deleted(function (Node $model)
+        {
+            if ($model->hardDeleting()) $model->deleteNode();
+        });
     }
 
     /**
@@ -1130,5 +1127,15 @@ class Node extends Eloquent {
         unset($result['parent']);
 
         return $result;
+    }
+
+    /**
+     * Get whether user is intended to delete the model from database entirely.
+     *
+     * @return bool
+     */
+    protected function hardDeleting()
+    {
+        return ! static::$_softDelete or ! $this->forceDeleting;
     }
 }
