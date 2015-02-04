@@ -1,3 +1,11 @@
+### 2.2.0
+
+*   Support Laravel 5
+
+### 2.1.0
+
+*   Added `isChildOf`, `isAncestorOf`, `isSiblingOf` methods
+
 ### 2.0.0
 
 *   Added `insertAfter`, `insertBefore` methods.
