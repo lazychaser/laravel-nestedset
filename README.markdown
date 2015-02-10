@@ -4,7 +4,7 @@
 [![Latest Unstable Version](https://poser.pugx.org/kalnoy/nestedset/v/unstable.svg)](https://packagist.org/packages/kalnoy/nestedset)
 [![License](https://poser.pugx.org/kalnoy/nestedset/license.svg)](https://packagist.org/packages/kalnoy/nestedset)
 
-This is a Laravel 4 package for working with trees in a database.
+This is a Laravel 4-5 package for working with trees in a database.
 
 __[Support this project](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
 
