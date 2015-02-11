@@ -358,7 +358,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
     public function testToTreeBuildsWithDefaultOrder()
     {
-        $tree = Category::whereBetween('_lft', array(8, 17))->get()->toTree();
+        $tree = Category::whereBetween('_lft', array(8, 17))->defaultOrder()->get()->toTree();
 
         $this->assertEquals(1, count($tree));
 
@@ -379,6 +379,19 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $root = $tree->first();
         $this->assertEquals('mobile', $root->name);
         $this->assertEquals(3, count($root->children));
+        $this->assertEquals($root, $root->children->first()->parent);
+    }
+
+    public function testToTreeWithSpecifiedRoot()
+    {
+        $node = $this->findCategory('mobile');
+        $nodes = Category::whereBetween('_lft', array(8, 17))->get();
+
+        $tree1 = \Kalnoy\Nestedset\Collection::make($nodes)->toTree(5);
+        $tree2 = \Kalnoy\Nestedset\Collection::make($nodes)->toTree($node);
+
+        $this->assertEquals(3, $tree1->count());
+        $this->assertEquals(3, $tree2->count());
     }
 
     public function testToTreeBuildsWithDefaultOrderAndMultipleRootNodes()

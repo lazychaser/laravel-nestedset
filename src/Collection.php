@@ -7,90 +7,95 @@ use \Illuminate\Database\Eloquent\Collection as BaseCollection;
 class Collection extends BaseCollection {
 
     /**
-     * Convert list of nodes to dictionary with specified key.
+     * Fill `parent` and `children` relationships for every node in collection.
      *
-     * If no key is specified then "parent_id" is used.
+     * This will overwrite any previously set relations.
      *
-     * @param string $key
-     *
-     * @return  array
-     * @deprecated since 1.1
+     * @return $this
      */
-    public function toDictionary($key = null)
+    public function linkNodes()
     {
-        if ($key === null) $key = $this->first()->getParentIdName();
+        if ($this->isEmpty()) return $this;
 
-        return $this->groupBy($key)->all();
+        $groupedChildren = $this->groupBy($this->first()->getParentIdName());
+
+        /** @var Node $node */
+        foreach ($this->items as $node)
+        {
+            if ( ! isset($node->parent)) $node->setRelation('parent', null);
+
+            $children = $groupedChildren->get($node->getKey(), []);
+
+            /** @var Node $child */
+            foreach ($children as $child)
+            {
+                $child->setRelation('parent', $node);
+            }
+
+            $node->setRelation('children', BaseCollection::make($children));
+        }
+
+        return $this;
     }
 
     /**
      * Build tree from node list. Each item will have set children relation.
      *
-     * To succesfully build tree "id", "_lft" and "parent_id" keys must present.
+     * To successfully build tree "id", "_lft" and "parent_id" keys must present.
      *
-     * If {@link rootNodeId} is provided, the tree will contain only descendants
+     * If `$rootNodeId` is provided, the tree will contain only descendants
      * of the node with such primary key value.
      *
-     * @param integer $rootNodeId
+     * @param int|Node|null $root
      *
-     * @return  Collection
+     * @return Collection
      */
-    public function toTree($rootNodeId = null)
+    public function toTree($root = null)
     {
-        $result = new static();
+        $items = [];
 
-        if (empty($this->items)) return $result;
-
-        $key = $this->first()->getParentIdName();
-        $dictionary = $this->groupBy($key);
-
-        $rootNodeId = $this->getRootNodeId($rootNodeId);
-
-        if ( ! $dictionary->has($rootNodeId))
+        if ( ! $this->isEmpty())
         {
-            return $result;
-        }
+            $this->linkNodes();
 
-        $result->items = $dictionary->get($rootNodeId);
+            $root = $this->getRootNodeId($root);
 
-        foreach ($this->items as $item)
-        {
-            $children = $dictionary->get($item->getKey(), []);
-
-            foreach ($children as $child)
+            /** @var Node $node */
+            foreach ($this->items as $node)
             {
-                $child->setRelation('parent', $item);
+                if ($node->getParentId() == $root) $items[] = $node;
             }
-
-            $item->setRelation('children', new BaseCollection($children));
         }
 
-        return $result;
+        return new static($items);
     }
 
     /**
-     * @param null|int $rootNodeId
+     * @param mixed $root
      *
      * @return int
      */
-    public function getRootNodeId($rootNodeId = null)
+    protected function getRootNodeId($root = null)
     {
+        if ($root instanceof Node) return $root->getKey();
+
         // If root node is not specified we take parent id of node with
         // least lft value as root node id.
-        if ($rootNodeId === null)
+        if ($root === null)
         {
             $leastValue = null;
 
-            foreach ($this->items as $item)
+            /** @var Node $node */
+            foreach ($this->items as $node)
             {
-                if ($leastValue === null || $item->getLft() < $leastValue)
+                if ($leastValue === null || $node->getLft() < $leastValue)
                 {
-                    $leastValue = $item->getLft();
-                    $rootNodeId = $item->getParentId();
+                    $leastValue = $node->getLft();
+                    $root = $node->getParentId();
                 }
             }
         }
 
-        return $rootNodeId;
+        return $root;
     }
 }

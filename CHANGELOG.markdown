@@ -1,3 +1,7 @@
+### 2.3.0
+
+*   Added `linkNodes` method to `Collection` class
+
 ### 2.2.0
 
 *   Support Laravel 5

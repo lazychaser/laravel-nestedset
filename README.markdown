@@ -163,15 +163,14 @@ When using static method `create` on node, it checks whether attributes contains
 `children` key. If it does, it creates more nodes recursively.
 
 ```php
-$node = Category::create(
-[
+$node = Category::create([
     'name' => 'Foo',
-    'children' =>
-    [
+    
+    'children' => [
         [
             'name' => 'Bar',
-            'children' =>
-            [
+            
+            'children' => [
                 [ 'name' => 'Baz' ],
             ],
         ],
@@ -181,7 +180,7 @@ $node = Category::create(
 
 `$node->children` now contains a list of created child nodes.
 
-### Getting related nodes
+### Retrieving nodes
 
 In some cases we will use an `$id` variable which is an id of the target node.
 
@@ -263,6 +262,27 @@ $descendants = $node->descendants()->lists('id');
 // Get goods
 $goods = Goods::whereIn('category_id', $descendants)->get();
 ```
+
+#### Working with query results
+
+This package provides few helpful methods for collection of nodes. You can link nodes in plain collection like so:
+
+```php
+$result = Categories::get();
+
+$results->linkNodes();
+```
+
+This will fill `parent` and `children` relations on every node so you can iterate over them without extra database 
+requests.
+
+To convert plain collection to tree:
+
+```
+$tree = $results->toTree();
+```
+
+`$tree` will contain only root nodes and to access children you can use `children` relation.
 
 #### Manipulating a query
 
