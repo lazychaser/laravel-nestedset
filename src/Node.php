@@ -740,7 +740,7 @@ class Node extends Eloquent {
      *
      * @return QueryBuilder
      */
-    protected function newServiceQuery()
+    public function newServiceQuery()
     {
         return static::$_softDelete ? $this->withTrashed() : $this->newQuery();
     }
@@ -758,6 +758,7 @@ class Node extends Eloquent {
      */
     public function newFromBuilder($attributes = array())
     {
+        /** @var Node $instance */
         $instance = parent::newFromBuilder($attributes);
 
         $instance->clearAction();
@@ -833,7 +834,7 @@ class Node extends Eloquent {
         {
             if ($value)
             {
-                $this->appendTo(static::findOrFail($value));
+                $this->appendTo($this->newQuery()->findOrFail($value));
             }
             else
             {

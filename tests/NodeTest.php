@@ -520,4 +520,19 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(isset($node->children));
         $this->assertCount(2, $node->children);
     }
+
+    public function testDescendantsOfNonExistingNode()
+    {
+        $node = new Category;
+
+        $this->assertTrue($node->getDescendants()->isEmpty());
+    }
+
+    /**
+     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
+    public function testWhereDescendantsOf()
+    {
+        Category::whereDescendantOf(124)->get();
+    }
 }
