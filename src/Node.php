@@ -756,10 +756,10 @@ class Node extends Eloquent {
     /**
      * {@inheritdoc}
      */
-    public function newFromBuilder($attributes = array())
+    public function newFromBuilder($attributes = array(), $connection = null)
     {
         /** @var Node $instance */
-        $instance = parent::newFromBuilder($attributes);
+        $instance = parent::newFromBuilder($attributes, $connection);
 
         $instance->clearAction();
 
