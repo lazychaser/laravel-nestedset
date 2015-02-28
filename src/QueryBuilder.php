@@ -84,15 +84,25 @@ class QueryBuilder extends Builder {
 
         $key = $this->query->getGrammar()->wrap($keyName);
 
-        $this->query->whereRaw(
-            "(select _.{$lft} from {$table} _ where _.{$key} = ? limit 1)".
-            " between {$lft} and {$rgt}"
-        );
+        if ($id instanceof Node)
+        {
+            $dataSource = '?';
+
+            $this->query->addBinding($id->getLft());
+
+            $id = $id->getKey();
+        }
+        else
+        {
+            $dataSource = "(select _.{$lft} from {$table} _ where _.{$key} = ? limit 1)";
+
+            $this->query->addBinding($id);
+        }
+
+        $this->query->whereRaw($dataSource." between {$lft} and {$rgt}");
 
         // Exclude the node
         $this->where($keyName, '<>', $id);
-
-        $this->query->addBinding($id, 'where');
 
         return $this;
     }
@@ -157,12 +167,49 @@ class QueryBuilder extends Builder {
      */
     public function whereDescendantOf($id, $boolean = 'and', $not = false)
     {
-        $data = $this->model->newServiceQuery()->getPlainNodeData($id, true);
+        if ($id instanceof Node)
+        {
+            $data = $id->getBounds();
+        }
+        else
+        {
+            $data = $this->model->newServiceQuery()->getPlainNodeData($id, true);
+        }
 
         // Don't include the node
         ++$data[0];
 
         return $this->whereNodeBetween($data, $boolean, $not);
+    }
+
+    /**
+     * @param mixed $id
+     *
+     * @return QueryBuilder
+     */
+    public function whereNotDescendantOf($id)
+    {
+        return $this->whereDescendantOf($id, 'and', true);
+    }
+
+    /**
+     * @param mixed $id
+     *
+     * @return QueryBuilder
+     */
+    public function orWhereDescendantOf($id)
+    {
+        return $this->whereDescendantOf($id, 'or');
+    }
+
+    /**
+     * @param mixed $id
+     *
+     * @return QueryBuilder
+     */
+    public function orWhereNotDescendantOf($id)
+    {
+        return $this->whereDescendantOf($id, 'or', true);
     }
 
     /**

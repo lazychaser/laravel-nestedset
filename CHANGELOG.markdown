@@ -1,3 +1,9 @@
+### 2.4.0
+
+*   Added query methods `whereNotDescendantOf`, `orWhereDescendantOf`, `orWhereNotDescendantOf`
+*   `whereAncestorOf`, `whereDescendantOf` and every method that depends on them can now accept node instance
+*   Added `Node::getBounds` that returns an array of node bounds that can be used in `whereNodeBetween`
+
 ### 2.3.0
 
 *   Added `linkNodes` method to `Collection` class
@@ -18,7 +24,7 @@
     data (lft and rgt values).
 *   The root node is not required now. You can use `saveAsRoot` or `makeRoot` method.
     New model is saved as root by default.
-*   You can now create as many nodes and in any order as you want within single 
+*   You can now create as many nodes and in any order as you want within single
     request.
 *   Laravel 2 is supported but not required.
 *   `ancestorsOf` now doesn't include target node into results.

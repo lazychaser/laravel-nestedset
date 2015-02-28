@@ -535,4 +535,20 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         Category::whereDescendantOf(124)->get();
     }
+
+    public function testAncestorsByNode()
+    {
+        $category = $this->findCategory('apple');
+        $ancestors = Category::whereAncestorOf($category)->lists('id');
+
+        $this->assertEquals([ 1, 2 ], $ancestors);
+    }
+
+    public function testDescendantsByNode()
+    {
+        $category = $this->findCategory('notebooks');
+        $res = Category::whereDescendantOf($category)->lists('id');
+
+        $this->assertEquals([ 3, 4 ], $res);
+    }
 }

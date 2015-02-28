@@ -1139,4 +1139,12 @@ class Node extends Eloquent {
     {
         return ! static::$_softDelete or ! $this->forceDeleting;
     }
+
+    /**
+     * @return array
+     */
+    public function getBounds()
+    {
+        return [ $this->getLft(), $this->getRgt() ];
+    }
 }

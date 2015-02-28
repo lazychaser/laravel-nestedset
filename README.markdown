@@ -198,6 +198,9 @@ $result = Category::ancestorsOf($id);
 
 // #4 Applying constraints
 $result = Category::whereAncestorOf($id)->get();
+
+// #5 Applying constraints from existing node
+$result = Category::whereAncestorOf($node)->get();
 ```
 
 #### Getting descendants
@@ -214,6 +217,12 @@ $result = Category::descendantsOf($id);
 
 // #4 Applying constraints
 $result = Category::whereDescendantOf($id)->get();
+$result = Category::whereDescendantOf($node)->get();
+
+// #5 Other constraints
+$result = Category::whereNotDescendantOf($id)->get();
+$result = Category::orWhereDescendantOf($id)->get();
+$result = Category::orWhereNotDescendantOf($id)->get();
 ```
 
 #### Getting siblings of the node
@@ -325,6 +334,8 @@ $result = Category::reversed()->get();
 ```
 
 ##### Constraints
+
+Various constraints that can be applied to query builder:
 
 -   __whereIsRoot()__ to get only root nodes;
 -   __hasChildren()__ to get nodes that have children;
