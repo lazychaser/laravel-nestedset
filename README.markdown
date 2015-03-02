@@ -11,7 +11,9 @@ __[Support this project](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hos
 __Contents:__
 
 - [Theory](#what-are-nested-sets)
-- [Manipulating nodes](#manipulating-nodes)
+- [Documentation](#documentation)
+    -   [Inserting nodes](#inserting-nodes)
+    -   [Retrieving nodes](#retrieving-nodes)
 - [Requirements](#requirements)
 - [Installation](#installation)
 
@@ -33,8 +35,8 @@ NSM shows good performance when tree is updated rarely. It is tuned to be fast f
 getting related nodes. It'is ideally suited for building multi-depth menu or 
 categories for shop.
 
-Manipulating nodes
-------------------
+Documentation
+-------------
 
 Suppose that we have a model `Category`; a `$node` variable is an instance of that model
 and the node that we are manipulating. It can be a fresh model or one from database.
@@ -59,8 +61,8 @@ Another important note is that __structural manipulations are deferred__ until y
 hit `save` on model (some methods implicitly call `save` and return boolean result
 of the operation).
 
-If model is successfully saved it doesn't mean that node has moved. To check whether
-it has, use `hasMoved` function:
+If model is successfully saved it doesn't mean that node has moved. If your application
+depends on whether the node has actually changed its position, use `hasMoved` method:
 
 ```php
 if ($node->save())
@@ -95,7 +97,7 @@ The node will be appended to the end of the tree.
 
 If you want to make node a child of other node, you can make it last or first child.
 
-`$parent` variable is the node that exists in database, no matter how we get it.
+In following examples, `$parent` is some existing node.
 
 There are few ways to append a node:
 
@@ -132,10 +134,10 @@ $parent->prepend($node);
 
 #### Inserting before or after specified node
 
-You can make a `$node` to be a neighbor of the `$neighbor` node using following methods:
+You can make `$node` to be a neighbor of the `$neighbor` node using following methods:
 
-_Neighbor is existing node, target node can be fresh. If target node is exists, 
-it will be moved to the new position and parent will be changed if it's needed._
+*Neighbor is existing node, target node can be fresh. If target node is exists, 
+it will be moved to the new position and parent will be changed if it's needed.*
 
 ```php
 # Explicit save
@@ -147,15 +149,19 @@ $node->insertAfter($neighbor);
 $node->insertBefore($neighbor);
 ```
 
-#### Moving node up or down
+#### Shifting a node
+
+To shift node up or down inside parent:
 
 ```php
 $bool = $node->down();
 $bool = $node->up();
 
-// Make node lower by 3 siblings
+// Shift node by 3 siblings
 $bool = $node->down(3);
 ```
+
+The result of the operation is boolean value of whether the node has changed the position.
 
 #### Building a tree from array
 
@@ -184,7 +190,7 @@ $node = Category::create([
 
 In some cases we will use an `$id` variable which is an id of the target node.
 
-#### Getting ancestors
+#### Ancestors
 
 ```php
 // #1 Using accessor
@@ -195,15 +201,9 @@ $result = $node->ancestors()->get();
 
 // #3 Getting ancestors by id of the node
 $result = Category::ancestorsOf($id);
-
-// #4 Applying constraints
-$result = Category::whereAncestorOf($id)->get();
-
-// #5 Applying constraints from existing node
-$result = Category::whereAncestorOf($node)->get();
 ```
 
-#### Getting descendants
+#### Descendants
 
 ```php
 // #1 Using accessor
@@ -214,18 +214,9 @@ $result = $node->descendants()->get();
 
 // #3 Getting ancestors by id of the node
 $result = Category::descendantsOf($id);
-
-// #4 Applying constraints
-$result = Category::whereDescendantOf($id)->get();
-$result = Category::whereDescendantOf($node)->get();
-
-// #5 Other constraints
-$result = Category::whereNotDescendantOf($id)->get();
-$result = Category::orWhereDescendantOf($id)->get();
-$result = Category::orWhereNotDescendantOf($id)->get();
 ```
 
-#### Getting siblings of the node
+#### Siblings
 
 ```php
 $result = $node->getSiblings();
@@ -262,17 +253,30 @@ $result = $node->prevSiblings()->get();
 #### Getting related models from other table
 
 Imagine that each category `has many` goods. I.e. `HasMany` relationship is established.
-How can you get all goods of all categories that are descendants of some node? Easy!
+How can you get all goods of `$category` and every its descendant? Easy!
 
 ```php
 // Get ids of descendants
-$descendants = $node->descendants()->lists('id');
+$categories = $category->descendants()->lists('id');
+
+// Include the id of category itself
+$categories[] = $category->getKey();
 
 // Get goods
-$goods = Goods::whereIn('category_id', $descendants)->get();
+$goods = Goods::whereIn('category_id', $categories)->get();
 ```
 
-#### Working with query results
+### Deleting nodes
+
+To delete a node and it's descendants:
+
+```php
+$node->delete();
+```
+
+Node is compatible with `SoftDeletes` trait.
+
+### Collection extension
 
 This package provides few helpful methods for collection of nodes. You can link nodes in plain collection like so:
 
@@ -293,12 +297,11 @@ $tree = $results->toTree();
 
 `$tree` will contain only root nodes and to access children you can use `children` relation.
 
-#### Manipulating a query
+### Query builder extension
 
-You have noticed that some methods return a query builder instance. It has some
-features.
+This packages extends default query builder to introduce few helpful features.
 
-##### Including depth level into result
+#### Including node depth
 
 If you need to know at which level the node is:
 
@@ -316,9 +319,9 @@ To get nodes of specified level, you can apply `having` constraint:
 $result = Category::withDepth()->having('depth', '=', 1)->get();
 ```
 
-##### Default order
+#### Default order
 
-Each node has it's own unique value that determines its position in the tree. If
+Each node has it's own unique `_lft` value that determines its position in the tree. If
 you want node to be ordered by this value, you can use `defaultOrder` method on
 the query builder:
 
@@ -333,9 +336,9 @@ You can get nodes in reversed order:
 $result = Category::reversed()->get();
 ```
 
-##### Constraints
+#### Constraints
 
-Various constraints that can be applied to query builder:
+Various constraints that can be applied to the query builder:
 
 -   __whereIsRoot()__ to get only root nodes;
 -   __hasChildren()__ to get nodes that have children;
@@ -344,7 +347,31 @@ Various constraints that can be applied to query builder:
     with specified id;
 -   __whereIsBefore($id)__ to get every node that is before a node with specified id.
 
-### Other methods
+Descendants constraints:
+
+```php
+$result = Category::whereDescendantOf($node)->get();
+$result = Category::whereDescendantOf($node)->get();
+$result = Category::whereNotDescendantOf($node)->get();
+$result = Category::orWhereDescendantOf($node)->get();
+$result = Category::orWhereNotDescendantOf($node)->get();
+```
+
+Ancestor constraints:
+
+```php
+$result = Category::whereAncestorOf($node)->get();
+```
+
+`$node` can be either a primary key of the model or model instance.
+
+### Node methods
+
+Compute the number of descendants:
+
+```php
+$node->getDescendantCount();
+```
 
 To check if node is a descendant of other node:
 
@@ -403,17 +430,7 @@ Installation
 To install the package, in terminal:
 
 ```
-composer require kalnoy/nestedset:~2.0
-```
-
-Add some aliases:
-
-```php
-'aliases' => array(
-    ...
-    'NestedSet' => 'Kalnoy\Nestedset\NestedSet',
-    'Node' => 'Kalnoy\Nestedset\Node',
-),
+composer require kalnoy/nestedset
 ```
 
 ### Adding required columns
@@ -443,46 +460,19 @@ If, for some reasons, you want to init everything by yourself, this is preferred
 $table->unsignedInteger('_lft');
 $table->unsignedInteger('_rgt');
 $table->unsignedInteger('parent_id')->nullable();
+
+$table->index([ '_lft', '_rgt', 'parent_id' ]);
 ```
 
-You can change names of the columns, in this case you need to [alter constants](#changing-column-names)
-on your model class.
+### The model
 
-### Transforming a model
-
-Your model is now extended from `Node` class, not `Eloquent`:
+Your model is now extended from `Kalnoy\Nestedset\Node` class, not `Eloquent`:
 
 ```php
-class Foo extends Node {
+class Foo extends Kalnoy\Nestedset\Node {
     
 }
 ```
-
-#### Changing column names
-
-If you're using custom columns, you need to make shure that it's reflected on
-the model:
-
-```php
-class Foo extends Node {
-    
-    const LFT = 'lft';
-
-    const RGT = 'rgt';
-
-    const PARENT_ID = 'parent';
-
-    protected $guarded = [ 'lft', 'rgt' ];
-
-    // To allow mass asignment on parent attribute
-    public function setParentAttribute($value)
-    {
-        $this->setParentIdAttribute($value);
-    }
-}
-```
-
-__Important!__ Make sure that `lft` and `rgt` columns are guarded!
 
 License
 =======
