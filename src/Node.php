@@ -169,8 +169,6 @@ class Node extends Eloquent {
      */
     public function delete()
     {
-        if (static::$_softDelete) return parent::delete();
-
         return $this->getConnection()->transaction(function ()
         {
             return parent::delete();
@@ -728,9 +726,19 @@ class Node extends Eloquent {
         $rgt = $this->getRgt();
 
         // Make sure that inner nodes are just deleted and don't touch the tree
+        // This makes sense in Laravel 4.2
         static::$deleting = true;
 
-        $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ])->delete();
+        $query = $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ]);
+
+        if (static::$_softDelete and $this->forceDeleting)
+        {
+            $query->withTrashed()->forceDelete();
+        }
+        else
+        {
+            $query->delete();
+        }
 
         static::$deleting = false;
 
