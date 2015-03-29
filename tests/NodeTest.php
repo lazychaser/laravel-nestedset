@@ -9,9 +9,11 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $schema = Capsule::schema();
 
         $schema->dropIfExists('categories');
-        $schema->create('categories', function ($table) {
+
+        $schema->create('categories', function (\Illuminate\Database\Schema\Blueprint $table) {
             $table->increments('id');
             $table->string('name');
+            $table->softDeletes();
             NestedSet::columns($table);
         });
 
@@ -64,11 +66,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(array('errors' => null), $actual, "The tree structure of $table is broken!");
     }
 
-    public function dumpTree($items)
+    public function dumpTree($items = null)
     {
+        if ( ! $items) $items = Category::withTrashed()->get();
+
         foreach ($items as $item)
         {
-            echo $item->name." ".$item->getLft()." ".$item->getRgt().PHP_EOL;
+            echo PHP_EOL.($item->trashed() ? '-' : '+').' '.$item->name." ".$item->getLft()." ".$item->getRgt();
         }
     }
 
@@ -90,9 +94,13 @@ class NodeTest extends PHPUnit_Framework_TestCase {
      *
      * @return \Kalnoy\Nestedset\Node
      */
-    public function findCategory($name)
+    public function findCategory($name, $withTrashed = false)
     {
-        return Category::whereName($name)->first();
+        $q = Category::whereName($name);
+
+        if ($withTrashed) $q->withTrashed();
+
+        return $q->first();
     }
 
     public function testTreeNotBroken()
@@ -300,7 +308,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testNodeIsDeletedWithDescendants()
     {
         $node = $this->findCategory('mobile');
-        $this->assertTrue($node->delete());
+        $node->forceDelete();
 
         $this->assertTreeNotBroken();
 
@@ -309,6 +317,37 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $root = Category::root();
         $this->assertEquals(8, $root->getRgt());
+    }
+
+    public function testNodeIsSoftDeleted()
+    {
+        $root = Category::root();
+
+        $samsung = $this->findCategory('samsung');
+        $samsung->delete();
+
+        $this->assertTreeNotBroken();
+
+        $this->assertNull($this->findCategory('galaxy'));
+
+        sleep(1);
+
+        $node = $this->findCategory('mobile');
+        $node->delete();
+
+        $nodes = Category::whereIn('id', array(5, 6, 7, 8, 9))->count();
+        $this->assertEquals(0, $nodes);
+
+        $originalRgt = $root->getRgt();
+        $root->refreshNode();
+
+        $this->assertEquals($originalRgt, $root->getRgt());
+
+        $node = $this->findCategory('mobile', true);
+
+        $node->restore();
+
+        $this->assertNull($this->findCategory('samsung'));
     }
 
     /**

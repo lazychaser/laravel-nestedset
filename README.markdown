@@ -344,6 +344,24 @@ Various constraints that can be applied to query builder:
     with specified id;
 -   __whereIsBefore($id)__ to get every node that is before a node with specified id.
 
+### Deleting nodes
+
+To delete a node:
+
+```php
+$node->delete();
+```
+
+Nodes are required to be deleted as models, **don't** try do delete them using a query like so:
+
+```php
+Category::where('id', '=', $id)->delete();
+```
+
+This will brake the tree!
+
+`SoftDeletes` trait is supported, also on model level.
+
 ### Other methods
 
 To check if node is a descendant of other node:

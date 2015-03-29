@@ -79,6 +79,11 @@ class Node extends Eloquent {
     protected $moved = false;
 
     /**
+     * @var \Carbon\Carbon
+     */
+    protected static $deletedAt;
+
+    /**
      * Keep track of the number of performed operations.
      *
      * @var int
@@ -122,13 +127,26 @@ class Node extends Eloquent {
         static::deleting(function (Node $model)
         {
             // We will need fresh data to delete node safely
-            if ($model->hardDeleting()) $model->refreshNode();
+            $model->refreshNode();
         });
 
         static::deleted(function (Node $model)
         {
-            if ($model->hardDeleting()) $model->deleteNode();
+            $model->deleteDescendants();
         });
+
+        if (static::$_softDelete)
+        {
+            static::restoring(function (Node $model)
+            {
+                static::$deletedAt = $model->{$model->getDeletedAtColumn()};
+            });
+
+            static::restored(function (Node $model)
+            {
+                $model->restoreDescendants(static::$deletedAt);
+            });
+        }
     }
 
     /**
@@ -702,25 +720,42 @@ class Node extends Eloquent {
     /**
      * Update the tree when the node is removed physically.
      */
-    protected function deleteNode()
+    protected function deleteDescendants()
     {
         if (static::$deleting) return;
 
         $lft = $this->getLft();
         $rgt = $this->getRgt();
-        $height = $rgt - $lft + 1;
 
         // Make sure that inner nodes are just deleted and don't touch the tree
         static::$deleting = true;
 
-        $this->newServiceQuery()->whereNodeBetween([ $lft, $rgt ])->delete();
+        $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ])->delete();
 
         static::$deleting = false;
 
-        $this->makeGap($rgt + 1, -$height);
+        if ($this->hardDeleting())
+        {
+            $height = $rgt - $lft + 1;
 
-        // In case if user wants to re-create the node
-        $this->makeRoot();
+            $this->newServiceQuery()->makeGap($rgt + 1, -$height);
+
+            // In case if user wants to re-create the node
+            $this->makeRoot();
+        }
+    }
+
+    /**
+     * Restore the descendants.
+     *
+     * @param $deletedAt
+     */
+    protected function restoreDescendants($deletedAt)
+    {
+        $this->newQuery()
+            ->whereNodeBetween([ $this->getLft() + 1, $this->getRgt() ])
+            ->where($this->getDeletedAtColumn(), '>=', $deletedAt)
+            ->restore();
     }
 
     /**
@@ -1137,7 +1172,7 @@ class Node extends Eloquent {
      */
     protected function hardDeleting()
     {
-        return ! static::$_softDelete or ! $this->forceDeleting;
+        return static::$_softDelete and $this->forceDeleting or ! static::$_softDelete;
     }
 
     /**
