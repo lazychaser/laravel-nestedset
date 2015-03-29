@@ -1172,7 +1172,7 @@ class Node extends Eloquent {
      */
     protected function hardDeleting()
     {
-        return static::$_softDelete and $this->forceDeleting or ! static::$_softDelete;
+        return ! static::$_softDelete or $this->forceDeleting;
     }
 
     /**
