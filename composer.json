@@ -13,9 +13,9 @@
 
     "require": {
         "php": ">=5.4.0",
-        "illuminate/support": ">=4.1,<=5.1.*",
-        "illuminate/database": ">=4.1,<=5.1.*",
-        "illuminate/events": ">=4.1,<=5.1.*"
+        "illuminate/support": ">=4.1,5.1.*",
+        "illuminate/database": ">=4.1,5.1.*",
+        "illuminate/events": ">=4.1,5.1.*"
     },
 
     "autoload": { "psr-4": { "Kalnoy\\Nestedset\\": "src/" } }
