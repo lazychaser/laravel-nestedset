@@ -817,7 +817,7 @@ class Node extends Eloquent {
      * @param Node $parent
      *
      */
-    public static function create(array $attributes, Node $parent = null)
+    public static function create(array $attributes = array(), Node $parent = null)
     {
         $children = array_pull($attributes, 'children');
 
