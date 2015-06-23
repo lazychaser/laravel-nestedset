@@ -25,6 +25,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $data = include __DIR__.'/data/categories.php';
 
         Capsule::table('categories')->insert($data);
+
+        Category::resetActionsPerformed();
     }
 
     public function tearDown()
@@ -250,7 +252,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $node = $this->findCategory('mobile');
         $descendants = $node->descendants()->lists('name');
-        $expected = array('nokia', 'samsung', 'galaxy', 'sony');
+        $expected = array('nokia', 'samsung', 'galaxy', 'sony', 'lenovo');
 
         $this->assertEquals($expected, $descendants);
 
@@ -358,8 +360,6 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $this->assertTreeNotBroken();
 
-        $this->dumpTree();
-
         $this->assertNull($this->findCategory('samsung', true));
         $this->assertNull($this->findCategory('sony'));
     }
@@ -382,16 +382,16 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $next = $node->nextSiblings()->lists('id');
         $prev = $node->prevSiblings()->lists('id');
 
-        $this->assertEquals(array(6, 9), $siblings);
-        $this->assertEquals(array(9), $next);
+        $this->assertEquals(array(6, 9, 10), $siblings);
+        $this->assertEquals(array(9, 10), $next);
         $this->assertEquals(array(6), $prev);
 
         $siblings = $node->getSiblings()->lists('id');
         $next = $node->getNextSiblings()->lists('id');
         $prev = $node->getPrevSiblings()->lists('id');
 
-        $this->assertEquals(array(6, 9), $siblings);
-        $this->assertEquals(array(9), $next);
+        $this->assertEquals(array(6, 9, 10), $siblings);
+        $this->assertEquals(array(9, 10), $next);
         $this->assertEquals(array(6), $prev);
 
         $next = $node->getNextSibling();
@@ -417,7 +417,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $root = $tree->first();
         $this->assertEquals('mobile', $root->name);
-        $this->assertEquals(3, count($root->children));
+        $this->assertEquals(4, count($root->children));
     }
 
     public function testToTreeBuildsWithCustomOrder()
@@ -431,7 +431,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $root = $tree->first();
         $this->assertEquals('mobile', $root->name);
-        $this->assertEquals(3, count($root->children));
+        $this->assertEquals(4, count($root->children));
         $this->assertEquals($root, $root->children->first()->parent);
     }
 
@@ -443,8 +443,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $tree1 = \Kalnoy\Nestedset\Collection::make($nodes)->toTree(5);
         $tree2 = \Kalnoy\Nestedset\Collection::make($nodes)->toTree($node);
 
-        $this->assertEquals(3, $tree1->count());
-        $this->assertEquals(3, $tree2->count());
+        $this->assertEquals(4, $tree1->count());
+        $this->assertEquals(4, $tree2->count());
     }
 
     public function testToTreeBuildsWithDefaultOrderAndMultipleRootNodes()
@@ -458,7 +458,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $tree = Category::whereBetween('_lft', array(8, 17))->get()->toTree(5);
 
-        $this->assertEquals(3, count($tree));
+        $this->assertEquals(4, count($tree));
 
         $root = $tree[1];
         $this->assertEquals('samsung', $root->name);
@@ -501,7 +501,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = new Category([ 'name' => 'test' ]);
         $node->save();
 
-        $this->assertEquals(19, $node->_lft);
+        $this->assertEquals(21, $node->_lft);
         $this->assertTreeNotBroken();
 
         $this->assertTrue($node->isRoot());
@@ -545,7 +545,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $node = Category::create([ 'name' => 'test' ]);
 
-        $this->assertEquals(19, $node->getLft());
+        $this->assertEquals(21, $node->getLft());
     }
 
     public function testCreatesViaRelationship()
@@ -603,5 +603,17 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $res = Category::whereDescendantOf($category)->lists('id');
 
         $this->assertEquals([ 3, 4 ], $res);
+    }
+
+    public function testMultipleDeletionsDoNotBrakeTree()
+    {
+        $category = $this->findCategory('mobile');
+
+        foreach ($category->children()->take(2)->get() as $child)
+        {
+            $child->forceDelete();
+        }
+
+        $this->assertTreeNotBroken();
     }
 }

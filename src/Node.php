@@ -750,6 +750,8 @@ class Node extends Eloquent {
 
             // In case if user wants to re-create the node
             $this->makeRoot();
+
+            static::$actionsPerformed++;
         }
     }
 
