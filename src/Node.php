@@ -529,7 +529,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function append(Node $node)
+    public function appendNode(Node $node)
     {
         return $node->appendTo($this)->save();
     }
@@ -541,7 +541,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function prepend(Node $node)
+    public function prependNode(Node $node)
     {
         return $node->prependTo($this)->save();
     }
