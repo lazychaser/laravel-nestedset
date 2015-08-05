@@ -1,3 +1,10 @@
+### 3.0.0
+
+*   Support Laravel 5.1.9
+*   Renamed `append` to `appendNode`, `prepend` to `prependNode`
+*   Renamed `next` to `nextNodes`, `prev` to `prevNodes`
+*   Renamed `after` to `afterNode`, `before` to `beforeNode`
+
 ### 2.4.0
 
 *   Added query methods `whereNotDescendantOf`, `orWhereDescendantOf`, `orWhereNotDescendantOf`

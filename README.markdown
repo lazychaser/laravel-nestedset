@@ -106,7 +106,7 @@ There are few ways to append a node:
 $node->appendTo($parent)->save();
 
 // #2 Using parent node
-$parent->append($node);
+$parent->appendNode($node);
 
 // #3 Using parent's children relationship
 $parent->children()->create($attributes);
@@ -129,7 +129,7 @@ And only a couple ways to prepend:
 $node->prependTo($parent)->save();
 
 // #2
-$parent->prepend($node);
+$parent->prependNode($node);
 ```
 
 #### Inserting before or after specified node
@@ -141,8 +141,8 @@ it will be moved to the new position and parent will be changed if it's needed.*
 
 ```php
 # Explicit save
-$node->after($neighbor)->save();
-$node->before($neighbor)->save();
+$node->afterNode($neighbor)->save();
+$node->beforeNode($neighbor)->save();
 
 # Implicit save
 $node->insertAfter($neighbor);

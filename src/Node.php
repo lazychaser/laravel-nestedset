@@ -430,12 +430,12 @@ class Node extends Eloquent {
         switch ($dir)
         {
             case self::AFTER:
-                $query = $this->next();
+                $query = $this->nextNodes();
 
                 break;
 
             case self::BEFORE:
-                $query = $this->prev();
+                $query = $this->prevNodes();
 
                 break;
 
@@ -477,7 +477,7 @@ class Node extends Eloquent {
      *
      * @return QueryBuilder
      */
-    public function next()
+    public function nextNodes()
     {
         return $this->newQuery()->whereIsAfter($this->getKey())->defaultOrder();
     }
@@ -487,7 +487,7 @@ class Node extends Eloquent {
      *
      * @return QueryBuilder
      */
-    public function prev()
+    public function prevNodes()
     {
         return $this->newQuery()->whereIsBefore($this->getKey())->reversed();
     }
@@ -529,7 +529,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function append(Node $node)
+    public function appendNode(Node $node)
     {
         return $node->appendTo($this)->save();
     }
@@ -541,7 +541,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function prepend(Node $node)
+    public function prependNode(Node $node)
     {
         return $node->prependTo($this)->save();
     }
@@ -577,7 +577,7 @@ class Node extends Eloquent {
      *
      * @return $this
      */
-    public function after(Node $node)
+    public function afterNode(Node $node)
     {
         return $this->setAction('after', $node);
     }
@@ -591,7 +591,7 @@ class Node extends Eloquent {
      */
     public function insertAfter(Node $node)
     {
-        return $this->after($node)->save();
+        return $this->afterNode($node)->save();
     }
 
     /**
@@ -601,7 +601,7 @@ class Node extends Eloquent {
      *
      * @return $this
      */
-    public function before(Node $node)
+    public function beforeNode(Node $node)
     {
         return $this->setAction('before', $node);
     }
@@ -615,7 +615,7 @@ class Node extends Eloquent {
      */
     public function insertBefore(Node $node)
     {
-        if ($this->before($node)->save())
+        if ($this->beforeNode($node)->save())
         {
             // We'll' update the target node since it will be moved
             $node->refreshNode();
@@ -817,7 +817,6 @@ class Node extends Eloquent {
      * Use `children` key on `$attributes` to create child nodes.
      *
      * @param Node $parent
-     *
      */
     public static function create(array $attributes = array(), Node $parent = null)
     {
@@ -967,7 +966,7 @@ class Node extends Eloquent {
      */
     public function getNext(array $columns = array('*'))
     {
-        return $this->next()->first($columns);
+        return $this->nextNodes()->first($columns);
     }
 
     /**
@@ -979,7 +978,7 @@ class Node extends Eloquent {
      */
     public function getPrev(array $columns = array('*'))
     {
-        return $this->prev()->first($columns);
+        return $this->prevNodes()->first($columns);
     }
 
     /**

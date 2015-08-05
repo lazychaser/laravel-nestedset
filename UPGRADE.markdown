@@ -1,3 +1,7 @@
+### Upgrading to 3.0
+
+Some methods were renamed, see changelog for more details.
+
 ### Upgrading to 2.0
 
 Calling `$parent->append($node)` and `$parent->prepend($node)` now automatically
