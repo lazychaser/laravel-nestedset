@@ -885,6 +885,7 @@ class Node extends Eloquent {
             {
                 $this->makeRoot();
             }
+            $this->attributes[static::PARENT_ID] = $value;
         }
     }
 
