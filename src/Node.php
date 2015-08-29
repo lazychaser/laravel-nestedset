@@ -226,8 +226,8 @@ class Node extends Eloquent {
         {
             $cut = $this->getLowerBound() + 1;
 
-            $this->setAttribute(static::LFT, $cut);
-            $this->setAttribute(static::RGT, $cut + 1);
+            $this->setLft($cut);
+            $this->setRgt($cut + 1);
 
             return true;
         }
@@ -247,7 +247,7 @@ class Node extends Eloquent {
      */
     protected function getLowerBound()
     {
-        return (int)$this->newServiceQuery()->max(static::RGT);
+        return (int)$this->newServiceQuery()->max($this->getRgtName());
     }
 
     /**
@@ -310,7 +310,8 @@ class Node extends Eloquent {
      */
     protected function setParent($value)
     {
-        $this->attributes[static::PARENT_ID] = $value ? $value->getKey() : null;
+        $this->attributes[$this->getParentIdName()] = $value ? $value->getKey() : null;
+
         $this->setRelation('parent', $value);
     }
 
@@ -326,10 +327,10 @@ class Node extends Eloquent {
     {
         if ( ! $node->exists)
         {
-            throw new LogicException('Cannot insert before/after non-existing node.');
+            throw new LogicException('Cannot insert before/after a node that does not exists.');
         }
 
-        if ($this->getParentId() <> $node->getParentId())
+        if ( ! $this->isSiblingOf($node))
         {
             $this->setParent($node->getAttribute('parent'));
         }
@@ -379,9 +380,9 @@ class Node extends Eloquent {
     /**
      * Get the root node.
      *
-     * @param   array   $columns
+     * @param array $columns
      *
-     * @return  Node
+     * @return Node
      */
     static public function root(array $columns = array('*'))
     {
@@ -395,7 +396,7 @@ class Node extends Eloquent {
      */
     public function parent()
     {
-        return $this->belongsTo(get_class($this), static::PARENT_ID);
+        return $this->belongsTo(get_class($this), $this->getParentIdName());
     }
 
     /**
@@ -405,7 +406,7 @@ class Node extends Eloquent {
      */
     public function children()
     {
-        return $this->hasMany(get_class($this), static::PARENT_ID);
+        return $this->hasMany(get_class($this), $this->getParentIdName());
     }
 
     /**
@@ -447,7 +448,7 @@ class Node extends Eloquent {
                 break;
         }
 
-        $query->where(static::PARENT_ID, '=', $this->getParentId());
+        $query->where($this->getParentIdName(), '=', $this->getParentId());
 
         return $query;
     }
@@ -709,8 +710,8 @@ class Node extends Eloquent {
 
         $height = $this->getNodeHeight();
 
-        $this->setAttribute(static::LFT, $position);
-        $this->setAttribute(static::RGT, $position + $height - 1);
+        $this->setLft($position);
+        $this->setRgt($position + $height - 1);
 
         return true;
     }
@@ -874,7 +875,7 @@ class Node extends Eloquent {
      */
     public function setParentIdAttribute($value)
     {
-        if ($this->getAttribute(static::PARENT_ID) != $value)
+        if ($this->getParentId() != $value)
         {
             if ($value)
             {
@@ -894,7 +895,7 @@ class Node extends Eloquent {
      */
     public function isRoot()
     {
-        return $this->getAttribute(static::PARENT_ID) === null;
+        return $this->getParentId() === null;
     }
 
     /**
@@ -934,7 +935,7 @@ class Node extends Eloquent {
      */
     public function getLft()
     {
-        return isset($this->attributes[static::LFT]) ? $this->attributes[static::LFT] : null;
+        return isset($this->attributes[$this->getLftName()]) ? $this->attributes[$this->getLftName()] : null;
     }
 
     /**
@@ -944,7 +945,7 @@ class Node extends Eloquent {
      */
     public function getRgt()
     {
-        return isset($this->attributes[static::RGT]) ? $this->attributes[static::RGT] : null;
+        return isset($this->attributes[$this->getRgtName()]) ? $this->attributes[$this->getRgtName()] : null;
     }
 
     /**
@@ -954,7 +955,7 @@ class Node extends Eloquent {
      */
     public function getParentId()
     {
-        return $this->getAttribute(static::PARENT_ID);
+        return $this->getAttribute($this->getParentIdName());
     }
 
     /**
@@ -1190,5 +1191,21 @@ class Node extends Eloquent {
     public function getBounds()
     {
         return [ $this->getLft(), $this->getRgt() ];
+    }
+
+    /**
+     * @param $value
+     */
+    protected function setLft($value)
+    {
+        $this->setAttribute($this->getLftName(), $value);
+    }
+
+    /**
+     * @param $value
+     */
+    protected function setRgt($value)
+    {
+        $this->setAttribute($this->getRgtName(), $value);
     }
 }
