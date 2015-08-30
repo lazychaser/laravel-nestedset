@@ -78,7 +78,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         }
     }
 
-    public function assertNodeRecievesValidValues($node)
+    public function assertNodeReceivesValidValues($node)
     {
         $lft = $node->getLft();
         $rgt = $node->getRgt();
@@ -130,7 +130,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals([ 3, 4 ], $data);
     }
 
-    public function testRecievesValidValuesWhenAppendedTo()
+    public function testReceivesValidValuesWhenAppendedTo()
     {
         $node = new Category([ 'name' => 'test' ]);
         $root = Category::root();
@@ -146,7 +146,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($node->isDescendantOf($root));
     }
 
-    public function testRecievesValidValuesWhenPrependedTo()
+    public function testReceivesValidValuesWhenPrependedTo()
     {
         $root = Category::root();
         $node = new Category([ 'name' => 'test' ]);
@@ -160,7 +160,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($node->isChildOf($root));
     }
 
-    public function testRecievesValidValuesWhenInsertedAfter()
+    public function testReceivesValidValuesWhenInsertedAfter()
     {
         $target = $this->findCategory('apple');
         $node = new Category([ 'name' => 'test' ]);
@@ -173,7 +173,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($node->isSiblingOf($target));
     }
 
-    public function testRecievesValidValuesWhenInsertedBefore()
+    public function testReceivesValidValuesWhenInsertedBefore()
     {
         $target = $this->findCategory('apple');
         $node = new Category([ 'name' => 'test' ]);
@@ -192,7 +192,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $target->appendNode($node);
 
         $this->assertTrue($node->hasMoved());
-        $this->assertNodeRecievesValidValues($node);
+        $this->assertNodeReceivesValidValues($node);
         $this->assertTreeNotBroken();
     }
 
@@ -205,7 +205,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $this->assertTrue($node->hasMoved());
         $this->assertTreeNotBroken();
-        $this->assertNodeRecievesValidValues($node);
+        $this->assertNodeReceivesValidValues($node);
     }
 
     /**
