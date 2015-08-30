@@ -70,7 +70,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
     public function dumpTree($items = null)
     {
-        if ( ! $items) $items = Category::withTrashed()->get();
+        if ( ! $items) $items = Category::withTrashed()->defaultOrder()->get();
 
         foreach ($items as $item)
         {
@@ -614,6 +614,17 @@ class NodeTest extends PHPUnit_Framework_TestCase {
             $child->forceDelete();
         }
 
+        $this->assertTreeNotBroken();
+    }
+
+    public function testTreeIsFixed()
+    {
+        Category::where('id', '=', 5)->update([ '_lft' => 14 ]);
+        Category::where('id', '=', 8)->update([ 'parent_id' => 2 ]);
+
+        $fixed = Category::fixTree();
+
+        $this->assertTrue($fixed > 0);
         $this->assertTreeNotBroken();
     }
 }

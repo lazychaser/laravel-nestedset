@@ -2,13 +2,10 @@
 
 namespace Kalnoy\Nestedset;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder as Query;
 use LogicException;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Database\Query\Grammars\Grammar;
-use Illuminate\Database\Query\Processors\Processor;
 use Illuminate\Database\Query\Expression;
 
 class QueryBuilder extends Builder {
@@ -578,5 +575,60 @@ class QueryBuilder extends Builder {
         }
 
         return (array)$query->first();
+    }
+
+    /**
+     * Fixes the tree based on parentage info.
+     *
+     * Requires at least one root node. This will not update nodes with invalid parent.
+     *
+     * @return int The number of fixed nodes.
+     */
+    public function fixTree()
+    {
+        $columns = [
+            $this->model->getKeyName(),
+            $this->model->getParentIdName(),
+            $this->model->getLftName(),
+            $this->model->getRgtName(),
+        ];
+
+        $nodes = $this->defaultOrder()->get($columns)->groupBy($this->model->getParentIdName());
+
+        $this->reorderNodes($nodes, $fixed);
+
+        return $fixed;
+    }
+
+    /**
+     * @param Collection $models
+     * @param int $fixed
+     * @param $parentId
+     * @param int $cut
+     *
+     * @return int
+     */
+    protected function reorderNodes(Collection $models, &$fixed, $parentId = null, $cut = 1)
+    {
+        /** @var Node $model */
+        foreach ($models->get($parentId, []) as $model)
+        {
+            $model->setLft($cut);
+
+            $cut = $this->reorderNodes($models, $fixed, $model->getKey(), $cut + 1);
+
+            $model->setRgt($cut);
+
+            if ($model->isDirty())
+            {
+                $model->save();
+
+                $fixed++;
+            }
+
+            ++$cut;
+        }
+
+        return $cut;
     }
 }

@@ -1196,7 +1196,7 @@ class Node extends Eloquent {
     /**
      * @param $value
      */
-    protected function setLft($value)
+    public function setLft($value)
     {
         $this->setAttribute($this->getLftName(), $value);
     }
@@ -1204,7 +1204,7 @@ class Node extends Eloquent {
     /**
      * @param $value
      */
-    protected function setRgt($value)
+    public function setRgt($value)
     {
         $this->setAttribute($this->getRgtName(), $value);
     }

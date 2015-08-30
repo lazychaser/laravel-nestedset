@@ -1,3 +1,7 @@
+### 3.1.0
+
+*   Added `fixTree` method for fixing `lft`/`rgt` values based on parenting
+
 ### 3.0.0
 
 *   Support Laravel 5.1.9
