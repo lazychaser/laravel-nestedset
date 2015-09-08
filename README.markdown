@@ -14,6 +14,7 @@ __Contents:__
 - [Documentation](#documentation)
     -   [Inserting nodes](#inserting-nodes)
     -   [Retrieving nodes](#retrieving-nodes)
+    -   [Consistency checking & fixing](#checking-consistency)
 - [Requirements](#requirements)
 - [Installation](#installation)
 
@@ -419,6 +420,15 @@ It will return an array with following keys:
 -   `duplicates` -- the number of nodes that have same `lft` or `rgt` values;
 -   `wrong_parent` -- the number of nodes that have invalid `parent_id` value that
     doesn't correspond to `lft` and `rgt` values.
+    
+#### Fixing tree
+
+Since v3.1 tree can now be fixed. Using inheritance info from `parent_id` column, proper `_lft` and `_rgt` values
+are set for every node.
+
+```php
+Node::fixTree();
+```
 
 Requirements
 ------------

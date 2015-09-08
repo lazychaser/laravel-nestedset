@@ -229,7 +229,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testAncestorsReturnsAncestorsWithoutNodeItself()
     {
         $node = $this->findCategory('apple');
-        $path = $node->ancestors()->lists('name')->all();
+        $path = all($node->ancestors()->lists('name'));
 
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
@@ -251,12 +251,12 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testDescendants()
     {
         $node = $this->findCategory('mobile');
-        $descendants = $node->descendants()->lists('name')->all();
+        $descendants = all($node->descendants()->lists('name'));
         $expected = array('nokia', 'samsung', 'galaxy', 'sony', 'lenovo');
 
         $this->assertEquals($expected, $descendants);
 
-        $descendants = $node->getDescendants()->lists('name')->all();
+        $descendants = all($node->getDescendants()->lists('name'));
 
         $this->assertEquals(count($descendants), $node->getDescendantCount());
         $this->assertEquals($expected, $descendants);
@@ -378,17 +378,17 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testSiblings()
     {
         $node = $this->findCategory('samsung');
-        $siblings = $node->siblings()->lists('id')->all();
-        $next = $node->nextSiblings()->lists('id')->all();
-        $prev = $node->prevSiblings()->lists('id')->all();
+        $siblings = all($node->siblings()->lists('id'));
+        $next = all($node->nextSiblings()->lists('id'));
+        $prev = all($node->prevSiblings()->lists('id'));
 
         $this->assertEquals(array(6, 9, 10), $siblings);
         $this->assertEquals(array(9, 10), $next);
         $this->assertEquals(array(6), $prev);
 
-        $siblings = $node->getSiblings()->lists('id')->all();
-        $next = $node->getNextSiblings()->lists('id')->all();
-        $prev = $node->getPrevSiblings()->lists('id')->all();
+        $siblings = all($node->getSiblings()->lists('id'));
+        $next = all($node->getNextSiblings()->lists('id'));
+        $prev = all($node->getPrevSiblings()->lists('id'));
 
         $this->assertEquals(array(6, 9, 10), $siblings);
         $this->assertEquals(array(9, 10), $next);

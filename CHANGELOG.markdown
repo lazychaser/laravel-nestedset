@@ -1,6 +1,8 @@
 ### 3.1.0
 
-*   Added `fixTree` method for fixing `lft`/`rgt` values based on parenting
+*   Added `fixTree` method for fixing `lft`/`rgt` values based on inheritance
+*   Dropped support of Laravel < 5.1
+*   Improved compatibility with different databases
 
 ### 3.0.0
 

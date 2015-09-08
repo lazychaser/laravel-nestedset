@@ -74,16 +74,11 @@ class QueryBuilder extends Builder {
      */
     public function whereAncestorOf($id)
     {
-        $table = $this->wrappedTable();
         $keyName = $this->model->getKeyName();
-
-        list($lft, $rgt) = $this->wrappedColumns();
-
-        $key = $this->query->getGrammar()->wrap($keyName);
 
         if ($id instanceof Node)
         {
-            $dataSource = '?';
+            $value = '?';
 
             $this->query->addBinding($id->getLft());
 
@@ -91,12 +86,20 @@ class QueryBuilder extends Builder {
         }
         else
         {
-            $dataSource = "(select _.{$lft} from {$table} _ where _.{$key} = ? limit 1)";
+            $valueQuery = $this->model->newQuery()->getQuery()
+                                      ->select("_.".$this->model->getLftName())
+                                      ->from($this->model->getTable().' as _')
+                                      ->where($keyName, '=', $id)
+                                      ->limit(1);
 
-            $this->query->addBinding($id);
+            $this->query->mergeBindings($valueQuery);
+
+            $value = '('.$valueQuery->toSql().')';
         }
 
-        $this->query->whereRaw($dataSource." between {$lft} and {$rgt}");
+        list($lft, $rgt) = $this->wrappedColumns();
+
+        $this->query->whereRaw("{$value} between {$lft} and {$rgt}");
 
         // Exclude the node
         $this->where($keyName, '<>', $id);
@@ -233,24 +236,52 @@ class QueryBuilder extends Builder {
     }
 
     /**
+     * @param $id
+     * @param $operator
+     * @param $boolean
+     *
+     * @return $this
+     */
+    protected function whereIsBeforeOrAfter($id, $operator, $boolean)
+    {
+        if ($id instanceof Node)
+        {
+            $value = '?';
+
+            $this->query->addBinding($id->getLft());
+        }
+        else
+        {
+            $valueQuery = $this->model->newQuery()->getQuery()
+                                      ->select('_n.'.$this->model->getLftName())
+                                      ->from($this->model->getTable().' as _n')
+                                      ->where('_n.'.$this->model->getKeyName(), '=', $id);
+
+            $this->query->mergeBindings($valueQuery);
+
+            $value = '('.$valueQuery->toSql().')';
+        }
+
+        list($lft,) = $this->wrappedColumns();
+
+        $this->query->whereRaw("{$lft} {$operator} {$value}", [ ], $boolean);
+
+        return $this;
+    }
+
+    /**
      * Constraint nodes to those that are after specified node.
      *
      * @since 2.0
      *
-     * @param mixed $id
+     * @param Node|mixed $id
      * @param string $boolean
      *
      * @return $this
      */
     public function whereIsAfter($id, $boolean = 'and')
     {
-        $table = $this->wrappedTable();
-        list($lft,) = $this->wrappedColumns();
-        $key = $this->wrappedKey();
-
-        $this->query->whereRaw("{$lft} > (select _n.{$lft} from {$table} _n where _n.{$key} = ?)", [ $id ], $boolean);
-
-        return $this;
+        return $this->whereIsBeforeOrAfter($id, '>', $boolean);
     }
 
     /**
@@ -265,38 +296,32 @@ class QueryBuilder extends Builder {
      */
     public function whereIsBefore($id, $boolean = 'and')
     {
-        $table = $this->wrappedTable();
-        list($lft,) = $this->wrappedColumns();
-        $key = $this->wrappedKey();
-
-        $this->query->whereRaw("{$lft} < (select _b.{$lft} from {$table} _b where _b.{$key} = ?)", [ $id ], $boolean);
-
-        return $this;
+        return $this->whereIsBeforeOrAfter($id, '<', $boolean);
     }
 
     /**
      * Include depth level into the result.
      *
-     * @param string $key
+     * @param string $as
      *
      * @return $this
      */
-    public function withDepth($key = 'depth')
+    public function withDepth($as = 'depth')
     {
-        $table = $this->wrappedTable();
+        if ($this->query->columns === null) $this->query->columns = [ '*' ];
 
-        list($lft, $rgt) = $this->wrappedColumns();
+        $this->query->selectSub(function (\Illuminate\Database\Query\Builder $q)
+        {
+            $table = $this->wrappedTable();
 
-        $key = $this->query->getGrammar()->wrap($key);
+            list($lft, $rgt) = $this->wrappedColumns();
 
-        $column = $this->query->raw(
-            "((select count(*) from {$table} _d ".
-            "where {$table}.{$lft} between _d.{$lft} and _d.{$rgt})-1) as {$key}"
-        );
+            $q
+                ->selectRaw('count(1) - 1')
+                ->from($this->model->getTable().' as _d')
+                ->whereRaw("{$table}.{$lft} between _d.{$lft} and _d.{$rgt}");
 
-        if ($this->query->columns === null) $this->query->columns = array('*');
-
-        $this->query->addSelect($column);
+        }, $as);
 
         return $this;
     }
@@ -472,7 +497,7 @@ class QueryBuilder extends Builder {
     {
         $params = compact('cut', 'height');
 
-        $this->query->where(function (Query $inner) use ($cut)
+        $this->query->whereNested(function (Query $inner) use ($cut)
         {
             $inner->where($this->model->getLftName(), '>=', $cut);
             $inner->orWhere($this->model->getRgtName(), '>=', $cut);
@@ -577,58 +602,4 @@ class QueryBuilder extends Builder {
         return (array)$query->first();
     }
 
-    /**
-     * Fixes the tree based on parentage info.
-     *
-     * Requires at least one root node. This will not update nodes with invalid parent.
-     *
-     * @return int The number of fixed nodes.
-     */
-    public function fixTree()
-    {
-        $columns = [
-            $this->model->getKeyName(),
-            $this->model->getParentIdName(),
-            $this->model->getLftName(),
-            $this->model->getRgtName(),
-        ];
-
-        $nodes = $this->defaultOrder()->get($columns)->groupBy($this->model->getParentIdName());
-
-        $this->reorderNodes($nodes, $fixed);
-
-        return $fixed;
-    }
-
-    /**
-     * @param Collection $models
-     * @param int $fixed
-     * @param $parentId
-     * @param int $cut
-     *
-     * @return int
-     */
-    protected function reorderNodes(Collection $models, &$fixed, $parentId = null, $cut = 1)
-    {
-        /** @var Node $model */
-        foreach ($models->get($parentId, []) as $model)
-        {
-            $model->setLft($cut);
-
-            $cut = $this->reorderNodes($models, $fixed, $model->getKey(), $cut + 1);
-
-            $model->setRgt($cut);
-
-            if ($model->isDirty())
-            {
-                $model->save();
-
-                $fixed++;
-            }
-
-            ++$cut;
-        }
-
-        return $cut;
-    }
 }
