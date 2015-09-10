@@ -211,12 +211,32 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     /**
      * @expectedException Exception
      */
-    public function testFailsToInsertIntoItself()
+    public function testFailsToInsertIntoChild()
     {
         $node = $this->findCategory('notebooks');
         $target = $node->children()->first();
 
         $node->afterNode($target)->save();
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testFailsToAppendIntoItself()
+    {
+        $node = $this->findCategory('notebooks');
+
+        $node->appendTo($node)->save();
+    }
+
+    /**
+     * @expectedException Exception
+     */
+    public function testFailsToPrependIntoItself()
+    {
+        $node = $this->findCategory('notebooks');
+
+        $node->prependTo($node)->save();
     }
 
     public function testWithoutRootWorks()

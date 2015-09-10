@@ -450,7 +450,7 @@ class QueryBuilder extends Builder {
     {
         list($lft, $rgt) = $this->model->newServiceQuery()->getPlainNodeData($key, true);
 
-        if ($lft < $position && $position < $rgt)
+        if ($lft < $position && $position <= $rgt)
         {
             throw new LogicException('Cannot move node into itself.');
         }
