@@ -290,7 +290,7 @@ This will brake the tree!
 This package provides few helpful methods for collection of nodes. You can link nodes in plain collection like so:
 
 ```php
-$result = Categories::get();
+$results = Categories::get();
 
 $results->linkNodes();
 ```
