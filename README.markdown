@@ -360,7 +360,6 @@ Descendants constraints:
 
 ```php
 $result = Category::whereDescendantOf($node)->get();
-$result = Category::whereDescendantOf($node)->get();
 $result = Category::whereNotDescendantOf($node)->get();
 $result = Category::orWhereDescendantOf($node)->get();
 $result = Category::orWhereNotDescendantOf($node)->get();
