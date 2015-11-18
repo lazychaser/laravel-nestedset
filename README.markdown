@@ -137,8 +137,8 @@ $parent->prependNode($node);
 
 You can make `$node` to be a neighbor of the `$neighbor` node using following methods:
 
-*Neighbor is existing node, target node can be fresh. If target node is exists, 
-it will be moved to the new position and parent will be changed if it's needed.*
+*Neighbor is existing node, target node can be fresh. If target node exists, 
+it will be moved to the new position and parent will be changed if required.*
 
 ```php
 # Explicit save
