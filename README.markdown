@@ -137,8 +137,8 @@ $parent->prependNode($node);
 
 You can make `$node` to be a neighbor of the `$neighbor` node using following methods:
 
-*Neighbor is existing node, target node can be fresh. If target node is exists, 
-it will be moved to the new position and parent will be changed if it's needed.*
+*Neighbor is existing node, target node can be fresh. If target node exists, 
+it will be moved to the new position and parent will be changed if required.*
 
 ```php
 # Explicit save
@@ -290,7 +290,7 @@ This will brake the tree!
 This package provides few helpful methods for collection of nodes. You can link nodes in plain collection like so:
 
 ```php
-$result = Categories::get();
+$results = Categories::get();
 
 $results->linkNodes();
 ```
@@ -359,7 +359,6 @@ Various constraints that can be applied to the query builder:
 Descendants constraints:
 
 ```php
-$result = Category::whereDescendantOf($node)->get();
 $result = Category::whereDescendantOf($node)->get();
 $result = Category::whereNotDescendantOf($node)->get();
 $result = Category::orWhereDescendantOf($node)->get();
