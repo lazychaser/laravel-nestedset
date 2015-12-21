@@ -4,8 +4,8 @@ namespace Kalnoy\Nestedset;
 
 use \Illuminate\Database\Eloquent\Collection as BaseCollection;
 
-class Collection extends BaseCollection {
-
+class Collection extends BaseCollection
+{
     /**
      * Fill `parent` and `children` relationships for every node in collection.
      *
@@ -20,15 +20,15 @@ class Collection extends BaseCollection {
         $groupedChildren = $this->groupBy($this->first()->getParentIdName());
 
         /** @var Node $node */
-        foreach ($this->items as $node)
-        {
-            if ( ! isset($node->parent)) $node->setRelation('parent', null);
+        foreach ($this->items as $node) {
+            if ( ! isset($node->parent)) {
+                $node->setRelation('parent', null);
+            }
 
-            $children = $groupedChildren->get($node->getKey(), []);
+            $children = $groupedChildren->get($node->getKey(), [ ]);
 
             /** @var Node $child */
-            foreach ($children as $child)
-            {
+            foreach ($children as $child) {
                 $child->setRelation('parent', $node);
             }
 
@@ -52,17 +52,15 @@ class Collection extends BaseCollection {
      */
     public function toTree($root = null)
     {
-        $items = [];
+        $items = [ ];
 
-        if ( ! $this->isEmpty())
-        {
+        if ( ! $this->isEmpty()) {
             $this->linkNodes();
 
             $root = $this->getRootNodeId($root);
 
             /** @var Node $node */
-            foreach ($this->items as $node)
-            {
+            foreach ($this->items as $node) {
                 if ($node->getParentId() == $root) $items[] = $node;
             }
         }
@@ -81,15 +79,12 @@ class Collection extends BaseCollection {
 
         // If root node is not specified we take parent id of node with
         // least lft value as root node id.
-        if ($root === null)
-        {
+        if ($root === null) {
             $leastValue = null;
 
             /** @var Node $node */
-            foreach ($this->items as $node)
-            {
-                if ($leastValue === null || $node->getLft() < $leastValue)
-                {
+            foreach ($this->items as $node) {
+                if ($leastValue === null || $node->getLft() < $leastValue) {
                     $leastValue = $node->getLft();
                     $root = $node->getParentId();
                 }

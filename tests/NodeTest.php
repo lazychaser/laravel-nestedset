@@ -3,7 +3,8 @@
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
 
-class NodeTest extends PHPUnit_Framework_TestCase {
+class NodeTest extends PHPUnit_Framework_TestCase
+{
     public static function setUpBeforeClass()
     {
         $schema = Capsule::schema();
@@ -646,6 +647,14 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $this->assertTrue($fixed > 0);
         $this->assertTreeNotBroken();
+    }
+
+    public function testParentIdDirtiness()
+    {
+        $node = $this->findCategory('apple');
+        $node->parent_id = 5;
+
+        $this->assertTrue($node->isDirty('parent_id'));
     }
 }
 

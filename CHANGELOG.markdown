@@ -1,3 +1,8 @@
+### 3.1.1
+
+*   Fixed #42: model becomes dirty before save when parent is changed and using `appendTo`, 
+    `prependTo`, `insertBefore`, `insertAfter`.
+
 ### 3.1.0
 
 *   Added `fixTree` method for fixing `lft`/`rgt` values based on inheritance
