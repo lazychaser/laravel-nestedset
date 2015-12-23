@@ -3,8 +3,10 @@
 namespace Kalnoy\Nestedset;
 
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use LogicException;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -47,24 +49,6 @@ class Node extends Eloquent
     const AFTER = 'after';
 
     /**
-     * Whether model uses soft delete.
-     *
-     * @var bool
-     *
-     * @since 1.1
-     */
-    static protected $_softDelete;
-
-    /**
-     * Whether the node is being deleted.
-     *
-     * @since 2.0
-     *
-     * @var bool
-     */
-    static protected $deleting;
-
-    /**
      * Pending operation.
      *
      * @var array
@@ -97,21 +81,7 @@ class Node extends Eloquent
     {
         parent::boot();
 
-        static::$_softDelete = static::getIsSoftDelete();
-
         static::signOnEvents();
-    }
-
-    /**
-     * Get whether model uses soft delete.
-     *
-     * @return bool
-     */
-    protected static function getIsSoftDelete()
-    {
-        $instance = new static;
-
-        return method_exists($instance, 'withTrashed');
     }
 
     /**
@@ -132,7 +102,7 @@ class Node extends Eloquent
             $model->deleteDescendants();
         });
 
-        if (static::$_softDelete) {
+        if (static::usesSoftDelete()) {
             static::restoring(function (Node $model) {
                 static::$deletedAt = $model->{$model->getDeletedAtColumn()};
             });
@@ -146,7 +116,7 @@ class Node extends Eloquent
     /**
      * {@inheritdoc}
      *
-     * Saves a node in a transaction.
+     * Saves a node in transaction.
      */
     public function save(array $options = array())
     {
@@ -158,7 +128,7 @@ class Node extends Eloquent
     /**
      * {@inheritdoc}
      *
-     * Delete a node in transaction if model is not soft deleting.
+     * Delete a node in transaction.
      */
     public function delete()
     {
@@ -206,6 +176,22 @@ class Node extends Eloquent
         $this->pending = null;
 
         $this->moved = call_user_func_array([ $this, $method ], $parameters);
+    }
+
+    /**
+     * @return bool
+     */
+    public static function usesSoftDelete()
+    {
+        static $softDelete;
+
+        if (is_null($softDelete)) {
+            $instance = new static;
+
+            return $softDelete = method_exists($instance, 'withTrashed');
+        }
+
+        return $softDelete;
     }
 
     /**
@@ -685,24 +671,19 @@ class Node extends Eloquent
      */
     protected function deleteDescendants()
     {
-        if (static::$deleting) return;
-
         $lft = $this->getLft();
         $rgt = $this->getRgt();
 
-        // Make sure that inner nodes are just deleted and don't touch the tree
-        // This makes sense in Laravel 4.2
-        static::$deleting = true;
-
+        /** @var QueryBuilder $query */
         $query = $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ]);
 
-        if (static::$_softDelete && $this->forceDeleting) {
-            $query->withTrashed()->forceDelete();
-        } else {
-            $query->delete();
+        // Remove soft deleting scope when user forced delete so that descendants
+        // are also deleted physically
+        if ($this->usesSoftDelete() && $this->forceDeleting) {
+            $query->withoutGlobalScope(SoftDeletingScope::class);
         }
 
-        static::$deleting = false;
+        $query->applyScopes()->delete();
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
@@ -726,6 +707,7 @@ class Node extends Eloquent
         $this->newQuery()
              ->whereNodeBetween([ $this->getLft() + 1, $this->getRgt() ])
              ->where($this->getDeletedAtColumn(), '>=', $deletedAt)
+             ->applyScopes()
              ->restore();
     }
 
@@ -748,7 +730,7 @@ class Node extends Eloquent
      */
     public function newServiceQuery()
     {
-        return static::$_softDelete ? $this->withTrashed() : $this->newQuery();
+        return $this->usesSoftDelete() ? $this->withTrashed() : $this->newQuery();
     }
 
     /**
@@ -779,9 +761,8 @@ class Node extends Eloquent
      *
      * @param Node $parent
      */
-    public static function create(array $attributes = array(),
-                                  Node $parent = null
-    ) {
+    public static function create(array $attributes = [], Node $parent = null)
+    {
         $children = array_pull($attributes, 'children');
 
         $instance = new static($attributes);
@@ -1146,7 +1127,7 @@ class Node extends Eloquent
      */
     protected function hardDeleting()
     {
-        return ! static::$_softDelete or $this->forceDeleting;
+        return ! $this->usesSoftDelete() || $this->forceDeleting;
     }
 
     /**

@@ -99,11 +99,11 @@ class NodeTest extends PHPUnit_Framework_TestCase
      */
     public function findCategory($name, $withTrashed = false)
     {
-        $q = Category::whereName($name);
+        $q = new Category;
 
-        if ($withTrashed) $q->withTrashed();
+        $q = $withTrashed ? $q->withTrashed() : $q->newQuery();
 
-        return $q->first();
+        return $q->whereName($name)->first();
     }
 
     public function testTreeNotBroken()

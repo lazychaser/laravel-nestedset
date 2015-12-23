@@ -1,6 +1,6 @@
 {
     "name": "kalnoy/nestedset",
-    "description": "Nested Set Model for Laravel 4",
+    "description": "Nested Set Model for Laravel 4-5",
     "keywords": ["laravel", "nested sets", "nsm", "database", "hierarchy"],
     "license": "MIT",
 
@@ -13,9 +13,9 @@
 
     "require": {
         "php": ">=5.5.9",
-        "illuminate/support": "5.1 - 5.2",
-        "illuminate/database": "5.1 - 5.2",
-        "illuminate/events": "5.1 - 5.2"
+        "illuminate/support": "5.2.*",
+        "illuminate/database": "5.2.*",
+        "illuminate/events": "5.2.*"
     },
 
     "autoload": { "psr-4": { "Kalnoy\\Nestedset\\": "src/" } },

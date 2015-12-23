@@ -6,7 +6,11 @@
 
 This is a Laravel 4-5 package for working with trees in a database.
 
-__[Support this project](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
+*   Laravel 5.2 is supported since v4
+*   Laravel 5.1 is supported in v3
+*   Laravel 4 is supported in v2
+
+__[Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
 
 __Contents:__
 
