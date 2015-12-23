@@ -56,15 +56,6 @@ class Node extends Eloquent
     static protected $_softDelete;
 
     /**
-     * Whether the node is being deleted.
-     *
-     * @since 2.0
-     *
-     * @var bool
-     */
-    static protected $deleting;
-
-    /**
      * Pending operation.
      *
      * @var array
@@ -685,14 +676,8 @@ class Node extends Eloquent
      */
     protected function deleteDescendants()
     {
-        if (static::$deleting) return;
-
         $lft = $this->getLft();
         $rgt = $this->getRgt();
-
-        // Make sure that inner nodes are just deleted and don't touch the tree
-        // This makes sense in Laravel 4.2
-        static::$deleting = true;
 
         $query = $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ]);
 
@@ -701,8 +686,6 @@ class Node extends Eloquent
         } else {
             $query->delete();
         }
-
-        static::$deleting = false;
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
