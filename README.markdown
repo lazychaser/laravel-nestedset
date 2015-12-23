@@ -6,9 +6,9 @@
 
 This is a Laravel 4-5 package for working with trees in a database.
 
-*   Laravel 5.2 is supported since v4
-*   Laravel 5.1 is supported in v3
-*   Laravel 4 is supported in v2
+*   **Laravel 5.2** is supported since v4
+*   **Laravel 5.1** is supported in v3
+*   **Laravel 4** is supported in v2
 
 __[Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
 
@@ -279,7 +279,9 @@ To delete a node:
 $node->delete();
 ```
 
-Nodes are required to be deleted as models, **don't** try do delete them using a query like so:
+**IMPORTANT!** Any descendant that node has will also be deleted!
+
+**IMPORTANT!** Nodes are required to be deleted as models, **don't** try do delete them using a query like so:
 
 ```php
 Category::where('id', '=', $id)->delete();
