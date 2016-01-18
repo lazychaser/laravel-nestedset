@@ -27,6 +27,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         Capsule::table('categories')->insert($data);
 
         Category::resetActionsPerformed();
+
+        date_default_timezone_set('America/Denver');
     }
 
     public function tearDown()
