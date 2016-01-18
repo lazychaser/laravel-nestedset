@@ -84,7 +84,7 @@ class QueryBuilder extends Builder {
 
         $key = $this->query->getGrammar()->wrap($keyName);
 
-        if ($id instanceof Node)
+        if (NodeTrait::hasTrait($id))
         {
             $dataSource = '?';
 
@@ -167,7 +167,7 @@ class QueryBuilder extends Builder {
      */
     public function whereDescendantOf($id, $boolean = 'and', $not = false)
     {
-        if ($id instanceof Node)
+        if (NodeTrait::hasTrait($id))
         {
             $data = $id->getBounds();
         }

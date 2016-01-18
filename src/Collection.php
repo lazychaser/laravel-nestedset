@@ -77,7 +77,9 @@ class Collection extends BaseCollection {
      */
     protected function getRootNodeId($root = null)
     {
-        if ($root instanceof Node) return $root->getKey();
+        if (NodeTrait::hasTrait($root)) {
+            return $root->getKey();
+        }
 
         // If root node is not specified we take parent id of node with
         // least lft value as root node id.
