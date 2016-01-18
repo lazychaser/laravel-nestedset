@@ -64,8 +64,8 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $sql = 'select max(error) as errors from ('.implode(' union ', $checks).') _';
 
         $actual = Capsule::connection()->selectOne($sql);
-
-        $this->assertEquals(array('errors' => null), $actual, "The tree structure of $table is broken!");
+        
+        $this->assertEquals(null, $actual->errors, "The tree structure of $table is broken!");
     }
 
     public function dumpTree($items = null)
