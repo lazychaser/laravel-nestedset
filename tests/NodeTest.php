@@ -137,7 +137,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $accepted = array($root->_rgt, $root->_rgt + 1, $root->id);
 
-        $root->append($node);
+        $root->appendNode($node);
 
         $this->assertTrue($node->hasMoved());
         $this->assertEquals($accepted, $this->nodeValues($node));
@@ -150,7 +150,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $root = Category::root();
         $node = new Category([ 'name' => 'test' ]);
-        $root->prepend($node);
+        $root->prependNode($node);
 
         $this->assertTrue($node->hasMoved());
         $this->assertEquals(array($root->_lft + 1, $root->_lft + 2, $root->id), $this->nodeValues($node));
@@ -164,7 +164,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $target = $this->findCategory('apple');
         $node = new Category([ 'name' => 'test' ]);
-        $node->after($target)->save();
+        $node->afterNode($target)->save();
 
         $this->assertTrue($node->hasMoved());
         $this->assertEquals(array($target->_rgt + 1, $target->_rgt + 2, $target->parent->id), $this->nodeValues($node));
@@ -177,7 +177,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $target = $this->findCategory('apple');
         $node = new Category([ 'name' => 'test' ]);
-        $node->before($target)->save();
+        $node->beforeNode($target)->save();
 
         $this->assertTrue($node->hasMoved());
         $this->assertEquals(array($target->_lft, $target->_lft + 1, $target->parent->id), $this->nodeValues($node));
@@ -189,7 +189,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = $this->findCategory('apple');
         $target = $this->findCategory('mobile');
 
-        $target->append($node);
+        $target->appendNode($node);
 
         $this->assertTrue($node->hasMoved());
         $this->assertNodeReceivesValidValues($node);
@@ -201,7 +201,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
         $node = $this->findCategory('samsung');
         $target = $this->findCategory('notebooks');
 
-        $target->append($node);
+        $target->appendNode($node);
 
         $this->assertTrue($node->hasMoved());
         $this->assertTreeNotBroken();
@@ -230,7 +230,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     {
         $node = $this->findCategory('apple');
         $path = $node->ancestors()->lists('name');
-
+        
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
 
