@@ -591,7 +591,7 @@ class Node extends Eloquent {
      */
     public function insertAfterNode(Node $node)
     {
-        return $this->after($node)->save();
+        return $this->afterNode($node)->save();
     }
 
     /**
@@ -615,7 +615,7 @@ class Node extends Eloquent {
      */
     public function insertBeforeNode(Node $node)
     {
-        if ($this->before($node)->save())
+        if ($this->beforeNode($node)->save())
         {
             // We'll' update the target node since it will be moved
             $node->refreshNode();
@@ -637,7 +637,7 @@ class Node extends Eloquent {
     {
         if ($sibling = $this->prevSiblings()->skip($amount - 1)->first())
         {
-            return $this->insertBefore($sibling);
+            return $this->insertBeforeNode($sibling);
         }
 
         return false;
@@ -654,7 +654,7 @@ class Node extends Eloquent {
     {
         if ($sibling = $this->nextSiblings()->skip($amount - 1)->first())
         {
-            return $this->insertAfter($sibling);
+            return $this->insertAfterNode($sibling);
         }
 
         return false;
@@ -825,7 +825,7 @@ class Node extends Eloquent {
 
         $instance = new static($attributes);
 
-        if ($parent) $instance->appendTo($parent);
+        if ($parent) $instance->appendToNode($parent);
 
         $instance->save();
 
@@ -879,7 +879,7 @@ class Node extends Eloquent {
         {
             if ($value)
             {
-                $this->appendTo($this->newQuery()->findOrFail($value));
+                $this->appendToNode($this->newQuery()->findOrFail($value));
             }
             else
             {
