@@ -1,8 +1,11 @@
 <?php
 
-class Category extends Kalnoy\Nestedset\Node {
+use \Illuminate\Database\Eloquent\Model;
+
+class Category extends Model {
 
     use \Illuminate\Database\Eloquent\SoftDeletes;
+    use \Kalnoy\Nestedset\NodeTrait;
 
     protected $fillable = array('name', 'parent_id');
 
