@@ -529,7 +529,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function append(Node $node)
+    public function appendNode(Node $node)
     {
         return $node->appendTo($this)->save();
     }
@@ -541,7 +541,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function prepend(Node $node)
+    public function prependNode(Node $node)
     {
         return $node->prependTo($this)->save();
     }
@@ -553,7 +553,7 @@ class Node extends Eloquent {
      *
      * @return $this
      */
-    public function appendTo(Node $parent)
+    public function appendToNode(Node $parent)
     {
         return $this->setAction('appendTo', $parent);
     }
@@ -565,7 +565,7 @@ class Node extends Eloquent {
      *
      * @return $this
      */
-    public function prependTo(Node $parent)
+    public function prependToNode(Node $parent)
     {
         return $this->setAction('prependTo', $parent);
     }
@@ -577,7 +577,7 @@ class Node extends Eloquent {
      *
      * @return $this
      */
-    public function after(Node $node)
+    public function afterNode(Node $node)
     {
         return $this->setAction('after', $node);
     }
@@ -589,7 +589,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function insertAfter(Node $node)
+    public function insertAfterNode(Node $node)
     {
         return $this->after($node)->save();
     }
@@ -601,7 +601,7 @@ class Node extends Eloquent {
      *
      * @return $this
      */
-    public function before(Node $node)
+    public function beforeNode(Node $node)
     {
         return $this->setAction('before', $node);
     }
@@ -613,7 +613,7 @@ class Node extends Eloquent {
      *
      * @return bool
      */
-    public function insertBefore(Node $node)
+    public function insertBeforeNode(Node $node)
     {
         if ($this->before($node)->save())
         {
