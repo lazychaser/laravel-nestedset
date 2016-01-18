@@ -380,17 +380,17 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testSiblings()
     {
         $node = $this->findCategory('samsung');
-        $siblings = $node->siblings()->lists('id');
-        $next = $node->nextSiblings()->lists('id');
-        $prev = $node->prevSiblings()->lists('id');
+        $siblings = $node->siblings()->lists('id')->toArray();
+        $next = $node->nextSiblings()->lists('id')->toArray();
+        $prev = $node->prevSiblings()->lists('id')->toArray();
 
         $this->assertEquals(array(6, 9, 10), $siblings);
         $this->assertEquals(array(9, 10), $next);
         $this->assertEquals(array(6), $prev);
 
-        $siblings = $node->getSiblings()->lists('id');
-        $next = $node->getNextSiblings()->lists('id');
-        $prev = $node->getPrevSiblings()->lists('id');
+        $siblings = $node->getSiblings()->lists('id')->toArray();
+        $next = $node->getNextSiblings()->lists('id')->toArray();
+        $prev = $node->getPrevSiblings()->lists('id')->toArray();
 
         $this->assertEquals(array(6, 9, 10), $siblings);
         $this->assertEquals(array(9, 10), $next);
@@ -489,11 +489,11 @@ class NodeTest extends PHPUnit_Framework_TestCase {
 
         $child = new Category([ 'name' => 'test' ]);
 
-        $parent->append($child);
+        $parent->appendNode($child);
 
-        $child->append(new Category([ 'name' => 'sub' ]));
+        $child->appendNode(new Category([ 'name' => 'sub' ]));
 
-        $parent->append(new Category([ 'name' => 'test2' ]));
+        $parent->appendNode(new Category([ 'name' => 'test2' ]));
 
         $this->assertTreeNotBroken();
     }
@@ -594,7 +594,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testAncestorsByNode()
     {
         $category = $this->findCategory('apple');
-        $ancestors = Category::whereAncestorOf($category)->lists('id');
+        $ancestors = Category::whereAncestorOf($category)->lists('id')->toArray();
 
         $this->assertEquals([ 1, 2 ], $ancestors);
     }
@@ -602,7 +602,7 @@ class NodeTest extends PHPUnit_Framework_TestCase {
     public function testDescendantsByNode()
     {
         $category = $this->findCategory('notebooks');
-        $res = Category::whereDescendantOf($category)->lists('id');
+        $res = Category::whereDescendantOf($category)->lists('id')->toArray();
 
         $this->assertEquals([ 3, 4 ], $res);
     }
