@@ -4,6 +4,7 @@ namespace Kalnoy\Nestedset;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
+use \Kalnoy\Nestedset\NodeTrait as Node;
 
 class NestedSet {
 
@@ -15,9 +16,9 @@ class NestedSet {
      */
     public static function columns(Blueprint $table, $primaryKey = 'id')
     {
-        $table->unsignedInteger(Node::LFT);
-        $table->unsignedInteger(Node::RGT);
-        $table->unsignedInteger(Node::PARENT_ID)->nullable();
+        $table->unsignedInteger(Node::$lft);
+        $table->unsignedInteger(Node::$rgt);
+        $table->unsignedInteger(Node::$parentId)->nullable();
 
         $table->index(self::getDefaultColumns());
     }
@@ -42,7 +43,7 @@ class NestedSet {
      */
     public static function getDefaultColumns()
     {
-        return [ Node::LFT, Node::RGT, Node::PARENT_ID ];
+        return [ Node::$lft, Node::$rgt, Node::$parentId ];
     }
 
 }
