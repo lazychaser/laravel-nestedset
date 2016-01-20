@@ -28,6 +28,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
         Capsule::table('categories')->insert($data);
 
         Category::resetActionsPerformed();
+
+        date_default_timezone_set('America/Denver');
     }
 
     public function tearDown()
@@ -64,6 +66,9 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $sql = 'select max(error) as errors from ('.implode(' union ', $checks).') _';
 
+        $actual = Capsule::connection()->selectOne($sql);
+
+        $this->assertEquals(null, $actual->errors, "The tree structure of $table is broken!");
         $actual = (array)Capsule::connection()->selectOne($sql);
 
         $this->assertEquals(array('errors' => null), $actual, "The tree structure of $table is broken!");
@@ -380,6 +385,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->findCategory('mobile')->forceDelete();
 
         $this->assertTreeNotBroken();
+
+        $this->dumpTree();
 
         $this->assertNull($this->findCategory('samsung', true));
         $this->assertNull($this->findCategory('sony'));

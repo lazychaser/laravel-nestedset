@@ -2,22 +2,35 @@
 
 namespace Kalnoy\Nestedset;
 
-use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 
-class NestedSet {
+class NestedSet
+{
+    /**
+     * The name of default lft column.
+     */
+    const LFT = '_lft';
+
+    /**
+     * The name of default rgt column.
+     */
+    const RGT = '_rgt';
+
+    /**
+     * The name of default parent id column.
+     */
+    const PARENT_ID = 'parent_id';
 
     /**
      * Add default nested set columns to the table. Also create an index.
      *
      * @param \Illuminate\Database\Schema\Blueprint $table
-     * @param string $primaryKey
      */
-    public static function columns(Blueprint $table, $primaryKey = 'id')
+    public static function columns(Blueprint $table)
     {
-        $table->unsignedInteger(Node::LFT);
-        $table->unsignedInteger(Node::RGT);
-        $table->unsignedInteger(Node::PARENT_ID)->nullable();
+        $table->unsignedInteger(self::LFT);
+        $table->unsignedInteger(self::RGT);
+        $table->unsignedInteger(self::PARENT_ID)->nullable();
 
         $table->index(self::getDefaultColumns());
     }
@@ -37,12 +50,12 @@ class NestedSet {
 
     /**
      * Get a list of default columns.
-     * 
+     *
      * @return array
      */
     public static function getDefaultColumns()
     {
-        return [ Node::LFT, Node::RGT, Node::PARENT_ID ];
+        return [ self::LFT, self::RGT, self::PARENT_ID ];
     }
 
 }

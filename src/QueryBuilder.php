@@ -3,6 +3,7 @@
 namespace Kalnoy\Nestedset;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder as Query;
 use Illuminate\Database\Query\Builder as BaseQueryBuilder;
@@ -12,7 +13,7 @@ use Illuminate\Database\Query\Expression;
 class QueryBuilder extends Builder
 {
     /**
-     * @var Node
+     * @var NodeTrait|Model
      */
     protected $model;
 
@@ -80,7 +81,7 @@ class QueryBuilder extends Builder
     {
         $keyName = $this->model->getKeyName();
 
-        if ($id instanceof Node) {
+        if (NodeTrait::hasTrait($id)) {
             $value = '?';
 
             $this->query->addBinding($id->getLft());
@@ -168,7 +169,7 @@ class QueryBuilder extends Builder
      */
     public function whereDescendantOf($id, $boolean = 'and', $not = false)
     {
-        if ($id instanceof Node) {
+        if (NodeTrait::hasTrait($id)) {
             $data = $id->getBounds();
         } else {
             $data = $this->model->newServiceQuery()
@@ -241,7 +242,7 @@ class QueryBuilder extends Builder
      */
     protected function whereIsBeforeOrAfter($id, $operator, $boolean)
     {
-        if ($id instanceof Node) {
+        if (NodeTrait::hasTrait($id)) {
             $value = '?';
 
             $this->query->addBinding($id->getLft());
@@ -269,7 +270,7 @@ class QueryBuilder extends Builder
      *
      * @since 2.0
      *
-     * @param Node|mixed $id
+     * @param mixed $id
      * @param string $boolean
      *
      * @return $this

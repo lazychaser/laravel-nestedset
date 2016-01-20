@@ -2,7 +2,8 @@
 
 namespace Kalnoy\Nestedset;
 
-use \Illuminate\Database\Eloquent\Collection as BaseCollection;
+use Illuminate\Database\Eloquent\Collection as BaseCollection;
+use Illuminate\Database\Eloquent\Model;
 
 class Collection extends BaseCollection
 {
@@ -19,7 +20,7 @@ class Collection extends BaseCollection
 
         $groupedChildren = $this->groupBy($this->first()->getParentIdName());
 
-        /** @var Node $node */
+        /** @var NodeTrait|Model $node */
         foreach ($this->items as $node) {
             if ( ! isset($node->parent)) {
                 $node->setRelation('parent', null);
@@ -27,7 +28,7 @@ class Collection extends BaseCollection
 
             $children = $groupedChildren->get($node->getKey(), [ ]);
 
-            /** @var Node $child */
+            /** @var Model|NodeTrait $child */
             foreach ($children as $child) {
                 $child->setRelation('parent', $node);
             }
@@ -46,7 +47,7 @@ class Collection extends BaseCollection
      * If `$rootNodeId` is provided, the tree will contain only descendants
      * of the node with such primary key value.
      *
-     * @param int|Node|null $root
+     * @param int|Model|null $root
      *
      * @return Collection
      */
@@ -59,7 +60,7 @@ class Collection extends BaseCollection
 
             $root = $this->getRootNodeId($root);
 
-            /** @var Node $node */
+            /** @var Model|NodeTrait $node */
             foreach ($this->items as $node) {
                 if ($node->getParentId() == $root) $items[] = $node;
             }
@@ -75,14 +76,16 @@ class Collection extends BaseCollection
      */
     protected function getRootNodeId($root = null)
     {
-        if ($root instanceof Node) return $root->getKey();
+        if (NodeTrait::hasTrait($root)) {
+            return $root->getKey();
+        }
 
         // If root node is not specified we take parent id of node with
         // least lft value as root node id.
         if ($root === null) {
             $leastValue = null;
 
-            /** @var Node $node */
+            /** @var Model|NodeTrait $node */
             foreach ($this->items as $node) {
                 if ($leastValue === null || $node->getLft() < $leastValue) {
                     $leastValue = $node->getLft();

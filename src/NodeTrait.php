@@ -3,50 +3,28 @@
 namespace Kalnoy\Nestedset;
 
 use Exception;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use LogicException;
-use Illuminate\Database\Eloquent\Model as Eloquent;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class Node extends Eloquent
+trait NodeTrait
 {
     /**
-     * The name of "lft" column.
+     * Insert direction.
      *
      * @var string
      */
-    const LFT = '_lft';
-
-    /**
-     * The name of "rgt" column.
-     *
-     * @var string
-     */
-    const RGT = '_rgt';
-
-    /**
-     * The name of "parent id" column.
-     *
-     * @var string
-     */
-    const PARENT_ID = 'parent_id';
+    public static $before = 'before';
 
     /**
      * Insert direction.
      *
      * @var string
      */
-    const BEFORE = 'before';
-
-    /**
-     * Insert direction.
-     *
-     * @var string
-     */
-    const AFTER = 'after';
+    public static $after = 'after';
 
     /**
      * Pending operation.
@@ -65,49 +43,39 @@ class Node extends Eloquent
     /**
      * @var \Carbon\Carbon
      */
-    protected static $deletedAt;
+    public static $deletedAt;
 
     /**
      * Keep track of the number of performed operations.
      *
      * @var int
      */
-    protected static $actionsPerformed = 0;
-
-    /**
-     * {@inheritdoc}
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::signOnEvents();
-    }
+    public static $actionsPerformed = 0;
 
     /**
      * Sign on model events.
      */
-    protected static function signOnEvents()
+    public static function bootNodeTrait()
     {
-        static::saving(function (Node $model) {
+        static::saving(function (self $model) {
             return $model->callPendingAction();
         });
 
-        static::deleting(function (Node $model) {
+        static::deleting(function (self $model) {
             // We will need fresh data to delete node safely
             $model->refreshNode();
         });
 
-        static::deleted(function (Node $model) {
+        static::deleted(function (self $model) {
             $model->deleteDescendants();
         });
 
         if (static::usesSoftDelete()) {
-            static::restoring(function (Node $model) {
+            static::restoring(function (self $model) {
                 static::$deletedAt = $model->{$model->getDeletedAtColumn()};
             });
 
-            static::restored(function (Node $model) {
+            static::restored(function (self $model) {
                 $model->restoreDescendants(static::$deletedAt);
             });
         }
@@ -230,12 +198,12 @@ class Node extends Eloquent
     /**
      * Append or prepend a node to the parent.
      *
-     * @param Node $parent
+     * @param self $parent
      * @param bool $prepend
      *
      * @return bool
      */
-    protected function actionAppendOrPrepend(Node $parent, $prepend = false)
+    protected function actionAppendOrPrepend(self $parent, $prepend = false)
     {
         $parent->refreshNode();
 
@@ -251,7 +219,7 @@ class Node extends Eloquent
     /**
      * Apply parent model.
      *
-     * @param Node|null $value
+     * @param Model|null $value
      */
     protected function setParent($value)
     {
@@ -263,12 +231,12 @@ class Node extends Eloquent
     /**
      * Insert node before or after another node.
      *
-     * @param Node $node
+     * @param self $node
      * @param bool $after
      *
      * @return bool
      */
-    protected function actionBeforeOrAfter(Node $node, $after = false)
+    protected function actionBeforeOrAfter(self $node, $after = false)
     {
         $node->refreshNode();
 
@@ -293,9 +261,9 @@ class Node extends Eloquent
      *
      * @param array $columns
      *
-     * @return Node
+     * @return self
      */
-    static public function root(array $columns = array( '*' ))
+    static public function root(array $columns = ['*'])
     {
         return static::whereIsRoot()->first($columns);
     }
@@ -333,19 +301,20 @@ class Node extends Eloquent
     /**
      * Get query for siblings of the node.
      *
-     * @param self ::AFTER|self::BEFORE|null $dir
+     * @param static::$after|static::$before|null $dir
      *
      * @return QueryBuilder
      */
     public function siblings($dir = null)
     {
-        switch ($dir) {
-            case self::AFTER:
+        switch ($dir)
+        {
+            case static::$after:
                 $query = $this->nextNodes();
 
                 break;
 
-            case self::BEFORE:
+            case static::$before:
                 $query = $this->prevNodes();
 
                 break;
@@ -370,7 +339,7 @@ class Node extends Eloquent
      */
     public function nextSiblings()
     {
-        return $this->siblings(self::AFTER);
+        return $this->siblings(static::$after);
     }
 
     /**
@@ -380,7 +349,7 @@ class Node extends Eloquent
      */
     public function prevSiblings()
     {
-        return $this->siblings(self::BEFORE);
+        return $this->siblings(static::$before);
     }
 
     /**
@@ -442,35 +411,35 @@ class Node extends Eloquent
     /**
      * Append and save a node.
      *
-     * @param Node $node
+     * @param self $node
      *
      * @return bool
      */
-    public function appendNode(Node $node)
+    public function appendNode(self $node)
     {
-        return $node->appendTo($this)->save();
+        return $node->appendToNode($this)->save();
     }
 
     /**
      * Prepend and save a node.
      *
-     * @param Node $node
+     * @param self $node
      *
      * @return bool
      */
-    public function prependNode(Node $node)
+    public function prependNode(self $node)
     {
-        return $node->prependTo($this)->save();
+        return $node->prependToNode($this)->save();
     }
 
     /**
      * Append a node to the new parent.
      *
-     * @param Node $parent
+     * @param self $parent
      *
      * @return $this
      */
-    public function appendTo(Node $parent)
+    public function appendToNode(self $parent)
     {
         return $this->appendOrPrependTo($parent);
     }
@@ -478,22 +447,22 @@ class Node extends Eloquent
     /**
      * Prepend a node to the new parent.
      *
-     * @param Node $parent
+     * @param self $parent
      *
      * @return $this
      */
-    public function prependTo(Node $parent)
+    public function prependToNode(self $parent)
     {
         return $this->appendOrPrependTo($parent, true);
     }
 
     /**
-     * @param Node $parent
+     * @param self $parent
      * @param bool $prepend
      *
-     * @return Node
+     * @return self
      */
-    public function appendOrPrependTo(Node $parent, $prepend = false)
+    public function appendOrPrependTo(self $parent, $prepend = false)
     {
         if ( ! $parent->exists) {
             throw new LogicException('Cannot use non-existing node as a parent.');
@@ -507,11 +476,11 @@ class Node extends Eloquent
     /**
      * Insert self after a node.
      *
-     * @param Node $node
+     * @param self $node
      *
      * @return $this
      */
-    public function afterNode(Node $node)
+    public function afterNode(self $node)
     {
         return $this->beforeOrAfterNode($node, true);
     }
@@ -519,22 +488,22 @@ class Node extends Eloquent
     /**
      * Insert self before node.
      *
-     * @param Node $node
+     * @param self $node
      *
      * @return $this
      */
-    public function beforeNode(Node $node)
+    public function beforeNode(self $node)
     {
         return $this->beforeOrAfterNode($node);
     }
 
     /**
-     * @param Node $node
+     * @param self $node
      * @param bool $after
      *
-     * @return Node
+     * @return self
      */
-    public function beforeOrAfterNode(Node $node, $after = false)
+    public function beforeOrAfterNode(self $node, $after = false)
     {
         if ( ! $node->exists) {
             throw new LogicException('Cannot insert before/after a node that does not exists.');
@@ -550,11 +519,11 @@ class Node extends Eloquent
     /**
      * Insert self after a node and save.
      *
-     * @param Node $node
+     * @param self $node
      *
      * @return bool
      */
-    public function insertAfter(Node $node)
+    public function insertAfterNode(self $node)
     {
         return $this->afterNode($node)->save();
     }
@@ -562,11 +531,11 @@ class Node extends Eloquent
     /**
      * Insert self before a node and save.
      *
-     * @param Node $node
+     * @param self $node
      *
      * @return bool
      */
-    public function insertBefore(Node $node)
+    public function insertBeforeNode(self $node)
     {
         if ( ! $this->beforeNode($node)->save()) return false;
 
@@ -586,7 +555,7 @@ class Node extends Eloquent
     public function up($amount = 1)
     {
         if ($sibling = $this->prevSiblings()->skip($amount - 1)->first()) {
-            return $this->insertBefore($sibling);
+            return $this->insertBeforeNode($sibling);
         }
 
         return false;
@@ -602,7 +571,7 @@ class Node extends Eloquent
     public function down($amount = 1)
     {
         if ($sibling = $this->nextSiblings()->skip($amount - 1)->first()) {
-            return $this->insertAfter($sibling);
+            return $this->insertAfterNode($sibling);
         }
 
         return false;
@@ -674,16 +643,11 @@ class Node extends Eloquent
         $lft = $this->getLft();
         $rgt = $this->getRgt();
 
-        /** @var QueryBuilder $query */
-        $query = $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ]);
+        $method = $this->usesSoftDelete() && $this->forceDeleting
+            ? 'forceDelete'
+            : 'delete';
 
-        // Remove soft deleting scope when user forced delete so that descendants
-        // are also deleted physically
-        if ($this->usesSoftDelete() && $this->forceDeleting) {
-            $query->withoutGlobalScope(SoftDeletingScope::class);
-        }
-
-        $query->applyScopes()->delete();
+        $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ])->{$method}();
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
@@ -746,7 +710,7 @@ class Node extends Eloquent
      */
     public function newFromBuilder($attributes = array(), $connection = null)
     {
-        /** @var Node $instance */
+        /** @var self $instance */
         $instance = parent::newFromBuilder($attributes, $connection);
 
         $instance->clearAction();
@@ -759,15 +723,15 @@ class Node extends Eloquent
      *
      * Use `children` key on `$attributes` to create child nodes.
      *
-     * @param Node $parent
+     * @param self $parent
      */
-    public static function create(array $attributes = [], Node $parent = null)
+    public static function create(array $attributes = [], self $parent = null)
     {
         $children = array_pull($attributes, 'children');
 
         $instance = new static($attributes);
 
-        if ($parent) $instance->appendTo($parent);
+        if ($parent) $instance->appendToNode($parent);
 
         $instance->save();
 
@@ -819,7 +783,7 @@ class Node extends Eloquent
         if ($this->getParentId() == $value) return;
 
         if ($value) {
-            $this->appendTo($this->newQuery()->findOrFail($value));
+            $this->appendToNode($this->newQuery()->findOrFail($value));
         } else {
             $this->makeRoot();
         }
@@ -842,7 +806,7 @@ class Node extends Eloquent
      */
     public function getLftName()
     {
-        return static::LFT;
+        return NestedSet::LFT;
     }
 
     /**
@@ -852,7 +816,7 @@ class Node extends Eloquent
      */
     public function getRgtName()
     {
-        return static::RGT;
+        return NestedSet::RGT;
     }
 
     /**
@@ -862,7 +826,7 @@ class Node extends Eloquent
      */
     public function getParentIdName()
     {
-        return static::PARENT_ID;
+        return NestedSet::PARENT_ID;
     }
 
     /**
@@ -904,7 +868,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Node
+     * @return self
      */
     public function getNext(array $columns = array( '*' ))
     {
@@ -916,7 +880,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Node
+     * @return self
      */
     public function getPrev(array $columns = array( '*' ))
     {
@@ -942,7 +906,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Collection|Node[]
+     * @return Collection|self[]
      */
     public function getDescendants(array $columns = array( '*' ))
     {
@@ -956,7 +920,7 @@ class Node extends Eloquent
      *
      * @param array $columns
      *
-     * @return Collection|Node[]
+     * @return Collection|self[]
      */
     public function getSiblings(array $columns = array( '*' ))
     {
@@ -968,7 +932,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Collection|Node[]
+     * @return Collection|self[]
      */
     public function getNextSiblings(array $columns = array( '*' ))
     {
@@ -980,7 +944,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Collection|Node[]
+     * @return Collection|self[]
      */
     public function getPrevSiblings(array $columns = array( '*' ))
     {
@@ -992,7 +956,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Node
+     * @return self
      */
     public function getNextSibling(array $columns = array( '*' ))
     {
@@ -1004,7 +968,7 @@ class Node extends Eloquent
      *
      * @param  array $columns
      *
-     * @return Node
+     * @return self
      */
     public function getPrevSibling(array $columns = array( '*' ))
     {
@@ -1014,11 +978,11 @@ class Node extends Eloquent
     /**
      * Get whether a node is a descendant of other node.
      *
-     * @param Node $other
+     * @param self $other
      *
      * @return bool
      */
-    public function isDescendantOf(Node $other)
+    public function isDescendantOf(self $other)
     {
         return $this->getLft() > $other->getLft() && $this->getLft() < $other->getRgt();
     }
@@ -1026,11 +990,11 @@ class Node extends Eloquent
     /**
      * Get whether the node is immediate children of other node.
      *
-     * @param Node $other
+     * @param self $other
      *
      * @return bool
      */
-    public function isChildOf(Node $other)
+    public function isChildOf(self $other)
     {
         return $this->getParentId() == $other->getKey();
     }
@@ -1038,11 +1002,11 @@ class Node extends Eloquent
     /**
      * Get whether the node is a sibling of another node.
      *
-     * @param Node $other
+     * @param self $other
      *
      * @return bool
      */
-    public function isSiblingOf(Node $other)
+    public function isSiblingOf(self $other)
     {
         return $this->getParentId() == $other->getParentId();
     }
@@ -1050,11 +1014,11 @@ class Node extends Eloquent
     /**
      * Get whether the node is an ancestor of other node, including immediate parent.
      *
-     * @param Node $other
+     * @param self $other
      *
      * @return bool
      */
-    public function isAncestorOf(Node $other)
+    public function isAncestorOf(self $other)
     {
         return $other->isDescendantOf($this);
     }
@@ -1139,6 +1103,18 @@ class Node extends Eloquent
     }
 
     /**
+     * Replaces instanceof calls for this trait.
+     *
+     * @param mixed
+     *
+     * @return bool
+     */
+    public static function hasTrait($node)
+    {
+        return is_object($node) && in_array(self::class, (array)$node) === true;
+    }
+
+    /**
      * @param $value
      */
     public function setLft($value)
@@ -1193,7 +1169,7 @@ class Node extends Eloquent
     protected static function reorderNodes(Collection $models, &$fixed,
                                            $parentId = null, $cut = 1
     ) {
-        /** @var Node $model */
+        /** @var Model|self $model */
         foreach ($models->get($parentId, [ ]) as $model) {
             $model->setLft($cut);
 
