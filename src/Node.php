@@ -674,16 +674,11 @@ class Node extends Eloquent
         $lft = $this->getLft();
         $rgt = $this->getRgt();
 
-        /** @var QueryBuilder $query */
-        $query = $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ]);
+        $method = $this->usesSoftDelete() && $this->forceDeleting
+            ? 'forceDelete'
+            : 'delete';
 
-        // Remove soft deleting scope when user forced delete so that descendants
-        // are also deleted physically
-        if ($this->usesSoftDelete() && $this->forceDeleting) {
-            $query->withoutGlobalScope(SoftDeletingScope::class);
-        }
-
-        $query->applyScopes()->delete();
+        $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ])->{$method}();
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
