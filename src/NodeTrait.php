@@ -31,7 +31,7 @@ trait NodeTrait
      *
      * @var array
      */
-    protected $pending = [ 'root' ];
+    protected $pending;
 
     /**
      * Whether the node has moved since last save.
@@ -120,14 +120,6 @@ trait NodeTrait
     }
 
     /**
-     * Clear pending action.
-     */
-    protected function clearAction()
-    {
-        $this->pending = null;
-    }
-
-    /**
      * Call pending action.
      *
      * @return null|false
@@ -135,6 +127,10 @@ trait NodeTrait
     protected function callPendingAction()
     {
         $this->moved = false;
+
+        if ( ! $this->pending && ! $this->exists) {
+            $this->makeRoot();
+        }
 
         if ( ! $this->pending) return;
 
@@ -703,19 +699,6 @@ trait NodeTrait
     public function newCollection(array $models = array())
     {
         return new Collection($models);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function newFromBuilder($attributes = array(), $connection = null)
-    {
-        /** @var self $instance */
-        $instance = parent::newFromBuilder($attributes, $connection);
-
-        $instance->clearAction();
-
-        return $instance;
     }
 
     /**
