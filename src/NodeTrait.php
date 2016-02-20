@@ -13,20 +13,6 @@ use LogicException;
 trait NodeTrait
 {
     /**
-     * Insert direction.
-     *
-     * @var string
-     */
-    public static $before = 'before';
-
-    /**
-     * Insert direction.
-     *
-     * @var string
-     */
-    public static $after = 'after';
-
-    /**
      * Pending operation.
      *
      * @var array
@@ -297,7 +283,7 @@ trait NodeTrait
     /**
      * Get query for siblings of the node.
      *
-     * @param static::$after|static::$before|null $dir
+     * @param mixed $dir
      *
      * @return QueryBuilder
      */
@@ -305,12 +291,12 @@ trait NodeTrait
     {
         switch ($dir)
         {
-            case static::$after:
+            case NestedSet::AFTER:
                 $query = $this->nextNodes();
 
                 break;
 
-            case static::$before:
+            case NestedSet::BEFORE:
                 $query = $this->prevNodes();
 
                 break;
@@ -335,7 +321,7 @@ trait NodeTrait
      */
     public function nextSiblings()
     {
-        return $this->siblings(static::$after);
+        return $this->siblings(NestedSet::AFTER);
     }
 
     /**
@@ -345,7 +331,7 @@ trait NodeTrait
      */
     public function prevSiblings()
     {
-        return $this->siblings(static::$before);
+        return $this->siblings(NestedSet::BEFORE);
     }
 
     /**

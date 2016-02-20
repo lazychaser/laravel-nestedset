@@ -22,6 +22,16 @@ class NestedSet
     const PARENT_ID = 'parent_id';
 
     /**
+     * Insert direction.
+     */
+    const BEFORE = 1;
+
+    /**
+     * Insert direction.
+     */
+    const AFTER = 2;
+
+    /**
      * Add default nested set columns to the table. Also create an index.
      *
      * @param \Illuminate\Database\Schema\Blueprint $table
