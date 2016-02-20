@@ -309,7 +309,13 @@ trait NodeTrait
                 break;
         }
 
-        $query->where($this->getParentIdName(), '=', $this->getParentId());
+        $parentId = $this->getParentId();
+
+        if (is_null($parentId)) {
+            $query->whereNull($this->getParentId());
+        } else {
+            $query->where($this->getParentIdName(), '=', $parentId);
+        }
 
         return $query;
     }
