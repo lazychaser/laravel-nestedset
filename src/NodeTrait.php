@@ -1113,65 +1113,6 @@ trait NodeTrait
         $this->setAttribute($this->getRgtName(), $value);
     }
 
-    /**
-     * Fixes the tree based on parentage info.
-     *
-     * Requires at least one root node. This will not update nodes with invalid parent.
-     *
-     * @return int The number of fixed nodes.
-     */
-    public static function fixTree()
-    {
-        $model = new static;
-
-        $columns = [
-            $model->getKeyName(),
-            $model->getParentIdName(),
-            $model->getLftName(),
-            $model->getRgtName(),
-        ];
-
-        $nodes = $model->newQuery()
-                       ->defaultOrder()
-                       ->get($columns)
-                       ->groupBy($model->getParentIdName());
-
-        self::reorderNodes($nodes, $fixed);
-
-        return $fixed;
-    }
-
-    /**
-     * @param Collection $models
-     * @param int $fixed
-     * @param $parentId
-     * @param int $cut
-     *
-     * @return int
-     */
-    protected static function reorderNodes(Collection $models, &$fixed,
-                                           $parentId = null, $cut = 1
-    ) {
-        /** @var Model|self $model */
-        foreach ($models->get($parentId, [ ]) as $model) {
-            $model->setLft($cut);
-
-            $cut = self::reorderNodes($models, $fixed, $model->getKey(), $cut + 1);
-
-            $model->setRgt($cut);
-
-            if ($model->isDirty()) {
-                $model->save();
-
-                $fixed++;
-            }
-
-            ++$cut;
-        }
-
-        return $cut;
-    }
-
 //    public static function rebuildTree(array $nodes, $createNodes = true, $deleteNodes = false)
 //    {
 //        $model = new static;

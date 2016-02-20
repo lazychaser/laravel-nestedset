@@ -29,10 +29,12 @@ class QueryBuilder extends Builder
      */
     public function getNodeData($id, $required = false)
     {
-        $this->query->where($this->model->getKeyName(), '=', $id);
+        $query = $this->toBase();
 
-        $data = $this->query->first([ $this->model->getLftName(),
-                                      $this->model->getRgtName() ]);
+        $query->where($this->model->getKeyName(), '=', $id);
+
+        $data = $query->first([ $this->model->getLftName(),
+                                $this->model->getRgtName() ]);
 
         if ( ! $data && $required) {
             throw new ModelNotFoundException;
@@ -88,11 +90,13 @@ class QueryBuilder extends Builder
 
             $id = $id->getKey();
         } else {
-            $valueQuery = $this->model->newQuery()->getQuery()
-                                      ->select("_.".$this->model->getLftName())
-                                      ->from($this->model->getTable().' as _')
-                                      ->where($keyName, '=', $id)
-                                      ->limit(1);
+            $valueQuery = $this->model
+                ->newQuery()
+                ->toBase()
+                ->select("_.".$this->model->getLftName())
+                ->from($this->model->getTable().' as _')
+                ->where($keyName, '=', $id)
+                ->limit(1);
 
             $this->query->mergeBindings($valueQuery);
 
@@ -247,11 +251,12 @@ class QueryBuilder extends Builder
 
             $this->query->addBinding($id->getLft());
         } else {
-            $valueQuery = $this->model->newQuery()
-                                      ->getQuery()
-                                      ->select('_n.'.$this->model->getLftName())
-                                      ->from($this->model->getTable().' as _n')
-                                      ->where('_n.'.$this->model->getKeyName(), '=', $id);
+            $valueQuery = $this->model
+                ->newQuery()
+                ->toBase()
+                ->select('_n.'.$this->model->getLftName())
+                ->from($this->model->getTable().' as _n')
+                ->where('_n.'.$this->model->getKeyName(), '=', $id);
 
             $this->query->mergeBindings($valueQuery);
 
@@ -306,16 +311,18 @@ class QueryBuilder extends Builder
     {
         if ($this->query->columns === null) $this->query->columns = [ '*' ];
 
-        $this->query->selectSub(function (BaseQueryBuilder $q) {
-            $table = $this->wrappedTable();
+        $table = $this->wrappedTable();
 
-            list($lft, $rgt) = $this->wrappedColumns();
+        list($lft, $rgt) = $this->wrappedColumns();
 
-            $q
-                ->selectRaw('count(1) - 1')
-                ->from($this->model->getTable().' as _d')
-                ->whereRaw("{$table}.{$lft} between _d.{$lft} and _d.{$rgt}");
-        }, $as);
+        $query = $this->model
+            ->newQuery()
+            ->toBase()
+            ->selectRaw('count(1) - 1')
+            ->from($this->model->getTable().' as _d')
+            ->whereRaw("{$table}.{$lft} between _d.{$lft} and _d.{$rgt}");
+
+        $this->query->selectSub($query, $as);
 
         return $this;
     }
@@ -331,11 +338,10 @@ class QueryBuilder extends Builder
     {
         $grammar = $this->query->getGrammar();
 
-        return
-            [
-                $grammar->wrap($this->model->getLftName()),
-                $grammar->wrap($this->model->getRgtName()),
-            ];
+        return [
+            $grammar->wrap($this->model->getLftName()),
+            $grammar->wrap($this->model->getRgtName()),
+        ];
     }
 
     /**
@@ -460,15 +466,21 @@ class QueryBuilder extends Builder
         $distance = $to - $from + 1 - $height;
 
         // If no distance to travel, just return
-        if ($distance === 0) return 0;
+        if ($distance === 0) {
+            return 0;
+        }
 
-        if ($position > $lft) $height *= -1; else $distance *= -1;
+        if ($position > $lft) {
+            $height *= -1;
+        } else {
+            $distance *= -1;
+        }
 
         $params = compact('lft', 'rgt', 'from', 'to', 'height', 'distance');
 
         $boundary = [ $from, $to ];
 
-        $query = $this->query->where(function (Query $inner) use ($boundary) {
+        $query = $this->toBase()->where(function (Query $inner) use ($boundary) {
             $inner->whereBetween($this->model->getLftName(), $boundary);
             $inner->orWhereBetween($this->model->getRgtName(), $boundary);
         });
@@ -490,12 +502,12 @@ class QueryBuilder extends Builder
     {
         $params = compact('cut', 'height');
 
-        $this->query->whereNested(function (Query $inner) use ($cut) {
+        $query = $this->toBase()->whereNested(function (Query $inner) use ($cut) {
             $inner->where($this->model->getLftName(), '>=', $cut);
             $inner->orWhere($this->model->getRgtName(), '>=', $cut);
         });
 
-        return $this->query->update($this->patch($params));
+        return $query->update($this->patch($params));
     }
 
     /**
@@ -511,7 +523,7 @@ class QueryBuilder extends Builder
     {
         $grammar = $this->query->getGrammar();
 
-        $columns = array();
+        $columns = [];
 
         foreach ([ $this->model->getLftName(), $this->model->getRgtName() ] as $col) {
             $columns[$col] = $this->columnPatch($grammar->wrap($col), $params);
@@ -564,31 +576,149 @@ class QueryBuilder extends Builder
      */
     public function countErrors()
     {
-        $table = $this->wrappedTable();
-        list($lft, $rgt) = $this->wrappedColumns();
-
-        $checks = array();
+        $checks = [];
 
         // Check if lft and rgt values are ok
-        $checks['oddness'] = "from {$table} where {$lft} >= {$rgt} or ({$rgt} - {$lft}) % 2 = 0";
+        $checks['oddness'] = $this->getOdnessQuery();
 
         // Check if lft and rgt values are unique
-        $checks['duplicates'] = "from {$table} c1, {$table} c2 where c1.id <> c2.id and ".
-            "(c1.{$lft}=c2.{$lft} or c1.{$rgt}=c2.{$rgt} or c1.{$lft}=c2.{$rgt} or c1.{$rgt}=c2.{$lft})";
+        $checks['duplicates'] = $this->getDuplicatesQuery();
 
         // Check if parent_id is set correctly
-        $checks['wrong_parent'] =
-            "from {$table} c, {$table} p, $table m ".
-            "where c.parent_id=p.id and m.id <> p.id and m.id <> c.id and ".
-            "(c.{$lft} not between p.{$lft} and p.{$rgt} or c.{$lft} between m.{$lft} and m.{$rgt} and m.{$lft} between p.{$lft} and p.{$rgt})";
+        $checks['wrong_parent'] = $this->getWrongParentQuery();
 
-        $query = $this->query->newQuery();
+        $query = $this->toBase();
 
-        foreach ($checks as $key => $check) {
-            $query->addSelect(new Expression('(select count(1) '.$check.') as '.$key));
+        foreach ($checks as $key => $inner) {
+            $inner->selectRaw('count(1)');
+
+            $query->selectSub($inner, $key);
         }
 
         return (array)$query->first();
     }
 
+    /**
+     * @return BaseQueryBuilder
+     */
+    protected function getOdnessQuery()
+    {
+        return $this->model
+            ->newServiceQuery()
+            ->toBase()
+            ->whereNested(function (BaseQueryBuilder $inner) {
+                list($lft, $rgt) = $this->wrappedColumns();
+
+                $inner->whereRaw("{$lft} >= {$rgt}")
+                      ->orWhereRaw("({$rgt} - {$lft}) % 2 = 0");
+            });
+    }
+
+    /**
+     * @return BaseQueryBuilder
+     */
+    protected function getDuplicatesQuery()
+    {
+        $table = $this->wrappedTable();
+
+        return $this->model
+            ->newServiceQuery()
+            ->toBase()
+            ->from($this->query->raw("{$table} c1, {$table} c2"))
+            ->whereRaw("c1.id <> c2.id")
+            ->whereNested(function (BaseQueryBuilder $inner) {
+                list($lft, $rgt) = $this->wrappedColumns();
+
+                $inner->orWhereRaw("c1.{$lft}=c2.{$lft}")
+                      ->orWhereRaw("c1.{$rgt}=c2.{$rgt}")
+                      ->orWhereRaw("c1.{$lft}=c2.{$rgt}")
+                      ->orWhereRaw("c1.{$rgt}=c2.{$lft}");
+            });
+    }
+
+    /**
+     * @return BaseQueryBuilder
+     */
+    protected function getWrongParentQuery()
+    {
+        $table = $this->wrappedTable();
+        $keyName = $this->wrappedKey();
+        $parentIdName = $this->query->raw($this->model->getParentIdName());
+
+        return $this->model
+            ->newServiceQuery()
+            ->toBase()
+            ->from($this->query->raw("{$table} c, {$table} p, $table m"))
+            ->whereRaw("c.{$parentIdName}=p.{$keyName}")
+            ->whereRaw("m.{$keyName} <> p.{$keyName}")
+            ->whereRaw("m.{$keyName} <> c.{$keyName}")
+            ->whereNested(function (BaseQueryBuilder $inner) {
+                list($lft, $rgt) = $this->wrappedColumns();
+
+                $inner->whereRaw("c.{$lft} not between p.{$lft} and p.{$rgt}")
+                      ->orWhereRaw("c.{$lft} between m.{$lft} and m.{$rgt}")
+                      ->whereRaw("m.{$lft} between p.{$lft} and p.{$rgt}");
+            });
+
+    }
+
+    /**
+     * Fixes the tree based on parentage info.
+     *
+     * Requires at least one root node. This will not update nodes with invalid parent.
+     *
+     * @return int The number of fixed nodes.
+     */
+    public function fixTree()
+    {
+        $columns = [
+            $this->model->getKeyName(),
+            $this->model->getParentIdName(),
+            $this->model->getLftName(),
+            $this->model->getRgtName(),
+        ];
+
+        $nodes = $this->model
+                      ->newQuery()
+                      ->defaultOrder()
+                      ->get($columns)
+                      ->groupBy($this->model->getParentIdName());
+
+        $fixed = 0;
+
+        self::reorderNodes($nodes, $fixed);
+
+        return $fixed;
+    }
+
+    /**
+     * @param Collection $models
+     * @param int $fixed
+     * @param $parentId
+     * @param int $cut
+     *
+     * @return int
+     */
+    protected static function reorderNodes(Collection $models, &$fixed,
+                                           $parentId = null, $cut = 1
+    ) {
+        /** @var Model|self $model */
+        foreach ($models->get($parentId, [ ]) as $model) {
+            $model->setLft($cut);
+
+            $cut = self::reorderNodes($models, $fixed, $model->getKey(), $cut + 1);
+
+            $model->setRgt($cut);
+
+            if ($model->isDirty()) {
+                $model->save();
+
+                $fixed++;
+            }
+
+            ++$cut;
+        }
+
+        return $cut;
+    }
 }
