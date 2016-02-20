@@ -1,3 +1,11 @@
+### Upgrading from 4.0 to 4.1
+
+Nested sets feature has been moved to trait `Kalnoy\Nesetedset\NodeTrait`, but
+old `Kalnoy\Nesetedset\Node` class is still available.
+
+Some methods on trait were renamed (see changelog), but still available on legacy
+node class.
+
 ### Upgrading to 3.0
 
 Some methods were renamed, see changelog for more details.

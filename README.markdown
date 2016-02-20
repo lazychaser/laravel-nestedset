@@ -70,8 +70,7 @@ If model is successfully saved it doesn't mean that node has moved. If your appl
 depends on whether the node has actually changed its position, use `hasMoved` method:
 
 ```php
-if ($node->save())
-{
+if ($node->save()) {
     $moved = $node->hasMoved();
 }
 ```
@@ -108,7 +107,7 @@ There are few ways to append a node:
 
 ```php
 // #1 Using deferred insert
-$node->appendTo($parent)->save();
+$node->appendToNode($parent)->save();
 
 // #2 Using parent node
 $parent->appendNode($node);
@@ -131,7 +130,7 @@ And only a couple ways to prepend:
 
 ```php
 // #1
-$node->prependTo($parent)->save();
+$node->prependToNode($parent)->save();
 
 // #2
 $parent->prependNode($node);
@@ -150,8 +149,8 @@ $node->afterNode($neighbor)->save();
 $node->beforeNode($neighbor)->save();
 
 # Implicit save
-$node->insertAfter($neighbor);
-$node->insertBefore($neighbor);
+$node->insertAfterNode($neighbor);
+$node->insertBeforeNode($neighbor);
 ```
 
 #### Shifting a node
@@ -461,8 +460,7 @@ composer require kalnoy/nestedset
 You can use a method to add needed columns with default names:
 
 ```php
-Schema::create('table', function (Blueprint $table)
-{
+Schema::create('table', function (Blueprint $table) {
     ...
     NestedSet::columns($table);
 });
@@ -471,8 +469,7 @@ Schema::create('table', function (Blueprint $table)
 To drop columns:
 
 ```php
-Schema::table('table', function (Blueprint $table)
-{
+Schema::table('table', function (Blueprint $table) {
     NestedSet::dropColumns($table);
 });
 ```
@@ -489,11 +486,13 @@ $table->index([ '_lft', '_rgt', 'parent_id' ]);
 
 ### The model
 
-Your model is now extended from `Kalnoy\Nestedset\Node` class, not `Eloquent`:
+Your model should use `Kalnoy\Nesetedset\NodeTrait` trait to enable nested sets:
 
 ```php
-class Foo extends Kalnoy\Nestedset\Node {
-    
+use Kalnoy\Nesetedset\NodeTrait;
+
+class Foo extends Model {
+    use NodeTrait;
 }
 ```
 

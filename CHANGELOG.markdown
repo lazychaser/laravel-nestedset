@@ -1,3 +1,12 @@
+### 4.1.0
+
+*   Converted to trait
+*   Methods were renamed:
+    -   `appendTo` to `appendToNode`
+    -   `prependTo` to `prependToNode`
+    -   `insertBefore` to `insertBeforeNode`
+    -   `insertAfter` to `insertAfterNode`
+
 ### 3.1.1
 
 *   Fixed #42: model becomes dirty before save when parent is changed and using `appendTo`, 
