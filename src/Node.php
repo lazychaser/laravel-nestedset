@@ -18,6 +18,54 @@ class Node extends Model
     const PARENT_ID = NestedSet::PARENT_ID;
 
     /**
+     * @param Node $parent
+     *
+     * @return $this
+     * 
+     * @deprecated since 4.1
+     */
+    public function appendTo(self $parent)
+    {
+        return $this->appendToNode($parent);
+    }
+
+    /**
+     * @param Node $parent
+     *
+     * @return $this
+     *
+     * @deprecated since 4.1
+     */
+    public function prependTo(self $parent)
+    {
+        return $this->prependToNode($parent);
+    }
+
+    /**
+     * @param Node $node
+     *
+     * @return bool
+     *
+     * @deprecated since 4.1
+     */
+    public function insertBefore(self $node)
+    {
+        return $this->insertBeforeNode($node);
+    }
+
+    /**
+     * @param Node $node
+     *
+     * @return bool
+     *
+     * @deprecated since 4.1
+     */
+    public function insertAfter(self $node)
+    {
+        return $this->insertAfterNode($node);
+    }
+
+    /**
      * @return string
      */
     public function getParentIdName()
