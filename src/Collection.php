@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Collection extends BaseCollection
 {
     /**
-     * Fill `parent` and `children` relationships for every node in collection.
+     * Fill `parent` and `children` relationships for every node in the collection.
      *
      * This will overwrite any previously set relations.
      *
@@ -18,15 +18,15 @@ class Collection extends BaseCollection
     {
         if ($this->isEmpty()) return $this;
 
-        $groupedChildren = $this->groupBy($this->first()->getParentIdName());
+        $groupedNodes = $this->groupBy($this->first()->getParentIdName());
 
         /** @var NodeTrait|Model $node */
         foreach ($this->items as $node) {
-            if ( ! isset($node->parent)) {
+            if ( ! $node->getParentId()) {
                 $node->setRelation('parent', null);
             }
 
-            $children = $groupedChildren->get($node->getKey(), [ ]);
+            $children = $groupedNodes->get($node->getKey(), [ ]);
 
             /** @var Model|NodeTrait $child */
             foreach ($children as $child) {
@@ -40,12 +40,11 @@ class Collection extends BaseCollection
     }
 
     /**
-     * Build tree from node list. Each item will have set children relation.
+     * Build a tree from a list of nodes. Each item will have set children relation.
      *
      * To successfully build tree "id", "_lft" and "parent_id" keys must present.
      *
-     * If `$rootNodeId` is provided, the tree will contain only descendants
-     * of the node with such primary key value.
+     * If `$root` is provided, the tree will contain only descendants of that node.
      *
      * @param int|Model|null $root
      *
@@ -53,16 +52,20 @@ class Collection extends BaseCollection
      */
     public function toTree($root = null)
     {
+        if ($this->isEmpty()) {
+            return new static;
+        }
+
+        $this->linkNodes();
+
         $items = [ ];
 
-        if ( ! $this->isEmpty()) {
-            $this->linkNodes();
+        $root = $this->getRootNodeId($root);
 
-            $root = $this->getRootNodeId($root);
-
-            /** @var Model|NodeTrait $node */
-            foreach ($this->items as $node) {
-                if ($node->getParentId() == $root) $items[] = $node;
+        /** @var Model|NodeTrait $node */
+        foreach ($this->items as $node) {
+            if ($node->getParentId() == $root) {
+                $items[] = $node;
             }
         }
 
@@ -76,21 +79,23 @@ class Collection extends BaseCollection
      */
     protected function getRootNodeId($root = null)
     {
-        if (NodeTrait::hasTrait($root)) {
+        if (NestedSet::isNode($root)) {
             return $root->getKey();
+        }
+
+        if ($root !== null) {
+            return $root;
         }
 
         // If root node is not specified we take parent id of node with
         // least lft value as root node id.
-        if ($root === null) {
-            $leastValue = null;
+        $leastValue = null;
 
-            /** @var Model|NodeTrait $node */
-            foreach ($this->items as $node) {
-                if ($leastValue === null || $node->getLft() < $leastValue) {
-                    $leastValue = $node->getLft();
-                    $root = $node->getParentId();
-                }
+        /** @var Model|NodeTrait $node */
+        foreach ($this->items as $node) {
+            if ($leastValue === null || $node->getLft() < $leastValue) {
+                $leastValue = $node->getLft();
+                $root = $node->getParentId();
             }
         }
 

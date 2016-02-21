@@ -83,7 +83,7 @@ class QueryBuilder extends Builder
     {
         $keyName = $this->model->getKeyName();
 
-        if (NodeTrait::hasTrait($id)) {
+        if (NestedSet::isNode($id)) {
             $value = '?';
 
             $this->query->addBinding($id->getLft());
@@ -173,7 +173,7 @@ class QueryBuilder extends Builder
      */
     public function whereDescendantOf($id, $boolean = 'and', $not = false)
     {
-        if (NodeTrait::hasTrait($id)) {
+        if (NestedSet::isNode($id)) {
             $data = $id->getBounds();
         } else {
             $data = $this->model->newServiceQuery()
@@ -246,7 +246,7 @@ class QueryBuilder extends Builder
      */
     protected function whereIsBeforeOrAfter($id, $operator, $boolean)
     {
-        if (NodeTrait::hasTrait($id)) {
+        if (NestedSet::isNode($id)) {
             $value = '?';
 
             $this->query->addBinding($id->getLft());
@@ -660,6 +660,30 @@ class QueryBuilder extends Builder
                       ->whereRaw("m.{$lft} between p.{$lft} and p.{$rgt}");
             });
 
+    }
+
+    /**
+     * Get the number of total errors of the tree.
+     *
+     * @since 2.0
+     *
+     * @return int
+     */
+    public function getTotalErrors()
+    {
+        return array_sum($this->countErrors());
+    }
+
+    /**
+     * Get whether the tree is broken.
+     *
+     * @since 2.0
+     *
+     * @return bool
+     */
+    public function isBroken()
+    {
+        return $this->getTotalErrors() > 0;
     }
 
     /**

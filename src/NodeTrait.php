@@ -44,51 +44,41 @@ trait NodeTrait
     public static function bootNodeTrait()
     {
         static::saving(function (self $model) {
+            $model->getConnection()->beginTransaction();
+            
             return $model->callPendingAction();
+        });
+        
+        static::saved(function (self $model) {
+            $model->getConnection()->commit();
         });
 
         static::deleting(function (self $model) {
+            $model->getConnection()->beginTransaction();
+            
             // We will need fresh data to delete node safely
             $model->refreshNode();
         });
 
         static::deleted(function (self $model) {
             $model->deleteDescendants();
+            
+            $model->getConnection()->commit();
         });
 
         if (static::usesSoftDelete()) {
             static::restoring(function (self $model) {
+                $model->getConnection()->beginTransaction();
+                
                 static::$deletedAt = $model->{$model->getDeletedAtColumn()};
             });
 
             static::restored(function (self $model) {
                 $model->restoreDescendants(static::$deletedAt);
+                
+                $model->getConnection()->commit();
             });
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * Saves a node in transaction.
-     */
-    public function save(array $options = array())
-    {
-        return $this->getConnection()->transaction(function () use ($options) {
-            return parent::save($options);
-        });
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * Delete a node in transaction.
-     */
-    public function delete()
-    {
-        return $this->getConnection()->transaction(function () {
-            return parent::delete();
-        });
     }
 
     /**
@@ -191,7 +181,9 @@ trait NodeTrait
 
         $cut = $prepend ? $parent->getLft() + 1 : $parent->getRgt();
 
-        if ( ! $this->insertAt($cut)) return false;
+        if ( ! $this->insertAt($cut)) {
+            return false;
+        }
 
         $parent->refreshNode();
 
@@ -205,7 +197,9 @@ trait NodeTrait
      */
     protected function setParent($value)
     {
-        $this->attributes[$this->getParentIdName()] = $value ? $value->getKey() : null;
+        $this->attributes[$this->getParentIdName()] = $value 
+            ? $value->getKey() 
+            : null;
 
         $this->setRelation('parent', $value);
     }
@@ -527,7 +521,7 @@ trait NodeTrait
     {
         if ( ! $this->beforeNode($node)->save()) return false;
 
-        // We'll' update the target node since it will be moved
+        // We'll update the target node since it will be moved
         $node->refreshNode();
 
         return true;
@@ -741,7 +735,7 @@ trait NodeTrait
      */
     public function getDescendantCount()
     {
-        return round($this->getNodeHeight() / 2) - 1;
+        return ceil($this->getNodeHeight() / 2) - 1;
     }
 
     /**
@@ -771,7 +765,7 @@ trait NodeTrait
      */
     public function isRoot()
     {
-        return $this->getParentId() === null;
+        return is_null($this->getParentId());
     }
 
     /**
@@ -839,8 +833,6 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for next()
-     *
      * @param  array $columns
      *
      * @return self
@@ -851,9 +843,7 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for prev()
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return self
      */
@@ -863,9 +853,7 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for ancestors()
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return Collection
      */
@@ -877,9 +865,7 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for descendants()
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return Collection|self[]
      */
@@ -891,8 +877,6 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for siblings()
-     *
      * @param array $columns
      *
      * @return Collection|self[]
@@ -903,9 +887,7 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for nextSiblings().
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return Collection|self[]
      */
@@ -915,9 +897,7 @@ trait NodeTrait
     }
 
     /**
-     * Shorthand for prevSiblings().
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return Collection|self[]
      */
@@ -927,9 +907,7 @@ trait NodeTrait
     }
 
     /**
-     * Get next sibling.
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return self
      */
@@ -939,9 +917,7 @@ trait NodeTrait
     }
 
     /**
-     * Get previous sibling.
-     *
-     * @param  array $columns
+     * @param array $columns
      *
      * @return self
      */
@@ -959,7 +935,8 @@ trait NodeTrait
      */
     public function isDescendantOf(self $other)
     {
-        return $this->getLft() > $other->getLft() && $this->getLft() < $other->getRgt();
+        return $this->getLft() > $other->getLft() && 
+               $this->getLft() < $other->getRgt();
     }
 
     /**
@@ -996,44 +973,6 @@ trait NodeTrait
     public function isAncestorOf(self $other)
     {
         return $other->isDescendantOf($this);
-    }
-
-    /**
-     * Get statistics of errors of the tree.
-     *
-     * @since 2.0
-     *
-     * @return array
-     */
-    public static function countErrors()
-    {
-        $model = new static;
-
-        return $model->newServiceQuery()->countErrors();
-    }
-
-    /**
-     * Get the number of total errors of the tree.
-     *
-     * @since 2.0
-     *
-     * @return int
-     */
-    public static function getTotalErrors()
-    {
-        return array_sum(static::countErrors());
-    }
-
-    /**
-     * Get whether the tree is broken.
-     *
-     * @since 2.0
-     *
-     * @return bool
-     */
-    public static function isBroken()
-    {
-        return static::getTotalErrors() > 0;
     }
 
     /**
@@ -1078,18 +1017,6 @@ trait NodeTrait
     }
 
     /**
-     * Replaces instanceof calls for this trait.
-     *
-     * @param mixed
-     *
-     * @return bool
-     */
-    public static function hasTrait($node)
-    {
-        return is_object($node) && in_array(self::class, (array)$node) === true;
-    }
-
-    /**
      * @param $value
      */
     public function setLft($value)
@@ -1104,13 +1031,5 @@ trait NodeTrait
     {
         $this->setAttribute($this->getRgtName(), $value);
     }
-
-//    public static function rebuildTree(array $nodes, $createNodes = true, $deleteNodes = false)
-//    {
-//        $model = new static;
-//
-//        $existing = $model->newQuery()->get()->keyBy($model->getKeyName());
-//        $nodes = new Collection;
-//    }
 
 }

@@ -68,4 +68,16 @@ class NestedSet
         return [ self::LFT, self::RGT, self::PARENT_ID ];
     }
 
+    /**
+     * Replaces instanceof calls for this trait.
+     *
+     * @param mixed $node
+     *
+     * @return bool
+     */
+    public static function isNode($node)
+    {
+        return is_object($node) && in_array(NodeTrait::class, (array)$node);
+    }
+
 }
