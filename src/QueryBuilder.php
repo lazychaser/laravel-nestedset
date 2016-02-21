@@ -176,7 +176,7 @@ class QueryBuilder extends Builder
         if (NestedSet::isNode($id)) {
             $data = $id->getBounds();
         } else {
-            $data = $this->model->newServiceQuery()
+            $data = $this->model->newNestedSetQuery()
                                 ->getPlainNodeData($id, true);
         }
 
@@ -316,7 +316,7 @@ class QueryBuilder extends Builder
         list($lft, $rgt) = $this->wrappedColumns();
 
         $query = $this->model
-            ->newQuery()
+            ->newScopedQuery('_d')
             ->toBase()
             ->selectRaw('count(1) - 1')
             ->from($this->model->getTable().' as _d')
@@ -448,7 +448,7 @@ class QueryBuilder extends Builder
      */
     public function moveNode($key, $position)
     {
-        list($lft, $rgt) = $this->model->newServiceQuery()
+        list($lft, $rgt) = $this->model->newNestedSetQuery()
                                        ->getPlainNodeData($key, true);
 
         if ($lft < $position && $position <= $rgt) {
@@ -607,7 +607,7 @@ class QueryBuilder extends Builder
     protected function getOdnessQuery()
     {
         return $this->model
-            ->newServiceQuery()
+            ->newNestedSetQuery()
             ->toBase()
             ->whereNested(function (BaseQueryBuilder $inner) {
                 list($lft, $rgt) = $this->wrappedColumns();
@@ -624,8 +624,8 @@ class QueryBuilder extends Builder
     {
         $table = $this->wrappedTable();
 
-        return $this->model
-            ->newServiceQuery()
+        $query = $this->model
+            ->newNestedSetQuery('c1')
             ->toBase()
             ->from($this->query->raw("{$table} c1, {$table} c2"))
             ->whereRaw("c1.id < c2.id")
@@ -637,6 +637,8 @@ class QueryBuilder extends Builder
                       ->orWhereRaw("c1.{$lft}=c2.{$rgt}")
                       ->orWhereRaw("c1.{$rgt}=c2.{$lft}");
             });
+
+        return $this->model->applyNestedSetScope($query, 'c2');
     }
 
     /**
@@ -648,8 +650,8 @@ class QueryBuilder extends Builder
         $keyName = $this->wrappedKey();
         $parentIdName = $this->query->raw($this->model->getParentIdName());
 
-        return $this->model
-            ->newServiceQuery()
+        $query = $this->model
+            ->newNestedSetQuery('c')
             ->toBase()
             ->from($this->query->raw("{$table} c, {$table} p, $table m"))
             ->whereRaw("c.{$parentIdName}=p.{$keyName}")
@@ -663,6 +665,10 @@ class QueryBuilder extends Builder
                       ->whereRaw("m.{$lft} between p.{$lft} and p.{$rgt}");
             });
 
+        $this->model->applyNestedSetScope($query, 'p');
+        $this->model->applyNestedSetScope($query, 'm');
+
+        return $query;
     }
 
     /**
@@ -671,7 +677,7 @@ class QueryBuilder extends Builder
     protected function getMissingParentQuery()
     {
         return $this->model
-            ->newServiceQuery()
+            ->newNestedSetQuery()
             ->toBase()
             ->whereNested(function (BaseQueryBuilder $inner) {
                 $table = $this->wrappedTable();
@@ -679,12 +685,14 @@ class QueryBuilder extends Builder
                 $parentIdName = $this->query->raw($this->model->getParentIdName());
 
                 $existsCheck = $this->model
-                    ->newServiceQuery()
+                    ->newNestedSetQuery()
                     ->toBase()
                     ->selectRaw('1')
                     ->from($this->query->raw("{$table} p"))
                     ->whereRaw("{$table}.{$parentIdName} = p.{$keyName}")
                     ->limit(1);
+
+                $this->model->applyNestedSetScope($existsCheck, 'p');
 
                 $inner->whereRaw("{$parentIdName} is not null")
                       ->addWhereExistsQuery($existsCheck, 'and', true);
@@ -732,7 +740,7 @@ class QueryBuilder extends Builder
         ];
 
         $nodes = $this->model
-                      ->newServiceQuery()
+                      ->newNestedSetQuery()
                       ->defaultOrder()
                       ->get($columns)
                       ->groupBy($this->model->getParentIdName());
@@ -790,5 +798,27 @@ class QueryBuilder extends Builder
         unset($models[$parentId]);
 
         return $cut;
+    }
+
+    /**
+     * @param null $table
+     *
+     * @return $this
+     */
+    public function applyNestedSetScope($table = null)
+    {
+        return $this->model->applyNestedSetScope($this, $table);
+    }
+
+    /**
+     * Get the root node.
+     *
+     * @param array $columns
+     *
+     * @return self
+     */
+    public function root(array $columns = ['*'])
+    {
+        return $this->whereIsRoot()->first($columns);
     }
 }

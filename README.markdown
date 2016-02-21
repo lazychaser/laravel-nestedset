@@ -18,6 +18,7 @@ __Contents:__
 - [Documentation](#documentation)
     -   [Inserting nodes](#inserting-nodes)
     -   [Retrieving nodes](#retrieving-nodes)
+    -   [Scoping](#scoping)
     -   [Consistency checking & fixing](#checking-consistency)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -434,6 +435,28 @@ are set for every node.
 
 ```php
 Node::fixTree();
+```
+
+### Scoping
+
+Imagine you have `Menu` model and `MenuItems`. There is a one-to-many relationship
+set up between these models. `MenuItem` has `menu_id` attribute for joining models
+together. `MenuItem` incorporates nested sets. It is obvious that you would want to 
+process each tree separately based on `menu_id` attribute. In order to do so, you
+need to specify this attribute as scope attribute:
+
+```php
+protected function getScopeAttributes()
+{
+    return [ 'menu_id' ];
+}
+```
+
+But now in order to execute some custom query for retrieving nodes, you need to
+provide attributes that are used for scoping:
+
+```php
+MenuItem::scoped([ 'menu_id' => 5 ])->withDepth()->get();
 ```
 
 Requirements

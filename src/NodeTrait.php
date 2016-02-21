@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Query\Builder;
 use LogicException;
 
 trait NodeTrait
@@ -164,7 +165,7 @@ trait NodeTrait
      */
     protected function getLowerBound()
     {
-        return (int)$this->newServiceQuery()->max($this->getRgtName());
+        return (int)$this->newNestedSetQuery()->max($this->getRgtName());
     }
 
     /**
@@ -226,22 +227,10 @@ trait NodeTrait
     {
         if ( ! $this->exists || static::$actionsPerformed === 0) return;
 
-        $attributes = $this->newServiceQuery()->getNodeData($this->getKey());
+        $attributes = $this->newNestedSetQuery()->getNodeData($this->getKey());
 
         $this->attributes = array_merge($this->attributes, $attributes);
         $this->original = array_merge($this->original, $attributes);
-    }
-
-    /**
-     * Get the root node.
-     *
-     * @param array $columns
-     *
-     * @return self
-     */
-    static public function root(array $columns = ['*'])
-    {
-        return static::whereIsRoot()->first($columns);
     }
 
     /**
@@ -251,7 +240,8 @@ trait NodeTrait
      */
     public function parent()
     {
-        return $this->belongsTo(get_class($this), $this->getParentIdName());
+        return $this->belongsTo(get_class($this), $this->getParentIdName())
+                    ->setModel($this);
     }
 
     /**
@@ -261,7 +251,8 @@ trait NodeTrait
      */
     public function children()
     {
-        return $this->hasMany(get_class($this), $this->getParentIdName());
+        return $this->hasMany(get_class($this), $this->getParentIdName())
+                    ->setModel($this);
     }
 
     /**
@@ -271,7 +262,7 @@ trait NodeTrait
      */
     public function descendants()
     {
-        return $this->newQuery()->whereDescendantOf($this->getKey());
+        return $this->newScopedQuery()->whereDescendantOf($this->getKey());
     }
 
     /**
@@ -296,20 +287,14 @@ trait NodeTrait
                 break;
 
             default:
-                $query = $this->newQuery()
+                $query = $this->newScopedQuery()
                               ->defaultOrder()
                               ->where($this->getKeyName(), '<>', $this->getKey());
 
                 break;
         }
 
-        $parentId = $this->getParentId();
-
-        if (is_null($parentId)) {
-            $query->whereNull($this->getParentIdName());
-        } else {
-            $query->where($this->getParentIdName(), '=', $parentId);
-        }
+        $query->where($this->getParentIdName(), '=', $this->getParentId());
 
         return $query;
     }
@@ -341,7 +326,7 @@ trait NodeTrait
      */
     public function nextNodes()
     {
-        return $this->newQuery()
+        return $this->newScopedQuery()
                     ->whereIsAfter($this->getKey())
                     ->defaultOrder();
     }
@@ -353,7 +338,7 @@ trait NodeTrait
      */
     public function prevNodes()
     {
-        return $this->newQuery()
+        return $this->newScopedQuery()
                     ->whereIsBefore($this->getKey())
                     ->reversed();
     }
@@ -365,7 +350,7 @@ trait NodeTrait
      */
     public function ancestors()
     {
-        return $this->newQuery()
+        return $this->newScopedQuery()
                     ->whereAncestorOf($this->getKey())
                     ->defaultOrder();
     }
@@ -588,7 +573,7 @@ trait NodeTrait
      */
     protected function moveNode($position)
     {
-        $updated = $this->newServiceQuery()
+        $updated = $this->newNestedSetQuery()
                         ->moveNode($this->getKey(), $position) > 0;
 
         if ($updated) $this->refreshNode();
@@ -607,7 +592,7 @@ trait NodeTrait
      */
     protected function insertNode($position)
     {
-        $this->newServiceQuery()->makeGap($position, 2);
+        $this->newNestedSetQuery()->makeGap($position, 2);
 
         $height = $this->getNodeHeight();
 
@@ -629,12 +614,15 @@ trait NodeTrait
             ? 'forceDelete'
             : 'delete';
 
-        $this->newQuery()->whereNodeBetween([ $lft + 1, $rgt ])->{$method}();
+        $this->newQuery()
+             ->applyNestedSetScope()
+             ->whereNodeBetween([ $lft + 1, $rgt ])
+             ->{$method}();
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
 
-            $this->newServiceQuery()->makeGap($rgt + 1, -$height);
+            $this->newNestedSetQuery()->makeGap($rgt + 1, -$height);
 
             // In case if user wants to re-create the node
             $this->makeRoot();
@@ -651,6 +639,7 @@ trait NodeTrait
     protected function restoreDescendants($deletedAt)
     {
         $this->newQuery()
+             ->applyNestedSetScope()
              ->whereNodeBetween([ $this->getLft() + 1, $this->getRgt() ])
              ->where($this->getDeletedAtColumn(), '>=', $deletedAt)
              ->applyScopes()
@@ -674,9 +663,67 @@ trait NodeTrait
      *
      * @return QueryBuilder
      */
-    public function newServiceQuery()
+    public function newNestedSetQuery($table = null)
     {
-        return $this->usesSoftDelete() ? $this->withTrashed() : $this->newQuery();
+        $builder = $this->usesSoftDelete()
+            ? $this->withTrashed()
+            : $this->newQuery();
+
+        return $this->applyNestedSetScope($builder, $table);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function newScopedQuery($table = null)
+    {
+        return $this->applyNestedSetScope($this->newQuery(), $table);
+    }
+
+    /**
+     * @param mixed $query
+     * @param string $table
+     *
+     * @return mixed
+     */
+    public function applyNestedSetScope($query, $table = null)
+    {
+        if ( ! $scoped = $this->getScopeAttributes()) {
+            return $query;
+        }
+
+        if ( ! $table) {
+            $table = $this->getTable();
+        }
+
+        foreach ($scoped as $attribute) {
+            $query->where($table.'.'.$attribute, '=',
+                          $this->getAttributeValue($attribute));
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array
+     */
+    protected function getScopeAttributes()
+    {
+        return null;
+    }
+
+    /**
+     * @param array $attributes
+     *
+     * @return self
+     */
+    public static function scoped(array $attributes)
+    {
+        $instance = new static;
+
+        $instance->setRawAttributes($attributes);
+
+        return $instance->newScopedQuery();
     }
 
     /**
@@ -752,7 +799,7 @@ trait NodeTrait
         if ($this->getParentId() == $value) return;
 
         if ($value) {
-            $this->appendToNode($this->newQuery()->findOrFail($value));
+            $this->appendToNode($this->newScopedQuery()->findOrFail($value));
         } else {
             $this->makeRoot();
         }
@@ -863,7 +910,7 @@ trait NodeTrait
      */
     public function getAncestors(array $columns = array( '*' ))
     {
-        return $this->newQuery()
+        return $this->newScopedQuery()
                     ->defaultOrder()
                     ->ancestorsOf($this->getKey(), $columns);
     }
@@ -875,7 +922,7 @@ trait NodeTrait
      */
     public function getDescendants(array $columns = array( '*' ))
     {
-        return $this->newQuery()
+        return $this->newScopedQuery()
                     ->defaultOrder()
                     ->descendantsOf($this->getKey(), $columns);
     }
