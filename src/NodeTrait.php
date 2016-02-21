@@ -312,7 +312,7 @@ trait NodeTrait
         $parentId = $this->getParentId();
 
         if (is_null($parentId)) {
-            $query->whereNull($this->getParentId());
+            $query->whereNull($this->getParentIdName());
         } else {
             $query->where($this->getParentIdName(), '=', $parentId);
         }

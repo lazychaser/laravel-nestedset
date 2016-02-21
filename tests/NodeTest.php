@@ -529,7 +529,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $node = new Category([ 'name' => 'test' ]);
         $node->save();
 
-        $this->assertEquals(21, $node->_lft);
+        $this->assertEquals(23, $node->_lft);
         $this->assertTreeNotBroken();
 
         $this->assertTrue($node->isRoot());
@@ -573,7 +573,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         $node = Category::create([ 'name' => 'test' ]);
 
-        $this->assertEquals(21, $node->getLft());
+        $this->assertEquals(23, $node->getLft());
     }
 
     public function testCreatesViaRelationship()
@@ -662,6 +662,14 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $node->parent_id = 5;
 
         $this->assertTrue($node->isDirty('parent_id'));
+    }
+
+    public function testRootNodesMoving()
+    {
+        $node = $this->findCategory('store');
+        $node->down();
+
+        $this->assertEquals(3, $node->getLft());
     }
 }
 

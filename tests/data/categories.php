@@ -11,4 +11,5 @@ return array(
                 array('id' => 8, 'name' => 'galaxy', '_lft' => 12, '_rgt' => 13, 'parent_id' => 7),
             array('id' => 9, 'name' => 'sony', '_lft' => 15, '_rgt' => 16, 'parent_id' => 5),
             array('id' => 10, 'name' => 'lenovo', '_lft' => 17, '_rgt' => 18, 'parent_id' => 5),
+    array('id' => 11, 'name' => 'store 2', '_lft' => 21, '_rgt' => 22, 'parent_id' => null),
 );
