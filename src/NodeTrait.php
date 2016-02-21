@@ -833,21 +833,29 @@ trait NodeTrait
     }
 
     /**
-     * @param  array $columns
+     * Returns node that is next to current node without constraining to siblings.
+     * 
+     * This can be either a next sibling or a next sibling of the parent node.
+     * 
+     * @param array $columns
      *
      * @return self
      */
-    public function getNext(array $columns = array( '*' ))
+    public function getNextNode(array $columns = array( '*' ))
     {
         return $this->nextNodes()->first($columns);
     }
 
     /**
+     * Returns node that is before current node without constraining to siblings.
+     *
+     * This can be either a prev sibling or parent node.
+     * 
      * @param array $columns
      *
      * @return self
      */
-    public function getPrev(array $columns = array( '*' ))
+    public function getPrevNode(array $columns = array( '*' ))
     {
         return $this->prevNodes()->first($columns);
     }

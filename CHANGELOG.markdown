@@ -6,6 +6,8 @@
     -   `prependTo` to `prependToNode`
     -   `insertBefore` to `insertBeforeNode`
     -   `insertAfter` to `insertAfterNode`
+    -   `getNext` to `getNextNode`
+    -   `getPrev` to `getPrevNode`
 
 ### 3.1.1
 

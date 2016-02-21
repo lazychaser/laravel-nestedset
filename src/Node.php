@@ -21,7 +21,7 @@ class Node extends Model
      * @param Node $parent
      *
      * @return $this
-     * 
+     *
      * @deprecated since 4.1
      */
     public function appendTo(self $parent)
@@ -63,6 +63,30 @@ class Node extends Model
     public function insertAfter(self $node)
     {
         return $this->insertAfterNode($node);
+    }
+
+    /**
+     * @param array $columns
+     *
+     * @return self|null
+     *
+     * @deprecated since 4.1
+     */
+    public function getNext(array $columns = [ '*' ])
+    {
+        return $this->getNextNode($columns);
+    }
+
+    /**
+     * @param array $columns
+     *
+     * @return self|null
+     *
+     * @deprecated since 4.1
+     */
+    public function getPrev(array $columns = [ '*' ])
+    {
+        return $this->getPrevNode($columns);
     }
 
     /**
