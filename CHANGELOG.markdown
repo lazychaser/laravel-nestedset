@@ -1,13 +1,15 @@
 ### 4.1.0
 
-*   Converted to trait
-*   Methods were renamed:
+*   #75: Converted to trait. Following methods were renamed:
     -   `appendTo` to `appendToNode`
     -   `prependTo` to `prependToNode`
     -   `insertBefore` to `insertBeforeNode`
     -   `insertAfter` to `insertAfterNode`
     -   `getNext` to `getNextNode`
     -   `getPrev` to `getPrevNode`
+    
+*   #82: Fixing tree now handles case when nodes pointing non-existing parent
+*   The number of missing parent is now returned when using `countErrors`
 
 ### 3.1.1
 

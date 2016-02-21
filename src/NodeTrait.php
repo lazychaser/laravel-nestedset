@@ -45,37 +45,37 @@ trait NodeTrait
     {
         static::saving(function (self $model) {
             $model->getConnection()->beginTransaction();
-            
+
             return $model->callPendingAction();
         });
-        
+
         static::saved(function (self $model) {
             $model->getConnection()->commit();
         });
 
         static::deleting(function (self $model) {
             $model->getConnection()->beginTransaction();
-            
+
             // We will need fresh data to delete node safely
             $model->refreshNode();
         });
 
         static::deleted(function (self $model) {
             $model->deleteDescendants();
-            
+
             $model->getConnection()->commit();
         });
 
         if (static::usesSoftDelete()) {
             static::restoring(function (self $model) {
                 $model->getConnection()->beginTransaction();
-                
+
                 static::$deletedAt = $model->{$model->getDeletedAtColumn()};
             });
 
             static::restored(function (self $model) {
                 $model->restoreDescendants(static::$deletedAt);
-                
+
                 $model->getConnection()->commit();
             });
         }
@@ -197,8 +197,8 @@ trait NodeTrait
      */
     protected function setParent($value)
     {
-        $this->attributes[$this->getParentIdName()] = $value 
-            ? $value->getKey() 
+        $this->attributes[$this->getParentIdName()] = $value
+            ? $value->getKey()
             : null;
 
         $this->setRelation('parent', $value);
@@ -805,9 +805,7 @@ trait NodeTrait
      */
     public function getLft()
     {
-        return isset($this->attributes[$this->getLftName()])
-            ? $this->attributes[$this->getLftName()]
-            : null;
+        return $this->getAttributeValue($this->getLftName());
     }
 
     /**
@@ -817,9 +815,7 @@ trait NodeTrait
      */
     public function getRgt()
     {
-        return isset($this->attributes[$this->getRgtName()])
-            ? $this->attributes[$this->getRgtName()]
-            : null;
+        return $this->getAttributeValue($this->getRgtName());
     }
 
     /**
@@ -829,14 +825,14 @@ trait NodeTrait
      */
     public function getParentId()
     {
-        return $this->getAttribute($this->getParentIdName());
+        return $this->getAttributeValue($this->getParentIdName());
     }
 
     /**
      * Returns node that is next to current node without constraining to siblings.
-     * 
+     *
      * This can be either a next sibling or a next sibling of the parent node.
-     * 
+     *
      * @param array $columns
      *
      * @return self
@@ -850,7 +846,7 @@ trait NodeTrait
      * Returns node that is before current node without constraining to siblings.
      *
      * This can be either a prev sibling or parent node.
-     * 
+     *
      * @param array $columns
      *
      * @return self
@@ -943,7 +939,7 @@ trait NodeTrait
      */
     public function isDescendantOf(self $other)
     {
-        return $this->getLft() > $other->getLft() && 
+        return $this->getLft() > $other->getLft() &&
                $this->getLft() < $other->getRgt();
     }
 
@@ -1029,7 +1025,7 @@ trait NodeTrait
      */
     public function setLft($value)
     {
-        $this->setAttribute($this->getLftName(), $value);
+        $this->attributes[$this->getLftName()] = $value;
     }
 
     /**
@@ -1037,7 +1033,15 @@ trait NodeTrait
      */
     public function setRgt($value)
     {
-        $this->setAttribute($this->getRgtName(), $value);
+        $this->attributes[$this->getRgtName()] = $value;
+    }
+
+    /**
+     * @param $value
+     */
+    public function setParentId($value)
+    {
+        $this->attributes[$this->getParentIdName()] = $value;
     }
 
 }

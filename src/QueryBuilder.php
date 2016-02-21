@@ -587,7 +587,10 @@ class QueryBuilder extends Builder
         // Check if parent_id is set correctly
         $checks['wrong_parent'] = $this->getWrongParentQuery();
 
-        $query = $this->toBase();
+        // Check for nodes that have missing parent
+        $checks['missing_parent' ] = $this->getMissingParentQuery();
+
+        $query = $this->query->newQuery();
 
         foreach ($checks as $key => $inner) {
             $inner->selectRaw('count(1)');
@@ -625,7 +628,7 @@ class QueryBuilder extends Builder
             ->newServiceQuery()
             ->toBase()
             ->from($this->query->raw("{$table} c1, {$table} c2"))
-            ->whereRaw("c1.id <> c2.id")
+            ->whereRaw("c1.id < c2.id")
             ->whereNested(function (BaseQueryBuilder $inner) {
                 list($lft, $rgt) = $this->wrappedColumns();
 
@@ -660,6 +663,32 @@ class QueryBuilder extends Builder
                       ->whereRaw("m.{$lft} between p.{$lft} and p.{$rgt}");
             });
 
+    }
+
+    /**
+     * @return $this
+     */
+    protected function getMissingParentQuery()
+    {
+        return $this->model
+            ->newServiceQuery()
+            ->toBase()
+            ->whereNested(function (BaseQueryBuilder $inner) {
+                $table = $this->wrappedTable();
+                $keyName = $this->wrappedKey();
+                $parentIdName = $this->query->raw($this->model->getParentIdName());
+
+                $existsCheck = $this->model
+                    ->newServiceQuery()
+                    ->toBase()
+                    ->selectRaw('1')
+                    ->from($this->query->raw("{$table} p"))
+                    ->whereRaw("{$table}.{$parentIdName} = p.{$keyName}")
+                    ->limit(1);
+
+                $inner->whereRaw("{$parentIdName} is not null")
+                      ->addWhereExistsQuery($existsCheck, 'and', true);
+            });
     }
 
     /**
@@ -710,7 +739,18 @@ class QueryBuilder extends Builder
 
         $fixed = 0;
 
-        self::reorderNodes($nodes, $fixed);
+        $cut = self::reorderNodes($nodes, $fixed);
+
+        // Saved nodes that have invalid parent as roots
+        while ( ! $nodes->isEmpty()) {
+            $parentId = $nodes->keys()->first();
+
+            foreach ($nodes[$parentId] as $model) {
+                $model->setParentId(null);
+            }
+
+            $cut = self::reorderNodes($nodes, $fixed, $parentId, $cut);
+        }
 
         return $fixed;
     }
@@ -726,8 +766,12 @@ class QueryBuilder extends Builder
     protected static function reorderNodes(Collection $models, &$fixed,
                                            $parentId = null, $cut = 1
     ) {
+        if ( ! isset($models[$parentId])) {
+            return $cut;
+        }
+
         /** @var Model|self $model */
-        foreach ($models->get($parentId, [ ]) as $model) {
+        foreach ($models[$parentId] as $model) {
             $model->setLft($cut);
 
             $cut = self::reorderNodes($models, $fixed, $model->getKey(), $cut + 1);
@@ -742,6 +786,8 @@ class QueryBuilder extends Builder
 
             ++$cut;
         }
+
+        unset($models[$parentId]);
 
         return $cut;
     }

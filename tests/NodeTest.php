@@ -78,9 +78,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         if ( ! $items) $items = Category::withTrashed()->defaultOrder()->get();
 
-        foreach ($items as $item)
-        {
-            echo PHP_EOL.($item->trashed() ? '-' : '+').' '.$item->name." ".$item->getLft()." ".$item->getRgt();
+        foreach ($items as $item) {
+            echo PHP_EOL.($item->trashed() ? '-' : '+').' '.$item->name." ".$item->getKey().' '.$item->getLft()." ".$item->getRgt().' '.$item->getParentId();
         }
     }
 
@@ -386,8 +385,6 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertTreeNotBroken();
 
-        $this->dumpTree();
-
         $this->assertNull($this->findCategory('samsung', true));
         $this->assertNull($this->findCategory('sony'));
     }
@@ -566,7 +563,21 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         $errors = Category::countErrors();
 
-        $this->assertEquals([ 'oddness' => 0, 'duplicates' => 0, 'wrong_parent' => 0 ], $errors);
+        $this->assertEquals([ 'oddness' => 0,
+                              'duplicates' => 0,
+                              'wrong_parent' => 0,
+                              'missing_parent' => 0 ], $errors);
+
+        Category::where('id', '=', 5)->update([ '_lft' => 14 ]);
+        Category::where('id', '=', 8)->update([ 'parent_id' => 2 ]);
+        Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
+        Category::where('id', '=', 4)->update([ 'parent_id' => 24 ]);
+
+        $errors = Category::countErrors();
+
+        $this->assertEquals(1, $errors['oddness']);
+        $this->assertEquals(2, $errors['duplicates']);
+        $this->assertEquals(1, $errors['missing_parent']);
     }
 
     public function testCreatesNode()
@@ -649,6 +660,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         Category::where('id', '=', 5)->update([ '_lft' => 14 ]);
         Category::where('id', '=', 8)->update([ 'parent_id' => 2 ]);
+        Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
+        Category::where('id', '=', 2)->update([ 'parent_id' => 24 ]);
 
         $fixed = Category::fixTree();
 
