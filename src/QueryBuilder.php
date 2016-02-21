@@ -703,7 +703,7 @@ class QueryBuilder extends Builder
         ];
 
         $nodes = $this->model
-                      ->newQuery()
+                      ->newServiceQuery()
                       ->defaultOrder()
                       ->get($columns)
                       ->groupBy($this->model->getParentIdName());
