@@ -122,6 +122,19 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $result->first()->depth);
     }
 
+    public function testSaveAsRoot()
+    {
+        $node = MenuItem::find(5);
+
+        $node->saveAsRoot();
+
+        $this->assertEquals(5, $node->getLft());
+
+        $node = MenuItem::find(3);
+
+        $this->assertEquals(1, $node->getLft());
+    }
+
     public function testInsertion()
     {
         $node = MenuItem::create([ 'menu_id' => 1, 'parent_id' => 5 ]);

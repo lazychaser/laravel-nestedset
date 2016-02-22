@@ -231,7 +231,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         $node = $this->findCategory('notebooks');
 
-        $node->appendTo($node)->save();
+        $node->appendToNode($node)->save();
     }
 
     /**
@@ -675,6 +675,27 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $node->parent_id = 5;
 
         $this->assertTrue($node->isDirty('parent_id'));
+    }
+
+    public function testIsDirtyMovement()
+    {
+        $node = $this->findCategory('apple');
+        $otherNode = $this->findCategory('samsung');
+
+        $this->assertFalse($node->isDirty());
+
+        $node->afterNode($otherNode);
+
+        $this->assertTrue($node->isDirty());
+
+        $node = $this->findCategory('apple');
+        $otherNode = $this->findCategory('samsung');
+
+        $this->assertFalse($node->isDirty());
+
+        $node->appendToNode($otherNode);
+
+        $this->assertTrue($node->isDirty());
     }
 
     public function testRootNodesMoving()

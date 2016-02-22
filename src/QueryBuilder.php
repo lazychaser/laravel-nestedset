@@ -439,12 +439,10 @@ class QueryBuilder extends Builder
     /**
      * Move a node to the new position.
      *
-     * @param int $key
+     * @param mixed $key
      * @param int $position
      *
      * @return int
-     *
-     * @throws \LogicException
      */
     public function moveNode($key, $position)
     {

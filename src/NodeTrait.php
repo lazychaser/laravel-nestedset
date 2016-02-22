@@ -195,14 +195,15 @@ trait NodeTrait
      * Apply parent model.
      *
      * @param Model|null $value
+     *
+     * @return $this
      */
     protected function setParent($value)
     {
-        $this->attributes[$this->getParentIdName()] = $value
-            ? $value->getKey()
-            : null;
+        $this->setParentId( $value ? $value->getKey() : null)
+             ->setRelation('parent', $value);
 
-        $this->setRelation('parent', $value);
+        return $this;
     }
 
     /**
@@ -372,6 +373,10 @@ trait NodeTrait
      */
     public function saveAsRoot()
     {
+        if ($this->exists && $this->isRoot()) {
+            return true;
+        }
+
         return $this->makeRoot()->save();
     }
 
@@ -431,11 +436,10 @@ trait NodeTrait
      */
     public function appendOrPrependTo(self $parent, $prepend = false)
     {
-        if ( ! $parent->exists) {
-            throw new LogicException('Cannot use non-existing node as a parent.');
-        }
+        $this->assertNodeExists($parent)
+             ->assertNotDescendant($parent);
 
-        $this->setParent($parent);
+        $this->setParent($parent)->dirtyBounds();
 
         return $this->setAction('appendOrPrepend', $parent, $prepend);
     }
@@ -472,13 +476,13 @@ trait NodeTrait
      */
     public function beforeOrAfterNode(self $node, $after = false)
     {
-        if ( ! $node->exists) {
-            throw new LogicException('Cannot insert before/after a node that does not exists.');
-        }
+        $this->assertNodeExists($node)->assertNotDescendant($node);
 
         if ( ! $this->isSiblingOf($node)) {
             $this->setParent($node->getRelationValue('parent'));
         }
+
+        $this->dirtyBounds();
 
         return $this->setAction('beforeOrAfter', $node, $after);
     }
@@ -1069,26 +1073,74 @@ trait NodeTrait
 
     /**
      * @param $value
+     *
+     * @return $this
      */
     public function setLft($value)
     {
         $this->attributes[$this->getLftName()] = $value;
+
+        return $this;
     }
 
     /**
      * @param $value
+     *
+     * @return $this
      */
     public function setRgt($value)
     {
         $this->attributes[$this->getRgtName()] = $value;
+
+        return $this;
     }
 
     /**
      * @param $value
+     *
+     * @return $this
      */
     public function setParentId($value)
     {
         $this->attributes[$this->getParentIdName()] = $value;
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    protected function dirtyBounds()
+    {
+        return $this->setLft(null)->setRgt(null);
+    }
+
+    /**
+     * @param NodeTrait $node
+     *
+     * @return $this
+     */
+    protected function assertNotDescendant(self $node)
+    {
+        if ($node == $this || $node->isDescendantOf($this)) {
+            throw new LogicException('Node must not be a descendant.');
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param NodeTrait $node
+     *
+     * @return $this
+     */
+    protected function assertNodeExists(self $node)
+    {
+        if ( ! $node->getLft() || ! $node->getRgt()) {
+            throw new LogicException('Node must exists.');
+        }
+
+        return $this;
     }
 
 }

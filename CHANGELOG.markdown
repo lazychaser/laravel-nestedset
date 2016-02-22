@@ -11,6 +11,7 @@
 *   #82: Fixing tree now handles case when nodes pointing non-existing parent
 *   The number of missing parent is now returned when using `countErrors`
 *   #79: implemented scoping feature
+*   #81: moving node now makes model dirty before saving it
 
 ### 3.1.1
 
