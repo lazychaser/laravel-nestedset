@@ -384,6 +384,7 @@ class QueryBuilder extends Builder
      * Equivalent of `withoutRoot`.
      *
      * @since 2.0
+     * @deprecated since v4.1
      *
      * @return $this
      */
@@ -398,6 +399,7 @@ class QueryBuilder extends Builder
      * Get only nodes that have children.
      *
      * @since 2.0
+     * @deprecated since v4.1
      *
      * @return $this
      */

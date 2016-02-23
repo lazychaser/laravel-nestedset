@@ -501,7 +501,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
     public function testRetrievesPrevNode()
     {
         $node = $this->findCategory('apple');
-        $next = $node->prevNodes()->first();
+        $next = $node->getPrevNode();
 
         $this->assertEquals('notebooks', $next->name);
     }
@@ -746,6 +746,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $nodes->count());
         $this->assertEquals(2, $nodes->first()->getKey());
     }
+
 }
 
 function all($items)

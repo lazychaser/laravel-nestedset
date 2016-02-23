@@ -68,7 +68,7 @@ Another important note is that __structural manipulations are deferred__ until y
 hit `save` on model (some methods implicitly call `save` and return boolean result
 of the operation).
 
-If model is successfully saved it doesn't mean that node has moved. If your application
+If model is successfully saved it doesn't mean that node was moved. If your application
 depends on whether the node has actually changed its position, use `hasMoved` method:
 
 ```php
@@ -77,12 +77,17 @@ if ($node->save()) {
 }
 ```
 
-#### Creating a new node
+#### Creating nodes
 
-When you just create a node, it will be appended to the end of the tree:
+When you simply creating a node, it will be appended to the end of the tree:
 
 ```php
-Category::create($attributes);
+Category::create($attributes); // Saved as root
+```
+
+```php
+$node = new Category($attributes);
+$node->save(); // Saved as root
 ```
 
 In this case the node is considered a _root_ which means that it doesn't have a parent.
@@ -103,7 +108,7 @@ The node will be appended to the end of the tree.
 
 If you want to make node a child of other node, you can make it last or first child.
 
-In following examples, `$parent` is some existing node.
+*In following examples, `$parent` is some existing node.*
 
 There are few ways to append a node:
 
@@ -142,8 +147,8 @@ $parent->prependNode($node);
 
 You can make `$node` to be a neighbor of the `$neighbor` node using following methods:
 
-*Neighbor is existing node, target node can be fresh. If target node exists, 
-it will be moved to the new position and parent will be changed if required.*
+*`$neighbor` must exists, target node can be fresh. If target node exists, 
+it will be moved to the new position and parent will be changed if it's required.*
 
 ```php
 # Explicit save
@@ -154,20 +159,6 @@ $node->beforeNode($neighbor)->save();
 $node->insertAfterNode($neighbor);
 $node->insertBeforeNode($neighbor);
 ```
-
-#### Shifting a node
-
-To shift node up or down inside parent:
-
-```php
-$bool = $node->down();
-$bool = $node->up();
-
-// Shift node by 3 siblings
-$bool = $node->down(3);
-```
-
-The result of the operation is boolean value of whether the node has changed the position.
 
 #### Building a tree from array
 
@@ -194,7 +185,7 @@ $node = Category::create([
 
 ### Retrieving nodes
 
-In some cases we will use an `$id` variable which is an id of the target node.
+*In some cases we will use an `$id` variable which is an id of the target node.*
 
 #### Ancestors
 
@@ -205,20 +196,20 @@ $result = $node->getAncestors();
 // #2 Using a query 
 $result = $node->ancestors()->get();
 
-// #3 Getting ancestors by id of the node
+// #3 Getting ancestors by primary key
 $result = Category::ancestorsOf($id);
 ```
 
 #### Descendants
 
 ```php
-// #1 Using accessor
-$result = $node->getDescendants();
+// #1 Using relationship
+$result = $node->descendants;
 
-// #2 Using a query 
+// #2 Using a query
 $result = $node->descendants()->get();
 
-// #3 Getting ancestors by id of the node
+// #3 Getting descendants by primary key
 $result = Category::descendantsOf($id);
 ```
 
@@ -230,7 +221,7 @@ $result = $node->getSiblings();
 $result = $node->siblings()->get();
 ```
 
-To get just next siblings ([default order](#default-order) is applied here):
+To get only next siblings:
 
 ```php
 // Get a sibling that is immediately after the node
@@ -243,7 +234,7 @@ $result = $node->getNextSiblings();
 $result = $node->nextSiblings()->get();
 ```
 
-To get previous siblings ([reversed order](#default-order) is applied):
+To get previous siblings:
 
 ```php
 // Get a sibling that is immediately before the node
@@ -271,51 +262,6 @@ $categories[] = $category->getKey();
 // Get goods
 $goods = Goods::whereIn('category_id', $categories)->get();
 ```
-
-### Deleting nodes
-
-To delete a node:
-
-```php
-$node->delete();
-```
-
-**IMPORTANT!** Any descendant that node has will also be deleted!
-
-**IMPORTANT!** Nodes are required to be deleted as models, **don't** try do delete them using a query like so:
-
-```php
-Category::where('id', '=', $id)->delete();
-```
-
-This will brake the tree!
-
-`SoftDeletes` trait is supported, also on model level.
-
-### Collection extension
-
-This package provides few helpful methods for collection of nodes. You can link nodes in plain collection like so:
-
-```php
-$results = Categories::get();
-
-$results->linkNodes();
-```
-
-This will fill `parent` and `children` relations on every node so you can iterate over them without extra database 
-requests.
-
-To convert plain collection to tree:
-
-```
-$tree = $results->toTree();
-```
-
-`$tree` will contain only root nodes and to access children you can use `children` relation.
-
-### Query builder extension
-
-This packages extends default query builder to introduce few helpful features.
 
 #### Including node depth
 
@@ -352,13 +298,26 @@ You can get nodes in reversed order:
 $result = Category::reversed()->get();
 ```
 
+##### Shifting a node
+
+To shift node up or down inside parent to affect default order:
+
+```php
+$bool = $node->down();
+$bool = $node->up();
+
+// Shift node by 3 siblings
+$bool = $node->down(3);
+```
+
+The result of the operation is boolean value of whether the node has changed its
+position.
+
 #### Constraints
 
 Various constraints that can be applied to the query builder:
 
 -   __whereIsRoot()__ to get only root nodes;
--   __hasChildren()__ to get nodes that have children;
--   __hasParent()__ to get non-root nodes;
 -   __whereIsAfter($id)__ to get every node (not just siblings) that are after a node
     with specified id;
 -   __whereIsBefore($id)__ to get every node that is before a node with specified id.
@@ -380,13 +339,80 @@ $result = Category::whereAncestorOf($node)->get();
 
 `$node` can be either a primary key of the model or model instance.
 
-### Node methods
+#### Building a tree
 
-Compute the number of descendants:
+After getting a set of nodes, you can convert it to tree. For example:
 
 ```php
-$node->getDescendantCount();
+$tree = Category::get()->toTree();
 ```
+
+This will fill `parent` and `children` relationships on every node in the set and
+you can render a tree using recursive algorithm:
+
+```php
+$nodes = Category::get()->toTree();
+
+$traverse = function ($categories, $prefix = '-') use (&$traverse) {
+    foreach ($categories as $category) {
+        echo PHP_EOL.$prefix.' '.$category->name;
+
+        $traverse($category->children, $prefix.'-');
+    }
+};
+
+$traverse($nodes);
+```
+
+This will output something like this:
+
+```
+- Root
+-- Child 1
+--- Sub child 1
+-- Child 2
+- Another root
+```
+
+##### Getting subtree
+
+Sometimes you don't need whole tree to be loaded and just some subtree of specific node.
+It is show in following example:
+
+```php
+$root = Category::find($rootId);
+$tree = $root->descendants->toTree($root);
+```
+
+Now `$tree` contains children of `$root` node.
+
+If you don't need `$root` node itself, do following instead:
+
+```php
+$tree = Category::descendantsOf($rootId)->toTree($rootId);
+```
+
+### Deleting nodes
+
+To delete a node:
+
+```php
+$node->delete();
+```
+
+**IMPORTANT!** Any descendant that node has will also be deleted!
+
+**IMPORTANT!** Nodes are required to be deleted as models, **don't** try do delete them using a query like so:
+
+```php
+Category::where('id', '=', $id)->delete();
+```
+
+This will brake the tree!
+
+`SoftDeletes` trait is supported, also on model level.
+
+### Helper methods
 
 To check if node is a descendant of other node:
 
@@ -394,7 +420,7 @@ To check if node is a descendant of other node:
 $bool = $node->isDescendantOf($parent);
 ```
 
-To check whether the node is root:
+To check whether the node is a root:
 
 ```php
 $bool = $node->isRoot();
@@ -431,8 +457,8 @@ It will return an array with following keys:
     
 #### Fixing tree
 
-Since v3.1 tree can now be fixed. Using inheritance info from `parent_id` column, proper `_lft` and `_rgt` values
-are set for every node.
+Since v3.1 tree can now be fixed. Using inheritance info from `parent_id` column, 
+proper `_lft` and `_rgt` values are set for every node.
 
 ```php
 Node::fixTree();
@@ -453,11 +479,36 @@ protected function getScopeAttributes()
 }
 ```
 
-But now in order to execute some custom query for retrieving nodes, you need to
-provide attributes that are used for scoping:
+But now in order to execute some custom query, you need to provide attributes
+that are used for scoping:
 
 ```php
-MenuItem::scoped([ 'menu_id' => 5 ])->withDepth()->get();
+MenuItem::scoped([ 'menu_id' => 5 ])->withDepth()->get(); // OK
+MenuItem::descendantsOf($id)->get(); // WRONG: returns nodes from other scope
+MenuItem::scoped([ 'menu_id' => 5 ])->fixTree();
+```
+
+When requesting nodes using model instance, scopes applied automatically based 
+on data of that model. See examples:
+
+```php
+$node = MenuItem::findOrFail($id);
+
+$node->siblings()->withDepth()->get(); // OK
+```
+
+To get scoped query builder using instance:
+
+```php
+$node->newScopedQuery();
+```
+
+Note, that scoping is not required when retrieving model by primary key 
+(since the key is unique):
+
+```php
+$node = MenuItem::findOrFail($id); // OK
+$node = MenuItem::scoped([ 'menu_id' => 5 ])->findOrFail(); // OK, but redundant
 ```
 
 Requirements
@@ -465,9 +516,6 @@ Requirements
 
 - PHP >= 5.4
 - Laravel >= 4.1
-
-Models are extended from new base class rather than `Eloquent`, so it's not possible
-to use another framework that overrides `Eloquent`.
 
 It is highly suggested to use database that supports transactions (like MySql's InnoDb) 
 to secure a tree from possible corruption.

@@ -13,6 +13,10 @@
 *   #79: implemented scoping feature
 *   #81: moving node now makes model dirty before saving it
 *   #45: descendants is now a relation that can be eagerly loaded
+*   `hasChildren` and `hasParent` are now deprecated. Use `has('children')`
+    `has('parent')` instead
+*   Default order is no longer applied for `siblings()`, `descendants()`,
+    `prevNodes`, `nextNodes`
 
 ### 3.1.1
 

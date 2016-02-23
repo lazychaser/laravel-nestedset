@@ -6,6 +6,9 @@ old `Kalnoy\Nesetedset\Node` class is still available.
 Some methods on trait were renamed (see changelog), but still available on legacy
 node class.
 
+Default order is no longer applied for `siblings()`, `descendants()`, 
+`prevNodes`, `nextNodes`.
+
 ### Upgrading to 3.0
 
 Some methods were renamed, see changelog for more details.

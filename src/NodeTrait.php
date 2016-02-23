@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Query\Builder;
 use LogicException;
+use MongoDB\Driver\Query;
 
 trait NodeTrait
 {
@@ -269,35 +270,13 @@ trait NodeTrait
     /**
      * Get query for siblings of the node.
      *
-     * @param mixed $dir
-     *
      * @return QueryBuilder
      */
-    public function siblings($dir = null)
+    public function siblings()
     {
-        switch ($dir)
-        {
-            case NestedSet::AFTER:
-                $query = $this->nextNodes();
-
-                break;
-
-            case NestedSet::BEFORE:
-                $query = $this->prevNodes();
-
-                break;
-
-            default:
-                $query = $this->newScopedQuery()
-                              ->defaultOrder()
-                              ->where($this->getKeyName(), '<>', $this->getKey());
-
-                break;
-        }
-
-        $query->where($this->getParentIdName(), '=', $this->getParentId());
-
-        return $query;
+        return $this->newScopedQuery()
+                    ->where($this->getKeyName(), '<>', $this->getKey())
+                    ->where($this->getParentIdName(), '=', $this->getParentId());
     }
 
     /**
@@ -307,7 +286,8 @@ trait NodeTrait
      */
     public function nextSiblings()
     {
-        return $this->siblings(NestedSet::AFTER);
+        return $this->nextNodes()
+                    ->where($this->getParentIdName(), '=', $this->getParentId());
     }
 
     /**
@@ -317,7 +297,8 @@ trait NodeTrait
      */
     public function prevSiblings()
     {
-        return $this->siblings(NestedSet::BEFORE);
+        return $this->prevNodes()
+                    ->where($this->getParentIdName(), '=', $this->getParentId());
     }
 
     /**
@@ -328,8 +309,7 @@ trait NodeTrait
     public function nextNodes()
     {
         return $this->newScopedQuery()
-                    ->whereIsAfter($this->getKey())
-                    ->defaultOrder();
+                    ->where($this->getLftName(), '>', $this->getLft());
     }
 
     /**
@@ -340,8 +320,7 @@ trait NodeTrait
     public function prevNodes()
     {
         return $this->newScopedQuery()
-                    ->whereIsBefore($this->getKey())
-                    ->reversed();
+                    ->where($this->getLftName(), '<', $this->getLft());
     }
 
     /**
@@ -352,7 +331,7 @@ trait NodeTrait
     public function ancestors()
     {
         return $this->newScopedQuery()
-                    ->whereAncestorOf($this->getKey())
+                    ->whereAncestorOf($this)
                     ->defaultOrder();
     }
 
@@ -525,11 +504,14 @@ trait NodeTrait
      */
     public function up($amount = 1)
     {
-        if ($sibling = $this->prevSiblings()->skip($amount - 1)->first()) {
-            return $this->insertBeforeNode($sibling);
-        }
+        $sibling = $this->prevSiblings()
+                        ->defaultOrder('desc')
+                        ->skip($amount - 1)
+                        ->first();
 
-        return false;
+        if ( ! $sibling) return false;
+
+        return $this->insertBeforeNode($sibling);
     }
 
     /**
@@ -541,11 +523,14 @@ trait NodeTrait
      */
     public function down($amount = 1)
     {
-        if ($sibling = $this->nextSiblings()->skip($amount - 1)->first()) {
-            return $this->insertAfterNode($sibling);
-        }
+        $sibling = $this->nextSiblings()
+                        ->defaultOrder()
+                        ->skip($amount - 1)
+                        ->first();
 
-        return false;
+        if ( ! $sibling) return false;
+
+        return $this->insertAfterNode($sibling);
     }
 
     /**
@@ -618,10 +603,7 @@ trait NodeTrait
             ? 'forceDelete'
             : 'delete';
 
-        $this->newQuery()
-             ->applyNestedSetScope()
-             ->whereNodeBetween([ $lft + 1, $rgt ])
-             ->{$method}();
+        $this->descendants()->{$method}();
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
@@ -642,9 +624,7 @@ trait NodeTrait
      */
     protected function restoreDescendants($deletedAt)
     {
-        $this->newQuery()
-             ->applyNestedSetScope()
-             ->whereNodeBetween([ $this->getLft() + 1, $this->getRgt() ])
+        $this->descendants()
              ->where($this->getDeletedAtColumn(), '>=', $deletedAt)
              ->applyScopes()
              ->restore();
@@ -677,7 +657,9 @@ trait NodeTrait
     }
 
     /**
-     * @return mixed
+     * @param string $table
+     *
+     * @return QueryBuilder
      */
     public function newScopedQuery($table = null)
     {
@@ -751,7 +733,9 @@ trait NodeTrait
 
         $instance = new static($attributes);
 
-        if ($parent) $instance->appendToNode($parent);
+        if ($parent) {
+            $instance->appendToNode($parent);
+        }
 
         $instance->save();
 
@@ -888,9 +872,9 @@ trait NodeTrait
      *
      * @return self
      */
-    public function getNextNode(array $columns = array( '*' ))
+    public function getNextNode(array $columns = [ '*' ])
     {
-        return $this->nextNodes()->first($columns);
+        return $this->nextNodes()->defaultOrder()->first($columns);
     }
 
     /**
@@ -902,9 +886,9 @@ trait NodeTrait
      *
      * @return self
      */
-    public function getPrevNode(array $columns = array( '*' ))
+    public function getPrevNode(array $columns = [ '*' ])
     {
-        return $this->prevNodes()->first($columns);
+        return $this->prevNodes()->defaultOrder('desc')->first($columns);
     }
 
     /**
@@ -912,11 +896,11 @@ trait NodeTrait
      *
      * @return Collection
      */
-    public function getAncestors(array $columns = array( '*' ))
+    public function getAncestors(array $columns = [ '*' ])
     {
         return $this->newScopedQuery()
                     ->defaultOrder()
-                    ->ancestorsOf($this->getKey(), $columns);
+                    ->ancestorsOf($this, $columns);
     }
 
     /**
@@ -924,7 +908,7 @@ trait NodeTrait
      *
      * @return Collection|self[]
      */
-    public function getDescendants(array $columns = array( '*' ))
+    public function getDescendants(array $columns = [ '*' ])
     {
         return $this->descendants()->get($columns);
     }
@@ -934,9 +918,9 @@ trait NodeTrait
      *
      * @return Collection|self[]
      */
-    public function getSiblings(array $columns = array( '*' ))
+    public function getSiblings(array $columns = [ '*' ])
     {
-        return $this->siblings()->defaultOrder()->get($columns);
+        return $this->siblings()->get($columns);
     }
 
     /**
@@ -944,7 +928,7 @@ trait NodeTrait
      *
      * @return Collection|self[]
      */
-    public function getNextSiblings(array $columns = array( '*' ))
+    public function getNextSiblings(array $columns = [ '*' ])
     {
         return $this->nextSiblings()->get($columns);
     }
@@ -954,7 +938,7 @@ trait NodeTrait
      *
      * @return Collection|self[]
      */
-    public function getPrevSiblings(array $columns = array( '*' ))
+    public function getPrevSiblings(array $columns = [ '*' ])
     {
         return $this->prevSiblings()->get($columns);
     }
@@ -964,9 +948,9 @@ trait NodeTrait
      *
      * @return self
      */
-    public function getNextSibling(array $columns = array( '*' ))
+    public function getNextSibling(array $columns = [ '*' ])
     {
-        return $this->nextSiblings()->first($columns);
+        return $this->nextSiblings()->defaultOrder()->first($columns);
     }
 
     /**
@@ -974,9 +958,9 @@ trait NodeTrait
      *
      * @return self
      */
-    public function getPrevSibling(array $columns = array( '*' ))
+    public function getPrevSibling(array $columns = [ '*' ])
     {
-        return $this->prevSiblings()->reversed()->first($columns);
+        return $this->prevSiblings()->defaultOrder('desc')->first($columns);
     }
 
     /**
