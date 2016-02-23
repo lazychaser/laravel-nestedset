@@ -16,6 +16,7 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $schema->create('menu_items', function (\Illuminate\Database\Schema\Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('menu_id');
+            $table->string('title')->nullable();
             NestedSet::columns($table);
         });
 
@@ -130,18 +131,14 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(5, $node->getLft());
 
-        $node = MenuItem::find(3);
-
-        $this->assertEquals(1, $node->getLft());
+        $this->assertOtherScopeNotAffected();
     }
 
     public function testInsertion()
     {
         $node = MenuItem::create([ 'menu_id' => 1, 'parent_id' => 5 ]);
 
-        $node = MenuItem::find(3);
-
-        $this->assertEquals(1, $node->getLft());
+        $this->assertOtherScopeNotAffected();
     }
 
     /*
@@ -160,6 +157,19 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(2, $node->getRgt());
 
+        $this->assertOtherScopeNotAffected();
+    }
+
+    public function testMoving()
+    {
+        $node = MenuItem::find(1);
+        $this->assertTrue($node->down());
+
+        $this->assertOtherScopeNotAffected();
+    }
+
+    protected function assertOtherScopeNotAffected()
+    {
         $node = MenuItem::find(3);
 
         $this->assertEquals(1, $node->getLft());

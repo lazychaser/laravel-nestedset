@@ -52,13 +52,11 @@ and the node that we are manipulating. It can be a fresh model or one from datab
 
 ### Relationships
 
-Node has two predefined relationships: `parent` and `children`. They are fully
-functional, except for Laravel's `has` due to limitations of the framework.
-You can use `hasChildren` or `hasParent` to apply constraints:
+Node has following relationships that are fully functional and can be eagerly loaded:
 
-```php
-$items = Category::hasChildren()->get();
-```
+-   Node belongs to `parent`
+-   Node has many `children`
+-   Node has many `descendants`
 
 ### Inserting nodes
 

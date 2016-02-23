@@ -259,11 +259,11 @@ trait NodeTrait
     /**
      * Get query for descendants of the node.
      *
-     * @return  QueryBuilder
+     * @return DescendantsRelation
      */
     public function descendants()
     {
-        return $this->newScopedQuery()->whereDescendantOf($this->getKey());
+        return new DescendantsRelation($this->newScopedQuery(), $this);
     }
 
     /**
@@ -926,9 +926,7 @@ trait NodeTrait
      */
     public function getDescendants(array $columns = array( '*' ))
     {
-        return $this->newScopedQuery()
-                    ->defaultOrder()
-                    ->descendantsOf($this->getKey(), $columns);
+        return $this->descendants()->get($columns);
     }
 
     /**

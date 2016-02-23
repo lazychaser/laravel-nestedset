@@ -705,6 +705,47 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(3, $node->getLft());
     }
+
+    public function testDescendantsRelation()
+    {
+        $node = $this->findCategory('notebooks');
+        $result = $node->descendants;
+
+        $this->assertEquals(2, $result->count());
+        $this->assertEquals('apple', $result->first()->name);
+    }
+
+    public function testDescendantsEagerlyLoaded()
+    {
+        $nodes = Category::whereIn('id', [ 2, 5 ])->get();
+
+        $nodes->load('descendants');
+
+        $this->assertEquals(2, $nodes->count());
+        $this->assertTrue($nodes->first()->relationLoaded('descendants'));
+    }
+
+    public function testDescendantsRelationQuery()
+    {
+        $nodes = Category::has('descendants')->whereIn('id', [ 2, 3 ])->get();
+
+        $this->assertEquals(1, $nodes->count());
+        $this->assertEquals(2, $nodes->first()->getKey());
+
+        $nodes = Category::has('descendants', '>', 2)->get();
+
+        $this->assertEquals(2, $nodes->count());
+        $this->assertEquals(1, $nodes[0]->getKey());
+        $this->assertEquals(5, $nodes[1]->getKey());
+    }
+
+    public function testParentRelationQuery()
+    {
+        $nodes = Category::has('parent')->whereIn('id', [ 1, 2 ]);
+
+        $this->assertEquals(1, $nodes->count());
+        $this->assertEquals(2, $nodes->first()->getKey());
+    }
 }
 
 function all($items)

@@ -12,6 +12,7 @@
 *   The number of missing parent is now returned when using `countErrors`
 *   #79: implemented scoping feature
 *   #81: moving node now makes model dirty before saving it
+*   #45: descendants is now a relation that can be eagerly loaded
 
 ### 3.1.1
 
