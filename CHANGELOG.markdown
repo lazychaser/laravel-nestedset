@@ -7,7 +7,6 @@
     -   `insertAfter` to `insertAfterNode`
     -   `getNext` to `getNextNode`
     -   `getPrev` to `getPrevNode`
-    
 *   #82: Fixing tree now handles case when nodes pointing non-existing parent
 *   The number of missing parent is now returned when using `countErrors`
 *   #79: implemented scoping feature

@@ -21,8 +21,9 @@ __Contents:__
 - [Documentation](#documentation)
     -   [Inserting nodes](#inserting-nodes)
     -   [Retrieving nodes](#retrieving-nodes)
-    -   [Scoping](#scoping)
+    -   [Deleting nodes](#deleting-nodes)
     -   [Consistency checking & fixing](#checking-consistency)
+    -   [Scoping](#scoping)
 - [Requirements](#requirements)
 - [Installation](#installation)
 
@@ -189,6 +190,9 @@ $node = Category::create([
 
 #### Ancestors
 
+Ancestors make a chain of parents to the node. Helpful for displaying breadcrumbs
+to the current category.
+
 ```php
 // #1 Using accessor
 $result = $node->getAncestors();
@@ -202,6 +206,9 @@ $result = Category::ancestorsOf($id);
 
 #### Descendants
 
+Descendants are all nodes in a sub tree, i.e. children of node, children of
+children, etc.
+
 ```php
 // #1 Using relationship
 $result = $node->descendants;
@@ -213,7 +220,15 @@ $result = $node->descendants()->get();
 $result = Category::descendantsOf($id);
 ```
 
+Descendants can be eagerly loaded:
+
+```php
+$nodes = Category::with('descendants')->whereIn('id', $idList)->get();
+```
+
 #### Siblings
+
+Siblings are nodes that have same parent.
 
 ```php
 $result = $node->getSiblings();
@@ -374,7 +389,7 @@ This will output something like this:
 - Another root
 ```
 
-##### Getting subtree
+##### Getting a subtree
 
 Sometimes you don't need whole tree to be loaded and just some subtree of specific node.
 It is show in following example:
