@@ -575,10 +575,10 @@ $table->index([ '_lft', '_rgt', 'parent_id' ]);
 
 ### The model
 
-Your model should use `Kalnoy\Nesetedset\NodeTrait` trait to enable nested sets:
+Your model should use `Kalnoy\Nestedset\NodeTrait` trait to enable nested sets:
 
 ```php
-use Kalnoy\Nesetedset\NodeTrait;
+use Kalnoy\Nestedset\NodeTrait;
 
 class Foo extends Model {
     use NodeTrait;
