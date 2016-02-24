@@ -16,6 +16,7 @@
     `has('parent')` instead
 *   Default order is no longer applied for `siblings()`, `descendants()`,
     `prevNodes`, `nextNodes`
+*   #50: implemented tree rebuilding feature
 
 ### 3.1.1
 

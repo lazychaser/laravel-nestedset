@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder as Query;
 use Illuminate\Database\Query\Builder as BaseQueryBuilder;
+use Illuminate\Support\Arr;
 use LogicException;
 use Illuminate\Database\Query\Expression;
 
@@ -726,9 +727,9 @@ class QueryBuilder extends Builder
     /**
      * Fixes the tree based on parentage info.
      *
-     * Requires at least one root node. This will not update nodes with invalid parent.
+     * Nodes with invalid parent are saved as roots.
      *
-     * @return int The number of fixed nodes.
+     * @return int The number of fixed nodes
      */
     public function fixTree()
     {
@@ -739,54 +740,64 @@ class QueryBuilder extends Builder
             $this->model->getRgtName(),
         ];
 
-        $nodes = $this->model
-                      ->newNestedSetQuery()
-                      ->defaultOrder()
-                      ->get($columns)
-                      ->groupBy($this->model->getParentIdName());
+        $dictionary = $this->defaultOrder()
+                           ->get($columns)
+                           ->groupBy($this->model->getParentIdName())
+                           ->all();
 
+        return self::fixNodes($dictionary);
+    }
+
+    /**
+     * @param array $dictionary
+     *
+     * @return int
+     */
+    protected static function fixNodes(array &$dictionary)
+    {
         $fixed = 0;
 
-        $cut = self::reorderNodes($nodes, $fixed);
+        $cut = self::reorderNodes($dictionary, $fixed);
 
-        // Saved nodes that have invalid parent as roots
-        while ( ! $nodes->isEmpty()) {
-            $parentId = $nodes->keys()->first();
+        // Save nodes that have invalid parent as roots
+        while ( ! empty($dictionary)) {
+            $dictionary[null] = reset($dictionary);
 
-            foreach ($nodes[$parentId] as $model) {
-                $model->setParentId(null);
-            }
+            unset($dictionary[key($dictionary)]);
 
-            $cut = self::reorderNodes($nodes, $fixed, $parentId, $cut);
+            $cut = self::reorderNodes($dictionary, $fixed, null, $cut);
         }
 
         return $fixed;
     }
 
     /**
-     * @param Collection $models
+     * @param array $dictionary
      * @param int $fixed
      * @param $parentId
      * @param int $cut
      *
      * @return int
      */
-    protected static function reorderNodes(Collection $models, &$fixed,
+    protected static function reorderNodes(array &$dictionary, &$fixed,
                                            $parentId = null, $cut = 1
     ) {
-        if ( ! isset($models[$parentId])) {
+        if ( ! isset($dictionary[$parentId])) {
             return $cut;
         }
 
-        /** @var Model|self $model */
-        foreach ($models[$parentId] as $model) {
-            $model->setLft($cut);
+        /** @var Model|NodeTrait $model */
+        foreach ($dictionary[$parentId] as $model) {
+            $lft = $cut;
 
-            $cut = self::reorderNodes($models, $fixed, $model->getKey(), $cut + 1);
+            $cut = self::reorderNodes($dictionary,
+                                      $fixed,
+                                      $model->getKey(),
+                                      $cut + 1);
 
-            $model->setRgt($cut);
+            $rgt = $cut;
 
-            if ($model->isDirty()) {
+            if ($model->rawNode($lft, $rgt, $parentId)->isDirty()) {
                 $model->save();
 
                 $fixed++;
@@ -795,13 +806,89 @@ class QueryBuilder extends Builder
             ++$cut;
         }
 
-        unset($models[$parentId]);
+        unset($dictionary[$parentId]);
 
         return $cut;
     }
 
     /**
-     * @param null $table
+     * Rebuild the tree based on raw data.
+     *
+     * If item data does not contain primary key, new node will be created.
+     *
+     * @param array $data
+     * @param bool $delete Whether to delete nodes that exists but not in the data
+     *                     array
+     *
+     * @return int
+     */
+    public function rebuildTree(array $data, $delete = false)
+    {
+        $existing = $this->get()->getDictionary();
+        $dictionary = [];
+
+        $this->buildRebuildDictionary($dictionary, $data, $existing);
+
+        if ( ! empty($existing)) {
+            if ($delete) {
+                $this->model
+                    ->newScopedQuery()
+                    ->whereIn($this->model->getKeyName(), array_keys($existing))
+                    ->forceDelete();
+            } else {
+                foreach ($existing as $model) {
+                    $dictionary[$model->getParentId()][] = $model;
+                }
+            }
+        }
+
+        return $this->fixNodes($dictionary);
+    }
+
+    /**
+     * @param array $dictionary
+     * @param array $data
+     * @param array $existing
+     * @param mixed $parentId
+     */
+    protected function buildRebuildDictionary(array &$dictionary,
+                                              array $data,
+                                              array &$existing,
+                                                    $parentId = null
+    ) {
+        $keyName = $this->model->getKeyName();
+
+        foreach ($data as $itemData) {
+            if ( ! isset($itemData[$keyName])) {
+                $model = $this->model->newInstance();
+
+                // We will save it as raw node since tree will be fixed
+                $model->rawNode(0, 0, $parentId);
+            } else {
+                if ( ! isset($existing[$key = $itemData[$keyName]])) {
+                    throw new ModelNotFoundException;
+                }
+
+                $model = $existing[$key];
+
+                unset($existing[$key]);
+            }
+
+            $model->fill($itemData)->save();
+
+            $dictionary[$parentId][] = $model;
+
+            if ( ! isset($itemData['children'])) continue;
+
+            $this->buildRebuildDictionary($dictionary,
+                                          $itemData['children'],
+                                          $existing,
+                                          $model->getKey());
+        }
+    }
+
+    /**
+     * @param string|null $table
      *
      * @return $this
      */

@@ -184,6 +184,34 @@ $node = Category::create([
 
 `$node->children` now contains a list of created child nodes.
 
+#### Rebuilding a tree from array
+
+You can easily rebuild a tree. This is useful for mass-changing the structure of
+the tree.
+
+```php
+Category::rebuildTree($data, $delete);
+```
+
+`$data` is an array of nodes:
+
+```php
+$data = [
+    [ 'id' => 1, 'name' => 'foo', 'children' => [ ... ] ],
+    [ 'name' => 'bar' ],
+];
+```
+
+There is an id specified for node with the name of `foo` which means that existing
+node will be filled and saved. If node is not exists `ModelNotFoundException` is
+thrown. Also, this node has `children` specified which is also an array of nodes;
+they will be processed in the same manner and saved as children of node `foo`.
+
+Node `bar` has no primary key specified, so it will be created.
+
+`$delete` shows whether to delete nodes that are already exists but not present
+in `$data`. By default, nodes aren't deleted.
+
 ### Retrieving nodes
 
 *In some cases we will use an `$id` variable which is an id of the target node.*
@@ -504,7 +532,7 @@ MenuItem::scoped([ 'menu_id' => 5 ])->fixTree();
 ```
 
 When requesting nodes using model instance, scopes applied automatically based 
-on data of that model. See examples:
+on the attributes of that model. See examples:
 
 ```php
 $node = MenuItem::findOrFail($id);

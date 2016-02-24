@@ -90,7 +90,7 @@ trait NodeTrait
      *
      * @return $this
      */
-    protected function setAction($action)
+    protected function setNodeAction($action)
     {
         $this->pending = func_get_args();
 
@@ -134,6 +134,14 @@ trait NodeTrait
         }
 
         return $softDelete;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function actionRaw()
+    {
+        return true;
     }
 
     /**
@@ -342,7 +350,7 @@ trait NodeTrait
      */
     public function makeRoot()
     {
-        return $this->setAction('root');
+        return $this->setNodeAction('root');
     }
 
     /**
@@ -420,7 +428,7 @@ trait NodeTrait
 
         $this->setParent($parent)->dirtyBounds();
 
-        return $this->setAction('appendOrPrepend', $parent, $prepend);
+        return $this->setNodeAction('appendOrPrepend', $parent, $prepend);
     }
 
     /**
@@ -463,7 +471,7 @@ trait NodeTrait
 
         $this->dirtyBounds();
 
-        return $this->setAction('beforeOrAfter', $node, $after);
+        return $this->setNodeAction('beforeOrAfter', $node, $after);
     }
 
     /**
@@ -493,6 +501,20 @@ trait NodeTrait
         $node->refreshNode();
 
         return true;
+    }
+
+    /**
+     * @param $lft
+     * @param $rgt
+     * @param $parentId
+     *
+     * @return $this
+     */
+    public function rawNode($lft, $rgt, $parentId)
+    {
+        $this->setLft($lft)->setRgt($rgt)->setParentId($parentId);
+
+        return $this->setNodeAction('raw');
     }
 
     /**

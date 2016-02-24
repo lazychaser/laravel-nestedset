@@ -667,6 +667,14 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertTrue($fixed > 0);
         $this->assertTreeNotBroken();
+
+        $node = Category::find(8);
+
+        $this->assertEquals(2, $node->getParentId());
+
+        $node = Category::find(2);
+
+        $this->assertEquals(null, $node->getParentId());
     }
 
     public function testParentIdDirtiness()
@@ -747,6 +755,49 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(2, $nodes->first()->getKey());
     }
 
+    public function testRebuildTree()
+    {
+        $fixed = Category::rebuildTree([
+            [
+                'id' => 1,
+                'children' => [
+                    [ 'id' => 3, 'name' => 'apple v2', 'children' => [ [ 'name' => 'new node' ] ] ],
+
+                ]
+            ]
+        ]);
+
+        $this->assertTrue($fixed > 0);
+        $this->assertTreeNotBroken();
+
+        $node = Category::find(3);
+
+        $this->assertEquals(1, $node->getParentId());
+        $this->assertEquals('apple v2', $node->name);
+
+        $node = $this->findCategory('new node');
+
+        $this->assertNotNull($node);
+        $this->assertEquals(3, $node->getParentId());
+    }
+
+    public function testRebuildTreeWithDeletion()
+    {
+        Category::rebuildTree([ [ 'name' => 'all deleted' ] ], true);
+
+        $nodes = Category::get();
+
+        $this->assertEquals(1, $nodes->count());
+        $this->assertEquals('all deleted', $nodes->first()->name);
+    }
+
+    /**
+     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
+    public function testRebuildFailsWithInvalidPK()
+    {
+        Category::rebuildTree([ [ 'id' => 24 ] ]);
+    }
 }
 
 function all($items)

@@ -46,11 +46,11 @@ class Collection extends BaseCollection
      *
      * If `$root` is provided, the tree will contain only descendants of that node.
      *
-     * @param int|Model|null $root
+     * @param mixed $root
      *
      * @return Collection
      */
-    public function toTree($root = null)
+    public function toTree($root = false)
     {
         if ($this->isEmpty()) {
             return new static;
@@ -77,13 +77,13 @@ class Collection extends BaseCollection
      *
      * @return int
      */
-    protected function getRootNodeId($root = null)
+    protected function getRootNodeId($root)
     {
         if (NestedSet::isNode($root)) {
             return $root->getKey();
         }
 
-        if ($root !== null) {
+        if ($root !== false) {
             return $root;
         }
 
