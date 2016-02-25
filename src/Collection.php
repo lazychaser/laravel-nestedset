@@ -101,4 +101,49 @@ class Collection extends BaseCollection
 
         return $root;
     }
+
+    /**
+     * Build a list of nodes that retain the order that they were pulled from
+     * the database.
+     *
+     * @return Collection|static
+     */
+    public function toFlattenedTree()
+    {
+        $tree = $this->toTree();
+
+        return $tree->flattenTree();
+    }
+
+    /**
+     * Flatten a tree into a non recursive array
+     */
+    public function flattenTree()
+    {
+        $items = [];
+
+        foreach ($this->items as $node) {
+            $items = array_merge($items, $this->flattenNode($node));
+        }
+
+        return new static($items);
+    }
+
+    /**
+     * Flatten a single node
+     *
+     * @param $node
+     * @return array
+     */
+    protected function flattenNode($node)
+    {
+        $items = [];
+        $items[] = $node;
+
+        foreach ($node->children as $childNode) {
+            $items = array_merge($items, $this->flattenNode($childNode));
+        }
+
+        return $items;
+    }
 }
