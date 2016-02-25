@@ -108,7 +108,7 @@ class Collection extends BaseCollection
      *
      * @return Collection|static
      */
-    public function toList()
+    public function toFlattenedTree()
     {
         $tree = $this->toTree();
 
