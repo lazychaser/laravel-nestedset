@@ -572,7 +572,9 @@ To install the package, in terminal:
 composer require kalnoy/nestedset
 ```
 
-### Adding required columns
+### Setting up from scratch
+
+#### The schema
 
 You can use a method to add needed columns with default names:
 
@@ -591,17 +593,7 @@ Schema::table('table', function (Blueprint $table) {
 });
 ```
 
-If, for some reasons, you want to init everything by yourself, this is preferred schema:
-
-```php
-$table->unsignedInteger('_lft');
-$table->unsignedInteger('_rgt');
-$table->unsignedInteger('parent_id')->nullable();
-
-$table->index([ '_lft', '_rgt', 'parent_id' ]);
-```
-
-### The model
+#### The model
 
 Your model should use `Kalnoy\Nestedset\NodeTrait` trait to enable nested sets:
 
@@ -613,10 +605,56 @@ class Foo extends Model {
 }
 ```
 
+### Migrating existing data
+
+#### Migrating from other nested set extension
+
+If your previous extension used different set of columns, you just need to override
+following methods on your model class:
+
+```php
+public function getLftName()
+{
+    return 'left';
+}
+
+public function getRgtName()
+{
+    return 'right';
+}
+
+public function getParentIdName()
+{
+    return 'parent';
+}
+
+// Specify parent id attribute mutator
+public function setParentAttribute($value)
+{
+    $this->setParentIdAttribute($value);
+}
+```
+
+#### Migrating from basic parentage info
+
+If your tree contains `parent_id` info, you need to add two columns to your schema:
+
+```php
+$table->unsignedInteger('_lft');
+$table->unsignedInteger('_rgt');
+```
+
+After [setting up your model](#the-model) you only need to fix the tree to fill 
+`_lft` and `_rgt` columns:
+
+```php
+MyModel::fixTree();
+```
+
 License
 =======
 
-Copyright (c) 2014 Alexander Kalnoy
+Copyright (c) 2016 Alexander Kalnoy
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
