@@ -609,8 +609,13 @@ class NodeTest extends PHPUnit_Framework_TestCase
         ]);
 
         $this->assertTreeNotBroken();
+
         $this->assertTrue(isset($node->children));
+
+        $node = $this->findCategory('test');
+
         $this->assertCount(2, $node->children);
+        $this->assertEquals('test2', $node->children[0]->name);
     }
 
     public function testDescendantsOfNonExistingNode()
@@ -761,7 +766,9 @@ class NodeTest extends PHPUnit_Framework_TestCase
             [
                 'id' => 1,
                 'children' => [
+                    [ 'id' => 10 ],
                     [ 'id' => 3, 'name' => 'apple v2', 'children' => [ [ 'name' => 'new node' ] ] ],
+                    [ 'id' => 2 ],
 
                 ]
             ]
@@ -774,6 +781,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $node->getParentId());
         $this->assertEquals('apple v2', $node->name);
+        $this->assertEquals(4, $node->getLft());
 
         $node = $this->findCategory('new node');
 
