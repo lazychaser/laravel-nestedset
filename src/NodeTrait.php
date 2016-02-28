@@ -755,11 +755,13 @@ trait NodeTrait
 
         $instance = new static($attributes);
 
-        if ($parent) {
-            $instance->appendToNode($parent);
+        if (is_null($parent) || !$parent->exists) {
+            $instance->makeRoot();
         } else {
-            $instance->actionRoot();
+            $instance->appendToNode($parent);
         }
+
+        $instance->callPendingAction();
 
         $instance->save();
 
