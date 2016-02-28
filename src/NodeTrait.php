@@ -757,6 +757,8 @@ trait NodeTrait
 
         if ($parent) {
             $instance->appendToNode($parent);
+        } else {
+            $instance->actionRoot();
         }
 
         $instance->save();
