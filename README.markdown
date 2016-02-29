@@ -417,6 +417,16 @@ This will output something like this:
 - Another root
 ```
 
+##### Building flat tree
+
+Also, you can build a flat tree: a list of nodes where child nodes are immediately
+after parent node. This is helpful when you get nodes with custom order
+(i.e. alphabetically) and don't want to use recursion to iterate over your nodes.
+
+```php
+$nodes = Category::get()->toFlatTree();
+```
+
 ##### Getting a subtree
 
 Sometimes you don't need whole tree to be loaded and just some subtree of specific node.

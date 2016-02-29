@@ -77,7 +77,7 @@ class Collection extends BaseCollection
      *
      * @return int
      */
-    protected function getRootNodeId($root)
+    protected function getRootNodeId($root = false)
     {
         if (NestedSet::isNode($root)) {
             return $root->getKey();
@@ -106,44 +106,38 @@ class Collection extends BaseCollection
      * Build a list of nodes that retain the order that they were pulled from
      * the database.
      *
-     * @return Collection|static
-     */
-    public function toFlattenedTree()
-    {
-        $tree = $this->toTree();
-
-        return $tree->flattenTree();
-    }
-
-    /**
-     * Flatten a tree into a non recursive array
-     */
-    public function flattenTree()
-    {
-        $items = [];
-
-        foreach ($this->items as $node) {
-            $items = array_merge($items, $this->flattenNode($node));
-        }
-
-        return new static($items);
-    }
-
-    /**
-     * Flatten a single node
+     * @param bool $root
      *
-     * @param $node
-     * @return array
+     * @return static
      */
-    protected function flattenNode($node)
+    public function toFlatTree($root = false)
     {
-        $items = [];
-        $items[] = $node;
+        $result = new static;
 
-        foreach ($node->children as $childNode) {
-            $items = array_merge($items, $this->flattenNode($childNode));
+        if ($this->isEmpty()) return $result;
+
+        $groupedNodes = $this->groupBy($this->first()->getParentIdName());
+
+        return $result->flattenTree($groupedNodes, $this->getRootNodeId($root));
+    }
+
+    /**
+     * Flatten a tree into a non recursive array.
+     *
+     * @param Collection $groupedNodes
+     * @param mixed $parentId
+     *
+     * @return $this
+     */
+    protected function flattenTree(self $groupedNodes, $parentId)
+    {
+        foreach ($groupedNodes->get($parentId, []) as $node) {
+            $this->push($node);
+
+            $this->flattenTree($groupedNodes, $node->getKey());
         }
 
-        return $items;
+        return $this;
     }
+
 }

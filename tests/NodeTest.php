@@ -806,6 +806,16 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         Category::rebuildTree([ [ 'id' => 24 ] ]);
     }
+
+    public function testFlatTree()
+    {
+        $node = $this->findCategory('mobile');
+        $tree = $node->descendants()->orderBy('name')->get()->toFlatTree();
+
+        $this->assertCount(5, $tree);
+        $this->assertEquals('samsung', $tree[2]->name);
+        $this->assertEquals('galaxy', $tree[3]->name);
+    }
 }
 
 function all($items)
