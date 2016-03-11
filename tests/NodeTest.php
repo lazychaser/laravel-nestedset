@@ -816,6 +816,21 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('samsung', $tree[2]->name);
         $this->assertEquals('galaxy', $tree[3]->name);
     }
+
+    public function testSeveralNodesModelWork()
+    {
+        $category = new Category;
+
+        $category->name = 'test';
+
+        $category->saveAsRoot();
+
+        $duplicate = new DuplicateCategory;
+
+        $duplicate->name = 'test';
+
+        $duplicate->saveAsRoot();
+    }
 }
 
 function all($items)
