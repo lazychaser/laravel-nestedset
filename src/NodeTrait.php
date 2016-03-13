@@ -45,37 +45,37 @@ trait NodeTrait
      */
     public static function bootNodeTrait()
     {
-        static::saving(function (self $model) {
+        static::saving(function ($model) {
             $model->getConnection()->beginTransaction();
 
             return $model->callPendingAction();
         });
 
-        static::saved(function (self $model) {
+        static::saved(function ($model) {
             $model->getConnection()->commit();
         });
 
-        static::deleting(function (self $model) {
+        static::deleting(function ($model) {
             $model->getConnection()->beginTransaction();
 
             // We will need fresh data to delete node safely
             $model->refreshNode();
         });
 
-        static::deleted(function (self $model) {
+        static::deleted(function ($model) {
             $model->deleteDescendants();
 
             $model->getConnection()->commit();
         });
 
         if (static::usesSoftDelete()) {
-            static::restoring(function (self $model) {
+            static::restoring(function ($model) {
                 $model->getConnection()->beginTransaction();
 
                 static::$deletedAt = $model->{$model->getDeletedAtColumn()};
             });
 
-            static::restored(function (self $model) {
+            static::restored(function ($model) {
                 $model->restoreDescendants(static::$deletedAt);
 
                 $model->getConnection()->commit();
