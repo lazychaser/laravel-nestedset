@@ -49,6 +49,10 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         $checks = array();
 
+        $connection = Capsule::connection();
+
+        $table = $connection->getQueryGrammar()->wrapTable($table);
+
         // Check if lft and rgt values are ok
         $checks[] = "from $table where _lft >= _rgt or (_rgt - _lft) % 2 = 0";
 
@@ -66,7 +70,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $sql = 'select max(error) as errors from ('.implode(' union ', $checks).') _';
 
-        $actual = Capsule::connection()->selectOne($sql);
+        $actual = $connection->selectOne($sql);
 
         $this->assertEquals(null, $actual->errors, "The tree structure of $table is broken!");
         $actual = (array)Capsule::connection()->selectOne($sql);

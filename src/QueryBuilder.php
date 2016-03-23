@@ -316,12 +316,15 @@ class QueryBuilder extends Builder
 
         list($lft, $rgt) = $this->wrappedColumns();
 
+        $alias = '_d';
+        $wrappedAlias = $this->query->getGrammar()->wrapTable($alias);
+
         $query = $this->model
             ->newScopedQuery('_d')
             ->toBase()
             ->selectRaw('count(1) - 1')
-            ->from($this->model->getTable().' as _d')
-            ->whereRaw("{$table}.{$lft} between _d.{$lft} and _d.{$rgt}");
+            ->from($this->model->getTable().' as '.$alias)
+            ->whereRaw("{$table}.{$lft} between {$wrappedAlias}.{$lft} and {$wrappedAlias}.{$rgt}");
 
         $this->query->selectSub($query, $as);
 
@@ -625,21 +628,27 @@ class QueryBuilder extends Builder
     {
         $table = $this->wrappedTable();
 
+        $firstAlias = 'c1';
+        $secondAlias = 'c2';
+
+        $waFirst = $this->query->getGrammar()->wrapTable($firstAlias);
+        $waSecond = $this->query->getGrammar()->wrapTable($secondAlias);
+
         $query = $this->model
-            ->newNestedSetQuery('c1')
+            ->newNestedSetQuery($firstAlias)
             ->toBase()
-            ->from($this->query->raw("{$table} c1, {$table} c2"))
-            ->whereRaw("c1.id < c2.id")
-            ->whereNested(function (BaseQueryBuilder $inner) {
+            ->from($this->query->raw("{$table} as {$waFirst}, {$table} {$waSecond}"))
+            ->whereRaw("{$waFirst}.id < {$waSecond}.id")
+            ->whereNested(function (BaseQueryBuilder $inner) use ($waFirst, $waSecond) {
                 list($lft, $rgt) = $this->wrappedColumns();
 
-                $inner->orWhereRaw("c1.{$lft}=c2.{$lft}")
-                      ->orWhereRaw("c1.{$rgt}=c2.{$rgt}")
-                      ->orWhereRaw("c1.{$lft}=c2.{$rgt}")
-                      ->orWhereRaw("c1.{$rgt}=c2.{$lft}");
+                $inner->orWhereRaw("{$waFirst}.{$lft}={$waSecond}.{$lft}")
+                      ->orWhereRaw("{$waFirst}.{$rgt}={$waSecond}.{$rgt}")
+                      ->orWhereRaw("{$waFirst}.{$lft}={$waSecond}.{$rgt}")
+                      ->orWhereRaw("{$waFirst}.{$rgt}={$waSecond}.{$lft}");
             });
 
-        return $this->model->applyNestedSetScope($query, 'c2');
+        return $this->model->applyNestedSetScope($query, $secondAlias);
     }
 
     /**
@@ -649,25 +658,36 @@ class QueryBuilder extends Builder
     {
         $table = $this->wrappedTable();
         $keyName = $this->wrappedKey();
-        $parentIdName = $this->query->raw($this->model->getParentIdName());
+
+        $grammar = $this->query->getGrammar();
+
+        $parentIdName = $grammar->wrap($this->model->getParentIdName());
+
+        $parentAlias = 'p';
+        $childAlias = 'c';
+        $intermAlias = 'i';
+
+        $waParent = $grammar->wrapTable($parentAlias);
+        $waChild = $grammar->wrapTable($childAlias);
+        $waInterm = $grammar->wrapTable($intermAlias);
 
         $query = $this->model
             ->newNestedSetQuery('c')
             ->toBase()
-            ->from($this->query->raw("{$table} c, {$table} p, $table m"))
-            ->whereRaw("c.{$parentIdName}=p.{$keyName}")
-            ->whereRaw("m.{$keyName} <> p.{$keyName}")
-            ->whereRaw("m.{$keyName} <> c.{$keyName}")
-            ->whereNested(function (BaseQueryBuilder $inner) {
+            ->from($this->query->raw("{$table} as {$waChild}, {$table} as {$waParent}, $table as {$waInterm}"))
+            ->whereRaw("{$waChild}.{$parentIdName}={$waParent}.{$keyName}")
+            ->whereRaw("{$waInterm}.{$keyName} <> {$waParent}.{$keyName}")
+            ->whereRaw("{$waInterm}.{$keyName} <> {$waChild}.{$keyName}")
+            ->whereNested(function (BaseQueryBuilder $inner) use ($waInterm, $waChild, $waParent) {
                 list($lft, $rgt) = $this->wrappedColumns();
 
-                $inner->whereRaw("c.{$lft} not between p.{$lft} and p.{$rgt}")
-                      ->orWhereRaw("c.{$lft} between m.{$lft} and m.{$rgt}")
-                      ->whereRaw("m.{$lft} between p.{$lft} and p.{$rgt}");
+                $inner->whereRaw("{$waChild}.{$lft} not between {$waParent}.{$lft} and {$waParent}.{$rgt}")
+                      ->orWhereRaw("{$waChild}.{$lft} between {$waInterm}.{$lft} and {$waInterm}.{$rgt}")
+                      ->whereRaw("{$waInterm}.{$lft} between {$waParent}.{$lft} and {$waParent}.{$rgt}");
             });
 
-        $this->model->applyNestedSetScope($query, 'p');
-        $this->model->applyNestedSetScope($query, 'm');
+        $this->model->applyNestedSetScope($query, $parentAlias);
+        $this->model->applyNestedSetScope($query, $intermAlias);
 
         return $query;
     }
@@ -681,19 +701,23 @@ class QueryBuilder extends Builder
             ->newNestedSetQuery()
             ->toBase()
             ->whereNested(function (BaseQueryBuilder $inner) {
+                $grammar = $this->query->getGrammar();
+
                 $table = $this->wrappedTable();
                 $keyName = $this->wrappedKey();
-                $parentIdName = $this->query->raw($this->model->getParentIdName());
+                $parentIdName = $grammar->wrap($this->model->getParentIdName());
+                $alias = 'p';
+                $wrappedAlias = $grammar->wrapTable($alias);
 
                 $existsCheck = $this->model
                     ->newNestedSetQuery()
                     ->toBase()
                     ->selectRaw('1')
-                    ->from($this->query->raw("{$table} p"))
-                    ->whereRaw("{$table}.{$parentIdName} = p.{$keyName}")
+                    ->from($this->query->raw("{$table} as {$wrappedAlias}"))
+                    ->whereRaw("{$table}.{$parentIdName} = {$wrappedAlias}.{$keyName}")
                     ->limit(1);
 
-                $this->model->applyNestedSetScope($existsCheck, 'p');
+                $this->model->applyNestedSetScope($existsCheck, $alias);
 
                 $inner->whereRaw("{$parentIdName} is not null")
                       ->addWhereExistsQuery($existsCheck, 'and', true);

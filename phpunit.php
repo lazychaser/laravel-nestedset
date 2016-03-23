@@ -3,7 +3,7 @@
 include __DIR__.'/vendor/autoload.php';
 
 $capsule = new \Illuminate\Database\Capsule\Manager;
-$capsule->addConnection(array('driver' => 'sqlite', 'database' => ':memory:'));
+$capsule->addConnection([ 'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => 'prefix' ]);
 $capsule->setEventDispatcher(new \Illuminate\Events\Dispatcher);
 $capsule->bootEloquent();
 $capsule->setAsGlobal();

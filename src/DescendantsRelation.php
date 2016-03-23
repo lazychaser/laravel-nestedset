@@ -52,10 +52,12 @@ class DescendantsRelation extends Relation
 
         $query->from($table.' as '.$hash = $this->getRelationCountHash());
 
-        $table = $this->wrap($table);
-        $hash = $this->wrap($hash);
-        $lft = $this->wrap($this->parent->getLftName());
-        $rgt = $this->wrap($this->parent->getRgtName());
+        $grammar = $query->getQuery()->getGrammar();
+
+        $table = $grammar->wrapTable($table);
+        $hash = $grammar->wrapTable($hash);
+        $lft = $grammar->wrap($this->parent->getLftName());
+        $rgt = $grammar->wrap($this->parent->getRgtName());
 
         return $query->whereRaw("{$hash}.{$lft} between {$table}.{$lft} + 1 and {$table}.{$rgt}");
     }
