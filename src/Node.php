@@ -257,12 +257,16 @@ class Node extends Eloquent
      * Apply parent model.
      *
      * @param Node|null $value
+     *
+     * @return $this
      */
     protected function setParent($value)
     {
         $this->attributes[$this->getParentIdName()] = $value ? $value->getKey() : null;
 
         $this->setRelation('parent', $value);
+
+        return $this;
     }
 
     /**
@@ -504,7 +508,7 @@ class Node extends Eloquent
             throw new LogicException('Cannot use non-existing node as a parent.');
         }
 
-        $this->setParent($parent);
+        $this->setParent($parent)->dirtyBounds();
 
         return $this->setAction('appendOrPrepend', $parent, $prepend);
     }
@@ -548,6 +552,8 @@ class Node extends Eloquent
         if ( ! $this->isSiblingOf($node)) {
             $this->setParent($node->getRelationValue('parent'));
         }
+
+        $this->dirtyBounds();
 
         return $this->setAction('beforeOrAfter', $node, $after);
     }
@@ -1142,18 +1148,34 @@ class Node extends Eloquent
 
     /**
      * @param $value
+     *
+     * @return $this
      */
     public function setLft($value)
     {
         $this->setAttribute($this->getLftName(), $value);
+
+        return $this;
     }
 
     /**
      * @param $value
+     *
+     * @return $this
      */
     public function setRgt($value)
     {
         $this->setAttribute($this->getRgtName(), $value);
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    protected function dirtyBounds()
+    {
+        return $this->setLft(null)->setRgt(null);
     }
 
     /**
