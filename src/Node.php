@@ -504,9 +504,8 @@ class Node extends Eloquent
      */
     public function appendOrPrependTo(Node $parent, $prepend = false)
     {
-        if ( ! $parent->exists) {
-            throw new LogicException('Cannot use non-existing node as a parent.');
-        }
+        $this->assertNodeExists($parent)
+             ->assertNotDescendant($parent);
 
         $this->setParent($parent)->dirtyBounds();
 
@@ -545,9 +544,8 @@ class Node extends Eloquent
      */
     public function beforeOrAfterNode(Node $node, $after = false)
     {
-        if ( ! $node->exists) {
-            throw new LogicException('Cannot insert before/after a node that does not exists.');
-        }
+        $this->assertNodeExists($node)
+             ->assertNotDescendant($node);
 
         if ( ! $this->isSiblingOf($node)) {
             $this->setParent($node->getRelationValue('parent'));
@@ -1235,6 +1233,34 @@ class Node extends Eloquent
         }
 
         return $cut;
+    }
+
+    /**
+     * @param Node $node
+     *
+     * @return $this
+     */
+    protected function assertNotDescendant(Node $node)
+    {
+        if ($node == $this || $node->isDescendantOf($this)) {
+            throw new LogicException('Node must not be a descendant.');
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param Node $node
+     *
+     * @return $this
+     */
+    protected function assertNodeExists(Node $node)
+    {
+        if ( ! $node->getLft() || ! $node->getRgt()) {
+            throw new LogicException('Node must exists.');
+        }
+
+        return $this;
     }
 
 //    public static function rebuildTree(array $nodes, $createNodes = true, $deleteNodes = false)
