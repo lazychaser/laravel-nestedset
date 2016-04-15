@@ -379,6 +379,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $node->restore();
 
         $this->assertNull($this->findCategory('samsung'));
+        $this->assertNotNull($this->findCategory('nokia'));
     }
 
     public function testSoftDeletedNodeisDeletedWhenParentIsDeleted()

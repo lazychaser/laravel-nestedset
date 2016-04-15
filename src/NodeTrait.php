@@ -648,7 +648,6 @@ trait NodeTrait
     {
         $this->descendants()
              ->where($this->getDeletedAtColumn(), '>=', $deletedAt)
-             ->applyScopes()
              ->restore();
     }
 
