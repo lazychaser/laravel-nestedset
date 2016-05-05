@@ -461,7 +461,7 @@ $node->delete();
 Category::where('id', '=', $id)->delete();
 ```
 
-This will brake the tree!
+This will break the tree!
 
 `SoftDeletes` trait is supported, also on model level.
 
