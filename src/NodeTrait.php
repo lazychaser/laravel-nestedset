@@ -288,6 +288,29 @@ trait NodeTrait
     }
 
     /**
+     * Get the node siblings and the node itself.
+     *
+     * @return \Kalnoy\Nestedset\QueryBuilder
+     */
+    public function siblingsAndSelf()
+    {
+        return $this->newScopedQuery()
+                    ->where($this->getParentIdName(), '=', $this->getParentId());
+    }
+
+    /**
+     * Get query for the node siblings and the node itself.
+     *
+     * @param  array  $columns
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getSiblingsAndSelf(array $columns = [ '*' ])
+    {
+        return $this->siblingsAndSelf()->get($columns);
+    }
+
+    /**
      * Get query for siblings after the node.
      *
      * @return QueryBuilder
