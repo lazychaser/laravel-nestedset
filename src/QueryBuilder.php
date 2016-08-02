@@ -764,7 +764,8 @@ class QueryBuilder extends Builder
             $this->model->getRgtName(),
         ];
 
-        $dictionary = $this->defaultOrder()
+        $dictionary = $this->model->newNestedSetQuery()
+                           ->defaultOrder()
                            ->get($columns)
                            ->groupBy($this->model->getParentIdName())
                            ->all();
