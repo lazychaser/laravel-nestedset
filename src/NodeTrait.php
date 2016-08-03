@@ -130,7 +130,7 @@ trait NodeTrait
         if (is_null($softDelete)) {
             $instance = new static;
 
-            return $softDelete = method_exists($instance, 'withTrashed');
+            return $softDelete = method_exists($instance, 'bootSoftDeletes');
         }
 
         return $softDelete;
@@ -285,29 +285,6 @@ trait NodeTrait
         return $this->newScopedQuery()
                     ->where($this->getKeyName(), '<>', $this->getKey())
                     ->where($this->getParentIdName(), '=', $this->getParentId());
-    }
-
-    /**
-     * Get the node siblings and the node itself.
-     *
-     * @return \Kalnoy\Nestedset\QueryBuilder
-     */
-    public function siblingsAndSelf()
-    {
-        return $this->newScopedQuery()
-                    ->where($this->getParentIdName(), '=', $this->getParentId());
-    }
-
-    /**
-     * Get query for the node siblings and the node itself.
-     *
-     * @param  array  $columns
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getSiblingsAndSelf(array $columns = [ '*' ])
-    {
-        return $this->siblingsAndSelf()->get($columns);
     }
 
     /**
