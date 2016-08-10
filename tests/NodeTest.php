@@ -258,21 +258,21 @@ class NodeTest extends PHPUnit_Framework_TestCase
     public function testAncestorsReturnsAncestorsWithoutNodeItself()
     {
         $node = $this->findCategory('apple');
-        $path = all($node->ancestors()->lists('name'));
+        $path = all($node->ancestors()->pluck('name'));
 
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
 
     public function testGetsAncestorsByStatic()
     {
-        $path = all(Category::ancestorsOf(3)->lists('name'));
+        $path = all(Category::ancestorsOf(3)->pluck('name'));
 
         $this->assertEquals(array('store', 'notebooks'), $path);
     }
 
     public function testGetsAncestorsDirect()
     {
-        $path = all(Category::find(8)->getAncestors()->lists('id'));
+        $path = all(Category::find(8)->getAncestors()->pluck('id'));
 
         $this->assertEquals(array(1, 5, 7), $path);
     }
@@ -280,12 +280,12 @@ class NodeTest extends PHPUnit_Framework_TestCase
     public function testDescendants()
     {
         $node = $this->findCategory('mobile');
-        $descendants = all($node->descendants()->lists('name'));
+        $descendants = all($node->descendants()->pluck('name'));
         $expected = array('nokia', 'samsung', 'galaxy', 'sony', 'lenovo');
 
         $this->assertEquals($expected, $descendants);
 
-        $descendants = all($node->getDescendants()->lists('name'));
+        $descendants = all($node->getDescendants()->pluck('name'));
 
         $this->assertEquals(count($descendants), $node->getDescendantCount());
         $this->assertEquals($expected, $descendants);
@@ -293,7 +293,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
     public function testWithDepthWorks()
     {
-        $nodes = all(Category::withDepth()->limit(4)->lists('depth'));
+        $nodes = all(Category::withDepth()->limit(4)->pluck('depth'));
 
         $this->assertEquals(array(0, 1, 2, 2), $nodes);
     }
@@ -408,17 +408,17 @@ class NodeTest extends PHPUnit_Framework_TestCase
     public function testSiblings()
     {
         $node = $this->findCategory('samsung');
-        $siblings = all($node->siblings()->lists('id'));
-        $next = all($node->nextSiblings()->lists('id'));
-        $prev = all($node->prevSiblings()->lists('id'));
+        $siblings = all($node->siblings()->pluck('id'));
+        $next = all($node->nextSiblings()->pluck('id'));
+        $prev = all($node->prevSiblings()->pluck('id'));
 
         $this->assertEquals(array(6, 9, 10), $siblings);
         $this->assertEquals(array(9, 10), $next);
         $this->assertEquals(array(6), $prev);
 
-        $siblings = all($node->getSiblings()->lists('id'));
-        $next = all($node->getNextSiblings()->lists('id'));
-        $prev = all($node->getPrevSiblings()->lists('id'));
+        $siblings = all($node->getSiblings()->pluck('id'));
+        $next = all($node->getNextSiblings()->pluck('id'));
+        $prev = all($node->getPrevSiblings()->pluck('id'));
 
         $this->assertEquals(array(6, 9, 10), $siblings);
         $this->assertEquals(array(9, 10), $next);
@@ -641,7 +641,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
     public function testAncestorsByNode()
     {
         $category = $this->findCategory('apple');
-        $ancestors = all(Category::whereAncestorOf($category)->lists('id'));
+        $ancestors = all(Category::whereAncestorOf($category)->pluck('id'));
 
         $this->assertEquals([ 1, 2 ], $ancestors);
     }
@@ -649,7 +649,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
     public function testDescendantsByNode()
     {
         $category = $this->findCategory('notebooks');
-        $res = all(Category::whereDescendantOf($category)->lists('id'));
+        $res = all(Category::whereDescendantOf($category)->pluck('id'));
 
         $this->assertEquals([ 3, 4 ], $res);
     }
