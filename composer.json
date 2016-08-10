@@ -13,9 +13,9 @@
 
     "require": {
         "php": ">=5.5.9",
-        "illuminate/support": "5.2.*",
-        "illuminate/database": "5.2.*",
-        "illuminate/events": "5.2.*"
+        "illuminate/support": "5.2.*|5.3.x",
+        "illuminate/database": "5.2.*|5.3.x",
+        "illuminate/events": "5.2.*|5.3.x"
     },
 
     "autoload": { "psr-4": { "Kalnoy\\Nestedset\\": "src/" } },
@@ -28,5 +28,7 @@
         "branch-alias": {
             "dev-master": "v4.1.x-dev"
         }
-    }
+    },
+
+    "minimum-stability": "dev"
 }
