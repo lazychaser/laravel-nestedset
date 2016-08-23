@@ -240,7 +240,7 @@ trait NodeTrait
         $attributes = $this->newNestedSetQuery()->getNodeData($this->getKey());
 
         $this->attributes = array_merge($this->attributes, $attributes);
-        $this->original = array_merge($this->original, $attributes);
+//        $this->original = array_merge($this->original, $attributes);
     }
 
     /**
@@ -297,7 +297,7 @@ trait NodeTrait
         return $this->newScopedQuery()
                     ->where($this->getParentIdName(), '=', $this->getParentId());
     }
- 
+
     /**
      * Get query for the node siblings and the node itself.
      *
@@ -309,7 +309,7 @@ trait NodeTrait
     {
         return $this->siblingsAndSelf()->get($columns);
     }
-    
+
     /**
      * Get query for siblings after the node.
      *
