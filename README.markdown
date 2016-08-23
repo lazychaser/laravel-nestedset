@@ -6,7 +6,7 @@
 
 This is a Laravel 4-5 package for working with trees in relational databases.
 
-*   **Laravel 5.2** is supported since v4
+*   **Laravel 5.2, 5.3** is supported since v4
 *   **Laravel 5.1** is supported in v3
 *   **Laravel 4** is supported in v2
 
@@ -42,7 +42,7 @@ a way to effectively store hierarchical data in a relational table. From wikiped
 ### Applications
 
 NSM shows good performance when tree is updated rarely. It is tuned to be fast for
-getting related nodes. It'is ideally suited for building multi-depth menu or 
+getting related nodes. It'is ideally suited for building multi-depth menu or
 categories for shop.
 
 Documentation
@@ -62,7 +62,7 @@ Node has following relationships that are fully functional and can be eagerly lo
 ### Inserting nodes
 
 Moving and inserting nodes includes several database queries, so __transaction is
-automatically started__ when node is saved. It is safe to use global transaction 
+automatically started__ when node is saved. It is safe to use global transaction
 if you work with several models.
 
 Another important note is that __structural manipulations are deferred__ until you
@@ -148,7 +148,7 @@ $parent->prependNode($node);
 
 You can make `$node` to be a neighbor of the `$neighbor` node using following methods:
 
-*`$neighbor` must exists, target node can be fresh. If target node exists, 
+*`$neighbor` must exists, target node can be fresh. If target node exists,
 it will be moved to the new position and parent will be changed if it's required.*
 
 ```php
@@ -169,11 +169,11 @@ When using static method `create` on node, it checks whether attributes contains
 ```php
 $node = Category::create([
     'name' => 'Foo',
-    
+
     'children' => [
         [
             'name' => 'Bar',
-            
+
             'children' => [
                 [ 'name' => 'Baz' ],
             ],
@@ -225,7 +225,7 @@ to the current category.
 // #1 Using accessor
 $result = $node->getAncestors();
 
-// #2 Using a query 
+// #2 Using a query
 $result = $node->ancestors()->get();
 
 // #3 Getting ancestors by primary key
@@ -270,7 +270,7 @@ To get only next siblings:
 // Get a sibling that is immediately after the node
 $result = $node->getNextSibling();
 
-// Get all siblings that are after the node 
+// Get all siblings that are after the node
 $result = $node->getNextSiblings();
 
 // Get all siblings using a query
@@ -283,7 +283,7 @@ To get previous siblings:
 // Get a sibling that is immediately before the node
 $result = $node->getPrevSibling();
 
-// Get all siblings that are before the node 
+// Get all siblings that are before the node
 $result = $node->getPrevSiblings();
 
 // Get all siblings using a query
@@ -507,10 +507,10 @@ It will return an array with following keys:
     doesn't correspond to `lft` and `rgt` values
 -   `missing_parent` -- the number of nodes that have `parent_id` pointing to
     node that doesn't exists
-    
+
 #### Fixing tree
 
-Since v3.1 tree can now be fixed. Using inheritance info from `parent_id` column, 
+Since v3.1 tree can now be fixed. Using inheritance info from `parent_id` column,
 proper `_lft` and `_rgt` values are set for every node.
 
 ```php
@@ -521,7 +521,7 @@ Node::fixTree();
 
 Imagine you have `Menu` model and `MenuItems`. There is a one-to-many relationship
 set up between these models. `MenuItem` has `menu_id` attribute for joining models
-together. `MenuItem` incorporates nested sets. It is obvious that you would want to 
+together. `MenuItem` incorporates nested sets. It is obvious that you would want to
 process each tree separately based on `menu_id` attribute. In order to do so, you
 need to specify this attribute as scope attribute:
 
@@ -541,7 +541,7 @@ MenuItem::descendantsOf($id)->get(); // WRONG: returns nodes from other scope
 MenuItem::scoped([ 'menu_id' => 5 ])->fixTree();
 ```
 
-When requesting nodes using model instance, scopes applied automatically based 
+When requesting nodes using model instance, scopes applied automatically based
 on the attributes of that model. See examples:
 
 ```php
@@ -556,7 +556,7 @@ To get scoped query builder using instance:
 $node->newScopedQuery();
 ```
 
-Note, that scoping is not required when retrieving model by primary key 
+Note, that scoping is not required when retrieving model by primary key
 (since the key is unique):
 
 ```php
@@ -570,7 +570,7 @@ Requirements
 - PHP >= 5.4
 - Laravel >= 4.1
 
-It is highly suggested to use database that supports transactions (like MySql's InnoDb) 
+It is highly suggested to use database that supports transactions (like MySql's InnoDb)
 to secure a tree from possible corruption.
 
 Installation
@@ -654,7 +654,7 @@ $table->unsignedInteger('_lft');
 $table->unsignedInteger('_rgt');
 ```
 
-After [setting up your model](#the-model) you only need to fix the tree to fill 
+After [setting up your model](#the-model) you only need to fix the tree to fill
 `_lft` and `_rgt` columns:
 
 ```php
