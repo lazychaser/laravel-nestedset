@@ -899,7 +899,7 @@ class QueryBuilder extends Builder
                 unset($existing[$key]);
             }
 
-            $model->fill($itemData)->save();
+            $model->fill(Arr::except($itemData, 'children'))->save();
 
             $dictionary[$parentId][] = $model;
 
