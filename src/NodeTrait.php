@@ -46,13 +46,17 @@ trait NodeTrait
     public static function bootNodeTrait()
     {
         static::saving(function ($model) {
-            $model->getConnection()->beginTransaction();
+            if ($model->isDirty()) {
+                $model->getConnection()->beginTransaction();
+            }
 
             return $model->callPendingAction();
         });
 
         static::saved(function ($model) {
-            $model->getConnection()->commit();
+            if ($model->isDirty()) {
+                $model->getConnection()->commit();
+            }
         });
 
         static::deleting(function ($model) {
