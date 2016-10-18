@@ -297,7 +297,7 @@ How can you get all goods of `$category` and every its descendant? Easy!
 
 ```php
 // Get ids of descendants
-$categories = $category->descendants()->lists('id');
+$categories = $category->descendants()->pluck('id');
 
 // Include the id of category itself
 $categories[] = $category->getKey();
