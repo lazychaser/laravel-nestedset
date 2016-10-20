@@ -1138,7 +1138,9 @@ trait NodeTrait
      */
     protected function dirtyBounds()
     {
-        return $this->setLft(null)->setRgt(null);
+        $this->original[$this->getLftName()] = null;
+        $this->original[$this->getRgtName()] = null;
+        return $this;
     }
 
     /**
