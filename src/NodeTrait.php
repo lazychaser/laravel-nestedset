@@ -46,39 +46,25 @@ trait NodeTrait
     public static function bootNodeTrait()
     {
         static::saving(function ($model) {
-            $model->getConnection()->beginTransaction();
-
             return $model->callPendingAction();
         });
 
-        static::saved(function ($model) {
-            $model->getConnection()->commit();
-        });
-
         static::deleting(function ($model) {
-            $model->getConnection()->beginTransaction();
-
             // We will need fresh data to delete node safely
             $model->refreshNode();
         });
 
         static::deleted(function ($model) {
             $model->deleteDescendants();
-
-            $model->getConnection()->commit();
         });
 
         if (static::usesSoftDelete()) {
             static::restoring(function ($model) {
-                $model->getConnection()->beginTransaction();
-
                 static::$deletedAt = $model->{$model->getDeletedAtColumn()};
             });
 
             static::restored(function ($model) {
                 $model->restoreDescendants(static::$deletedAt);
-
-                $model->getConnection()->commit();
             });
         }
     }
@@ -1140,11 +1126,12 @@ trait NodeTrait
     {
         $this->original[$this->getLftName()] = null;
         $this->original[$this->getRgtName()] = null;
+
         return $this;
     }
 
     /**
-     * @param NodeTrait $node
+     * @param self $node
      *
      * @return $this
      */
@@ -1158,7 +1145,7 @@ trait NodeTrait
     }
 
     /**
-     * @param NodeTrait $node
+     * @param self $node
      *
      * @return $this
      */
