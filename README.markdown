@@ -246,6 +246,9 @@ $result = $node->descendants()->get();
 
 // #3 Getting descendants by primary key
 $result = Category::descendantsOf($id);
+
+// #3 Get descendants and the node by id
+$result = Category::descendantsAndSelf($id);
 ```
 
 Descendants can be eagerly loaded:
@@ -372,6 +375,9 @@ $result = Category::whereDescendantOf($node)->get();
 $result = Category::whereNotDescendantOf($node)->get();
 $result = Category::orWhereDescendantOf($node)->get();
 $result = Category::orWhereNotDescendantOf($node)->get();
+
+// Include target node into result set
+$result = Category::whereDescendantOrSelf($node)->get();
 ```
 
 Ancestor constraints:

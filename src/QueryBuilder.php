@@ -169,11 +169,13 @@ class QueryBuilder extends Builder
      * @param mixed $id
      * @param string $boolean
      * @param bool $not
+     * @param bool $andSelf
      *
      * @return $this
      */
-    public function whereDescendantOf($id, $boolean = 'and', $not = false)
-    {
+    public function whereDescendantOf($id, $boolean = 'and', $not = false,
+                                      $andSelf = false
+    ) {
         if (NestedSet::isNode($id)) {
             $data = $id->getBounds();
         } else {
@@ -182,7 +184,9 @@ class QueryBuilder extends Builder
         }
 
         // Don't include the node
-        ++$data[0];
+        if ( ! $andSelf) {
+            ++$data[0];
+        }
 
         return $this->whereNodeBetween($data, $boolean, $not);
     }
@@ -218,24 +222,48 @@ class QueryBuilder extends Builder
     }
 
     /**
+     * @param $id
+     * @param string $boolean
+     * @param bool $not
+     *
+     * @return $this
+     */
+    public function whereDescendantOrSelf($id, $boolean = 'and', $not = false)
+    {
+        return $this->whereDescendantOf($id, $boolean, $not, true);
+    }
+
+    /**
      * Get descendants of specified node.
      *
      * @since 2.0
      *
      * @param mixed $id
      * @param array $columns
+     * @param bool $andSelf
      *
-     * @return \Kalnoy\Nestedset\Collection
+     * @return Collection
      */
-    public function descendantsOf($id, array $columns = array( '*' ))
+    public function descendantsOf($id, array $columns = [ '*' ], $andSelf = false)
     {
         try {
-            return $this->whereDescendantOf($id)->get($columns);
+            return $this->whereDescendantOf($id, 'and', false, $andSelf)->get($columns);
         }
 
         catch (ModelNotFoundException $e) {
             return $this->model->newCollection();
         }
+    }
+
+    /**
+     * @param $id
+     * @param array $columns
+     *
+     * @return Collection
+     */
+    public function descendantsAndSelf($id, array $columns = [ '*' ])
+    {
+        return $this->descendantsOf($id, $columns, true);
     }
 
     /**

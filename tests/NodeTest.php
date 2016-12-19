@@ -289,6 +289,11 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(count($descendants), $node->getDescendantCount());
         $this->assertEquals($expected, $descendants);
+
+        $descendants = all(Category::descendantsAndSelf(7)->pluck('name'));
+        $expected = [ 'samsung', 'galaxy' ];
+
+        $this->assertEquals($expected, $descendants);
     }
 
     public function testWithDepthWorks()
