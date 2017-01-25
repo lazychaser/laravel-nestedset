@@ -6,7 +6,7 @@
 
 This is a Laravel 4-5 package for working with trees in relational databases.
 
-*   **Laravel 5.2, 5.3** is supported since v4
+*   **Laravel 5.2, 5.3, 5.4** is supported since v4
 *   **Laravel 5.1** is supported in v3
 *   **Laravel 4** is supported in v2
 

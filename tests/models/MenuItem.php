@@ -1,19 +1,22 @@
 <?php
 
-class MenuItem extends \Kalnoy\Nestedset\Node
+
+class MenuItem extends \Illuminate\Database\Eloquent\Model
 {
+    use \Kalnoy\Nestedset\NodeTrait;
+
     public $timestamps = false;
-    
-    protected $fillable = [ 'menu_id' ];
-    
+
+    protected $fillable = ['menu_id'];
+
     public static function resetActionsPerformed()
     {
         static::$actionsPerformed = 0;
     }
-    
+
     protected function getScopeAttributes()
     {
-        return [ 'menu_id' ];
+        return ['menu_id'];
     }
 
 }
