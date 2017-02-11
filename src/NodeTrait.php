@@ -370,7 +370,7 @@ trait NodeTrait
     public function saveAsRoot()
     {
         if ($this->exists && $this->isRoot()) {
-            return true;
+            return $this->save();
         }
 
         return $this->makeRoot()->save();
