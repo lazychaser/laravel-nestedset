@@ -43,7 +43,7 @@ class DescendantsRelation extends Relation
      *
      * @return mixed
      */
-    public function getRelationQuery(EloquentBuilder $query, EloquentBuilder $parent,
+    public function getRelationExistenceQuery(EloquentBuilder $query, EloquentBuilder $parent,
                                         $columns = [ '*' ]
     ) {
         $query->select($columns);
