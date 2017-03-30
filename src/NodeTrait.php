@@ -778,6 +778,8 @@ trait NodeTrait
             $child->setRelation('parent', $instance);
         }
 
+        $instance->refreshNode();
+
         return $instance->setRelation('children', $relation);
     }
 
