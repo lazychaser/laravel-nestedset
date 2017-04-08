@@ -38,8 +38,8 @@ class NestedSet
      */
     public static function columns(Blueprint $table)
     {
-        $table->unsignedInteger(self::LFT);
-        $table->unsignedInteger(self::RGT);
+        $table->unsignedInteger(self::LFT)->default(0);
+        $table->unsignedInteger(self::RGT)->default(0);
         $table->unsignedInteger(self::PARENT_ID)->nullable();
 
         $table->index(self::getDefaultColumns());
