@@ -375,6 +375,7 @@ $result = Category::whereDescendantOf($node)->get();
 $result = Category::whereNotDescendantOf($node)->get();
 $result = Category::orWhereDescendantOf($node)->get();
 $result = Category::orWhereNotDescendantOf($node)->get();
+$result = Category::whereDescendantAndSelf($id)->get();
 
 // Include target node into result set
 $result = Category::whereDescendantOrSelf($node)->get();
@@ -384,6 +385,7 @@ Ancestor constraints:
 
 ```php
 $result = Category::whereAncestorOf($node)->get();
+$result = Category::whereAncestorOrSelf($id)->get();
 ```
 
 `$node` can be either a primary key of the model or model instance.
@@ -490,6 +492,7 @@ Other checks:
 *   `$node->isChildOf($other);`
 *   `$node->isAncestorOf($other);`
 *   `$node->isSiblingOf($other);`
+*   `$node->isLeaf()`
 
 ### Checking consistency
 

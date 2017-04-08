@@ -803,10 +803,16 @@ class NodeTest extends PHPUnit_Framework_TestCase
     {
         Category::rebuildTree([ [ 'name' => 'all deleted' ] ], true);
 
+        $this->assertTreeNotBroken();
+
         $nodes = Category::get();
 
         $this->assertEquals(1, $nodes->count());
         $this->assertEquals('all deleted', $nodes->first()->name);
+
+        $nodes = Category::withTrashed()->get();
+
+        $this->assertTrue($nodes->count() > 1);
     }
 
     /**
@@ -840,6 +846,19 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $duplicate->name = 'test';
 
         $duplicate->saveAsRoot();
+    }
+
+    public function testWhereIsLeaf()
+    {
+        $categories = Category::leaves();
+
+        $this->assertEquals(7, $categories->count());
+        $this->assertEquals('apple', $categories->first()->name);
+        $this->assertTrue($categories->first()->isLeaf());
+
+        $category = Category::whereIsRoot()->first();
+
+        $this->assertFalse($category->isLeaf());
     }
 }
 

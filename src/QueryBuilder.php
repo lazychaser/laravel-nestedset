@@ -2,6 +2,7 @@
 
 namespace Kalnoy\Nestedset;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -77,10 +78,11 @@ class QueryBuilder extends Builder
      * @since 2.0
      *
      * @param mixed $id
+     * @param bool $andSelf
      *
      * @return $this
      */
-    public function whereAncestorOf($id)
+    public function whereAncestorOf($id, $andSelf = false)
     {
         $keyName = $this->model->getKeyName();
 
@@ -109,9 +111,21 @@ class QueryBuilder extends Builder
         $this->query->whereRaw("{$value} between {$lft} and {$rgt}");
 
         // Exclude the node
-        $this->where($keyName, '<>', $id);
+        if ( ! $andSelf) {
+            $this->where($keyName, '<>', $id);
+        }
 
         return $this;
+    }
+
+    /**
+     * @param $id
+     *
+     * @return QueryBuilder
+     */
+    public function whereAncestorOrSelf($id)
+    {
+        return $this->whereAncestorOf($id, true);
     }
 
     /**
@@ -127,6 +141,17 @@ class QueryBuilder extends Builder
     public function ancestorsOf($id, array $columns = array( '*' ))
     {
         return $this->whereAncestorOf($id)->get($columns);
+    }
+
+    /**
+     * @param $id
+     * @param array $columns
+     *
+     * @return \Kalnoy\Nestedset\Collection
+     */
+    public function ancestorsAndSelf($id, array $columns = [ '*' ])
+    {
+        return $this->whereAncestorOf($id, true)->get($columns);
     }
 
     /**
@@ -327,6 +352,26 @@ class QueryBuilder extends Builder
     public function whereIsBefore($id, $boolean = 'and')
     {
         return $this->whereIsBeforeOrAfter($id, '<', $boolean);
+    }
+
+    /**
+     * @return $this
+     */
+    public function whereIsLeaf()
+    {
+        list($lft, $rgt) = $this->wrappedColumns();
+
+        return $this->whereRaw("$lft = $rgt - 1");
+    }
+
+    /**
+     * @param array $columns
+     *
+     * @return Collection
+     */
+    public function leaves(array $columns = [ '*'])
+    {
+        return $this->whereIsLeaf()->get($columns);
     }
 
     /**
@@ -877,20 +922,32 @@ class QueryBuilder extends Builder
      */
     public function rebuildTree(array $data, $delete = false)
     {
+        if ($this->model->usesSoftDelete()) {
+            $this->withTrashed();
+        }
+
         $existing = $this->get()->getDictionary();
         $dictionary = [];
 
         $this->buildRebuildDictionary($dictionary, $data, $existing);
 
         if ( ! empty($existing)) {
-            if ($delete) {
+            if ($delete && ! $this->model->usesSoftDelete()) {
                 $this->model
                     ->newScopedQuery()
                     ->whereIn($this->model->getKeyName(), array_keys($existing))
-                    ->forceDelete();
+                    ->delete();
             } else {
                 foreach ($existing as $model) {
                     $dictionary[$model->getParentId()][] = $model;
+
+                    if ($this->model->usesSoftDelete()) {
+                        if ( ! $model->{$model->getDeletedAtColumn()}) {
+                            $time = $this->model->fromDateTime($this->model->freshTimestamp());
+
+                            $model->{$model->getDeletedAtColumn()} = $time;
+                        }
+                    }
                 }
             }
         }

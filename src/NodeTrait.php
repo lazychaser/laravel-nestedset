@@ -836,6 +836,14 @@ trait NodeTrait
     }
 
     /**
+     * @return bool
+     */
+    public function isLeaf()
+    {
+        return $this->getLft() + 1 == $this->getRgt();
+    }
+
+    /**
      * Get the lft key name.
      *
      * @return  string

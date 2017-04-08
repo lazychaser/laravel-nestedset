@@ -1,3 +1,10 @@
+### 4.2.3
+
+*   Added `whereAncestorOrSelf`, `ancestorsAndSelf`, `descendantsOrSelf`,
+    `whereDescendantOrSelf` helper methods
+*   #186: rebuild tree removes nodes softly when model uses SoftDeletes trait
+*   #191: added `whereIsLeaf` and `leaves` method, added `isLeaf` check on node
+
 ### 4.1.0
 
 *   #75: Converted to trait. Following methods were renamed:
@@ -21,7 +28,7 @@
 
 ### 3.1.1
 
-*   Fixed #42: model becomes dirty before save when parent is changed and using `appendTo`, 
+*   Fixed #42: model becomes dirty before save when parent is changed and using `appendTo`,
     `prependTo`, `insertBefore`, `insertAfter`.
 
 ### 3.1.0
