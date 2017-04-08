@@ -42,7 +42,7 @@ class NestedSet
         $table->unsignedInteger(self::RGT)->default(0);
         $table->unsignedInteger(self::PARENT_ID)->nullable();
 
-        $table->index(self::getDefaultColumns());
+        $table->index(static::getDefaultColumns());
     }
 
     /**
@@ -52,7 +52,7 @@ class NestedSet
      */
     public static function dropColumns(Blueprint $table)
     {
-        $columns = self::getDefaultColumns();
+        $columns = static::getDefaultColumns();
 
         $table->dropIndex($columns);
         $table->dropColumn($columns);
@@ -65,7 +65,7 @@ class NestedSet
      */
     public static function getDefaultColumns()
     {
-        return [ self::LFT, self::RGT, self::PARENT_ID ];
+        return [ static::LFT, static::RGT, static::PARENT_ID ];
     }
 
     /**

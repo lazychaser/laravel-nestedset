@@ -778,6 +778,8 @@ trait NodeTrait
             $child->setRelation('parent', $instance);
         }
 
+        $instance->refreshNode();
+
         return $instance->setRelation('children', $relation);
     }
 
@@ -1007,6 +1009,19 @@ trait NodeTrait
     }
 
     /**
+     * Get whether a node is itself or a descendant of other node.
+     *
+     * @param self $other
+     *
+     * @return bool
+     */
+    public function isSelfOrDescendantOf(self $other)
+    {
+        return $this->getLft() >= $other->getLft() &&
+               $this->getLft() < $other->getRgt();
+    }
+
+    /**
      * Get whether the node is immediate children of other node.
      *
      * @param self $other
@@ -1040,6 +1055,18 @@ trait NodeTrait
     public function isAncestorOf(self $other)
     {
         return $other->isDescendantOf($this);
+    }
+
+    /**
+     * Get whether the node is itself or an ancestor of other node, including immediate parent.
+     *
+     * @param self $other
+     *
+     * @return bool
+     */
+    public function isSelfOrAncestorOf(self $other)
+    {
+        return $other->isSelfOrDescendantOf($this);
     }
 
     /**
