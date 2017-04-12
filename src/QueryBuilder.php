@@ -941,12 +941,12 @@ class QueryBuilder extends Builder
                 foreach ($existing as $model) {
                     $dictionary[$model->getParentId()][] = $model;
 
-                    if ($this->model->usesSoftDelete()) {
-                        if ( ! $model->{$model->getDeletedAtColumn()}) {
-                            $time = $this->model->fromDateTime($this->model->freshTimestamp());
+                    if ($delete && $this->model->usesSoftDelete() &&
+                        ! $model->{$model->getDeletedAtColumn()}
+                    ) {
+                        $time = $this->model->fromDateTime($this->model->freshTimestamp());
 
-                            $model->{$model->getDeletedAtColumn()} = $time;
-                        }
+                        $model->{$model->getDeletedAtColumn()} = $time;
                     }
                 }
             }
@@ -970,7 +970,7 @@ class QueryBuilder extends Builder
 
         foreach ($data as $itemData) {
             if ( ! isset($itemData[$keyName])) {
-                $model = $this->model->newInstance();
+                $model = $this->model->newInstance($this->model->getAttributes());
 
                 // We will save it as raw node since tree will be fixed
                 $model->rawNode(0, 0, $parentId);
