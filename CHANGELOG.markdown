@@ -1,3 +1,7 @@
+### 4.2.4
+
+*   Fixed issues related to rebuilding tree when using `SoftDeletes` and scoping
+
 ### 4.2.3
 
 *   Added `whereAncestorOrSelf`, `ancestorsAndSelf`, `descendantsOrSelf`,
