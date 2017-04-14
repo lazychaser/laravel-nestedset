@@ -347,9 +347,7 @@ trait NodeTrait
      */
     public function ancestors()
     {
-        return $this->newScopedQuery()
-                    ->whereAncestorOf($this)
-                    ->defaultOrder();
+        return new AncestorsRelation($this->newScopedQuery(), $this);
     }
 
     /**
