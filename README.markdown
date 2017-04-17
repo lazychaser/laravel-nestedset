@@ -57,6 +57,7 @@ Node has following relationships that are fully functional and can be eagerly lo
 
 -   Node belongs to `parent`
 -   Node has many `children`
+-   Node has many `ancestors`
 -   Node has many `descendants`
 
 ### Inserting nodes
@@ -230,6 +231,18 @@ $result = $node->ancestors()->get();
 
 // #3 Getting ancestors by primary key
 $result = Category::ancestorsOf($id);
+```
+
+A collection of ancestors can be eagerly loaded:
+
+```php
+$categories = Category::with('ancestors')->paginate(30);
+
+// in view for breadcrumbs:
+@foreach($categories as $i => $category)
+    <small>{{ $category->ancestors->count() ? implode(' > ', $category->ancestors->pluck('name')->toArray()) : 'Top Level' }}</small><br>
+    {{ $category->name }}
+@endforeach
 ```
 
 #### Descendants
