@@ -341,9 +341,9 @@ trait NodeTrait
     }
 
     /**
-     * Get query for ancestors to the node not including the node itself.
+     * Get query ancestors of the node.
      *
-     * @return  QueryBuilder
+     * @return  AncestorsRelation
      */
     public function ancestors()
     {

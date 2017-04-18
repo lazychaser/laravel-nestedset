@@ -137,7 +137,7 @@ class AncestorsRelation extends Relation
         $this->query->whereNested(function (Builder $inner) use ($sql) {
             $inner->whereRaw($sql);
         });
-        $this->query->orderBy('lft', 'ASC');
+        $this->query->orderBy($this->parent->getLftName(), 'ASC');
     }
 
     /**
