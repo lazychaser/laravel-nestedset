@@ -51,6 +51,7 @@ class DescendantsRelation extends Relation
         $table = $query->getModel()->getTable();
 
         $query->from($table.' as '.$hash = $this->getRelationCountHash());
+		$query->getModel()->setTable($hash);
 
         $grammar = $query->getQuery()->getGrammar();
 

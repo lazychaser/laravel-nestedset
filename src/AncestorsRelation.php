@@ -63,6 +63,7 @@ class AncestorsRelation extends Relation
         $table = $query->getModel()->getTable();
 
         $query->from($table.' as '.$hash = $this->getRelationSubSelectHash());
+		$query->getModel()->setTable($hash);
 
         $grammar = $query->getQuery()->getGrammar();
 
