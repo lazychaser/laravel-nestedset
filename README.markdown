@@ -611,6 +611,9 @@ composer require kalnoy/nestedset
 You can use a method to add needed columns with default names:
 
 ```php
+...
+use Kalnoy\Nestedset\NestedSet;
+
 Schema::create('table', function (Blueprint $table) {
     ...
     NestedSet::columns($table);
@@ -620,6 +623,9 @@ Schema::create('table', function (Blueprint $table) {
 To drop columns:
 
 ```php
+...
+use Kalnoy\Nestedset\NestedSet;
+
 Schema::table('table', function (Blueprint $table) {
     NestedSet::dropColumns($table);
 });
