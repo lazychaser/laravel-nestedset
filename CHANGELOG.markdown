@@ -1,3 +1,9 @@
+### 4.2.5
+
+*   #208: dirty parent and bounds when making a root
+*   #206: fixed where has on descendants
+*   refactored ancestors and descendants relations
+
 ### 4.2.4
 
 *   Fixed issues related to rebuilding tree when using `SoftDeletes` and scoping

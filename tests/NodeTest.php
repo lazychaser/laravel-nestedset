@@ -698,6 +698,11 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $node->parent_id = 5;
 
         $this->assertTrue($node->isDirty('parent_id'));
+
+        $node = $this->findCategory('apple');
+        $node->parent_id = null;
+
+        $this->assertTrue($node->isDirty('parent_id'));
     }
 
     public function testIsDirtyMovement()
@@ -928,6 +933,18 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($expectedShape, $output);
     }
 
+    public function testWhereHasCountQueryForAncestors()
+    {
+        $categories = all(Category::has('ancestors', '>', 2)->pluck('name'));
+
+        $this->assertEquals([ 'galaxy' ], $categories);
+
+        $categories = all(Category::whereHas('ancestors', function ($query) {
+            $query->where('id', 5);
+        })->pluck('name'));
+
+        $this->assertEquals([ 'nokia', 'samsung', 'galaxy', 'sony', 'lenovo' ], $categories);
+    }
 
 }
 

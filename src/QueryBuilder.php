@@ -80,23 +80,25 @@ class QueryBuilder extends Builder
      * @param mixed $id
      * @param bool $andSelf
      *
+     * @param string $boolean
+     *
      * @return $this
      */
-    public function whereAncestorOf($id, $andSelf = false)
+    public function whereAncestorOf($id, $andSelf = false, $boolean = 'and')
     {
         $keyName = $this->model->getKeyName();
 
         if (NestedSet::isNode($id)) {
             $value = '?';
 
-            $this->query->addBinding($id->getLft());
+            $this->query->addBinding($id->getRgt());
 
             $id = $id->getKey();
         } else {
             $valueQuery = $this->model
                 ->newQuery()
                 ->toBase()
-                ->select("_.".$this->model->getLftName())
+                ->select("_.".$this->model->getRgtName())
                 ->from($this->model->getTable().' as _')
                 ->where($keyName, '=', $id)
                 ->limit(1);
@@ -106,16 +108,29 @@ class QueryBuilder extends Builder
             $value = '('.$valueQuery->toSql().')';
         }
 
-        list($lft, $rgt) = $this->wrappedColumns();
+        $this->query->whereNested(function ($inner) use ($value, $andSelf, $id) {
+            list($lft, $rgt) = $this->wrappedColumns();
 
-        $this->query->whereRaw("{$value} between {$lft} and {$rgt}");
+            $inner->whereRaw("{$value} between {$lft} and {$rgt}");
 
-        // Exclude the node
-        if ( ! $andSelf) {
-            $this->where($keyName, '<>', $id);
-        }
+            if ( ! $andSelf) {
+                $inner->where($this->model->getKeyName(), '<>', $id);
+            }
+        }, $boolean);
+
 
         return $this;
+    }
+
+    /**
+     * @param $id
+     * @param bool $andSelf
+     *
+     * @return $this
+     */
+    public function orWhereAncestorOf($id, $andSelf = false)
+    {
+        return $this->whereAncestorOf($id, $andSelf, 'or');
     }
 
     /**

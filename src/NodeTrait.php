@@ -85,8 +85,6 @@ trait NodeTrait
 
     /**
      * Call pending action.
-     *
-     * @return null|false
      */
     protected function callPendingAction()
     {
@@ -145,11 +143,6 @@ trait NodeTrait
             return true;
         }
 
-        if ($this->isRoot()) return false;
-
-        // Reset parent object
-        $this->setParent(null);
-
         return $this->insertAt($this->getLowerBound() + 1);
     }
 
@@ -195,7 +188,7 @@ trait NodeTrait
      */
     protected function setParent($value)
     {
-        $this->setParentId( $value ? $value->getKey() : null)
+        $this->setParentId($value ? $value->getKey() : null)
              ->setRelation('parent', $value);
 
         return $this;
@@ -357,6 +350,8 @@ trait NodeTrait
      */
     public function makeRoot()
     {
+        $this->setParent(null)->dirtyBounds();
+
         return $this->setNodeAction('root');
     }
 

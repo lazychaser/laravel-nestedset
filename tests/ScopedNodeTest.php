@@ -174,4 +174,10 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $node->getLft());
     }
+
+    public function testRebuildsTree()
+    {
+        $data = [];
+        MenuItem::scoped([ 'menu_id' => 2 ])->rebuildTree($data);
+    }
 }
