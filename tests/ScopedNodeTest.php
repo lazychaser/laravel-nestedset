@@ -130,6 +130,7 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $node->saveAsRoot();
 
         $this->assertEquals(5, $node->getLft());
+        $this->assertEquals(null, $node->parent_id);
 
         $this->assertOtherScopeNotAffected();
     }
@@ -138,11 +139,14 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
     {
         $node = MenuItem::create([ 'menu_id' => 1, 'parent_id' => 5 ]);
 
+        $this->assertEquals(5, $node->parent_id);
+        $this->assertEquals(5, $node->getLft());
+
         $this->assertOtherScopeNotAffected();
     }
 
-    /*
-     * @expectedException
+    /**
+     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function testInsertionToParentFromOtherScope()
     {
@@ -179,5 +183,27 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
     {
         $data = [];
         MenuItem::scoped([ 'menu_id' => 2 ])->rebuildTree($data);
+    }
+
+    /**
+     * @expectedException LogicException
+     */
+    public function testAppendingToAnotherScopeFails()
+    {
+        $a = MenuItem::find(1);
+        $b = MenuItem::find(3);
+
+        $a->appendToNode($b)->save();
+    }
+
+    /**
+     * @expectedException LogicException
+     */
+    public function testInsertingBeforeAnotherScopeFails()
+    {
+        $a = MenuItem::find(1);
+        $b = MenuItem::find(3);
+
+        $a->insertAfterNode($b);
     }
 }

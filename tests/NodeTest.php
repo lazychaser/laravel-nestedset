@@ -11,6 +11,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $schema->dropIfExists('categories');
 
+        Capsule::disableQueryLog();
+
         $schema->create('categories', function (\Illuminate\Database\Schema\Blueprint $table) {
             $table->increments('id');
             $table->string('name');
@@ -26,6 +28,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $data = include __DIR__.'/data/categories.php';
 
         Capsule::table('categories')->insert($data);
+
+        Capsule::flushQueryLog();
 
         Category::resetActionsPerformed();
 

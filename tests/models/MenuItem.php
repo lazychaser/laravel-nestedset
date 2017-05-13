@@ -7,7 +7,7 @@ class MenuItem extends \Illuminate\Database\Eloquent\Model
 
     public $timestamps = false;
 
-    protected $fillable = ['menu_id'];
+    protected $fillable = ['menu_id','parent_id'];
 
     public static function resetActionsPerformed()
     {
