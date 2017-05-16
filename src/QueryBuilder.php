@@ -86,7 +86,7 @@ class QueryBuilder extends Builder
      */
     public function whereAncestorOf($id, $andSelf = false, $boolean = 'and')
     {
-        $keyName = $this->model->getKeyName();
+        $keyName = $this->model->getQualifiedKeyName();
 
         if (NestedSet::isNode($id)) {
             $value = '?';
@@ -108,13 +108,13 @@ class QueryBuilder extends Builder
             $value = '('.$valueQuery->toSql().')';
         }
 
-        $this->query->whereNested(function ($inner) use ($value, $andSelf, $id) {
+        $this->query->whereNested(function ($inner) use ($value, $andSelf, $id, $keyName) {
             list($lft, $rgt) = $this->wrappedColumns();
 
             $inner->whereRaw("{$value} between {$lft} and {$rgt}");
 
             if ( ! $andSelf) {
-                $inner->where($this->model->getKeyName(), '<>', $id);
+                $inner->where($keyName, '<>', $id);
             }
         }, $boolean);
 
