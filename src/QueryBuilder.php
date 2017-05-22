@@ -86,7 +86,7 @@ class QueryBuilder extends Builder
      */
     public function whereAncestorOf($id, $andSelf = false, $boolean = 'and')
     {
-        $keyName = $this->model->getQualifiedKeyName();
+        $keyName = $this->model->getTable() . '.' . $this->model->getKeyName();
 
         if (NestedSet::isNode($id)) {
             $value = '?';
