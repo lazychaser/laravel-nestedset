@@ -108,6 +108,13 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $result->count());
         $this->assertEquals(2, $result->first()->getKey());
+
+        $node = MenuItem::with('ancestors')->find(5);
+
+        $result = $node->ancestors;
+
+        $this->assertEquals(1, $result->count());
+        $this->assertEquals(2, $result->first()->getKey());
     }
 
     public function testDepth()

@@ -79,7 +79,7 @@ abstract class BaseRelation extends Relation
     public function getRelationExistenceQuery(EloquentBuilder $query, EloquentBuilder $parent,
                                               $columns = [ '*' ]
     ) {
-        $query = $this->getParent()->newInstance()->newScopedQuery()->select($columns);
+        $query = $this->getParent()->replicate()->newScopedQuery()->select($columns);
 
         $table = $query->getModel()->getTable();
 
@@ -154,14 +154,16 @@ abstract class BaseRelation extends Relation
      */
     public function addEagerConstraints(array $models)
     {
+        $model = reset($models);
+
+        $this->query = $model->newScopedQuery();
+
         $this->query->whereNested(function (Builder $inner) use ($models) {
             // We will use this query in order to apply constraints to the
             // base query builder
-            $outer = $this->parent->newScopedQuery();
+            $outer = $this->parent->newQuery()->setQuery($inner);
 
             foreach ($models as $model) {
-                $outer->setQuery($inner);
-
                 $this->addEagerConstraint($outer, $model);
             }
         });

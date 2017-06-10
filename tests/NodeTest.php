@@ -332,6 +332,8 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $node->parent_id = null;
         $node->save();
 
+        $node->refreshNode();
+
         $this->assertEquals(null, $node->parent_id);
         $this->assertTrue($node->isRoot());
     }

@@ -7,10 +7,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Database\Query\Builder;
 use LogicException;
-use MongoDB\Driver\Query;
 
 trait NodeTrait
 {
@@ -934,9 +931,7 @@ trait NodeTrait
      */
     public function getAncestors(array $columns = [ '*' ])
     {
-        return $this->newScopedQuery()
-            ->defaultOrder()
-            ->ancestorsOf($this, $columns);
+        return $this->ancestors()->get($columns);
     }
 
     /**
