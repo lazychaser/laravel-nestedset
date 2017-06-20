@@ -1,3 +1,7 @@
+### 4.2.7
+
+*   #217: parent_id, lft and rgt are reset when replicating a node
+
 ### 4.2.5
 
 *   #208: dirty parent and bounds when making a root

@@ -107,7 +107,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
     /**
      * @param $name
      *
-     * @return \Kalnoy\Nestedset\Node
+     * @return \Category
      */
     public function findCategory($name, $withTrashed = false)
     {
@@ -950,6 +950,25 @@ class NodeTest extends PHPUnit_Framework_TestCase
         })->pluck('name'));
 
         $this->assertEquals([ 'nokia', 'samsung', 'galaxy', 'sony', 'lenovo' ], $categories);
+    }
+
+    public function testReplication()
+    {
+        $category = $this->findCategory('nokia');
+        $category = $category->replicate();
+        $category->save();
+        $category->refreshNode();
+
+        $this->assertNull($category->getParentId());
+
+        $category = $this->findCategory('nokia');
+        $category = $category->replicate();
+        $category->parent_id = 1;
+        $category->save();
+
+        $category->refreshNode();
+
+        $this->assertEquals(1, $category->getParentId());
     }
 
 }

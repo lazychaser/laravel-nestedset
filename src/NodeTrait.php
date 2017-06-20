@@ -1199,4 +1199,22 @@ trait NodeTrait
             }
         }
     }
+
+    /**
+     * @param array|null $except
+     *
+     * @return \Illuminate\Database\Eloquent\Model
+     */
+    public function replicate(array $except = null)
+    {
+        $defaults = [
+            $this->getParentIdName(),
+            $this->getLftName(),
+            $this->getRgtName(),
+        ];
+
+        $except = $except ? array_unique(array_merge($except, $defaults)) : $defaults;
+
+        return parent::replicate($except);
+    }
 }
