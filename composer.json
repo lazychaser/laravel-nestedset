@@ -13,15 +13,15 @@
 
     "require": {
         "php": ">=5.5.9",
-        "illuminate/support": "5.2.* | 5.3.* | 5.4.*",
-        "illuminate/database": "5.2.* | 5.3.* | 5.4.*",
-        "illuminate/events": "5.2.* | 5.3.* | 5.4.*"
+        "illuminate/support": "5.2.* | 5.3.* | 5.4.* | 5.5.*",
+        "illuminate/database": "5.2.* | 5.3.* | 5.4.* | 5.5.*",
+        "illuminate/events": "5.2.* | 5.3.* | 5.4.* | 5.5.*"
     },
 
-    "autoload": { 
-        "psr-4": { 
-            "Kalnoy\\Nestedset\\": "src/" 
-        } 
+    "autoload": {
+        "psr-4": {
+            "Kalnoy\\Nestedset\\": "src/"
+        }
     },
 
     "require-dev": {
