@@ -100,7 +100,7 @@ class QueryBuilder extends Builder
                 ->toBase()
                 ->select("_.".$this->model->getRgtName())
                 ->from($this->model->getTable().' as _')
-                ->where($keyName, '=', $id)
+                ->where($this->model->getKeyName(), '=', $id)
                 ->limit(1);
 
             $this->query->mergeBindings($valueQuery);
