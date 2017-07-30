@@ -62,9 +62,10 @@ Node has following relationships that are fully functional and can be eagerly lo
 
 ### Inserting nodes
 
-Moving and inserting nodes includes several database queries, so __transaction is
-automatically started__ when node is saved. It is safe to use global transaction
-if you work with several models.
+Moving and inserting nodes includes several database queries, so it is
+highly recommended to use transactions.
+
+__IMPORTANT!__ As of v4.2.0 transaction is not automatically started
 
 Another important note is that __structural manipulations are deferred__ until you
 hit `save` on model (some methods implicitly call `save` and return boolean result
@@ -217,20 +218,37 @@ in `$data`. By default, nodes aren't deleted.
 
 *In some cases we will use an `$id` variable which is an id of the target node.*
 
-#### Ancestors
+#### Ancestors and descendants
 
 Ancestors make a chain of parents to the node. Helpful for displaying breadcrumbs
 to the current category.
 
+Descendants are all nodes in a sub tree, i.e. children of node, children of
+children, etc.
+
+Both ancestors and descendants can be eagerly loaded.
+
 ```php
-// #1 Using accessor
-$result = $node->getAncestors();
+// Accessing ancestors
+$node->ancestors;
 
-// #2 Using a query
-$result = $node->ancestors()->get();
+// Accessing descendants
+$node->descendants;
+```
 
-// #3 Getting ancestors by primary key
+It is possible to load ancestors and descendants using custom query:
+
+```php
 $result = Category::ancestorsOf($id);
+$result = Category::ancestorsAndSelf($id);
+$result = Category::descendantsOf($id);
+$result = Category::descendantsAndSelf($id);
+```
+
+In most cases, you need your ancestors to be ordered by the level:
+
+```php
+$result = Category::defaultOrder()->ancestorsOf($id);
 ```
 
 A collection of ancestors can be eagerly loaded:
@@ -243,31 +261,6 @@ $categories = Category::with('ancestors')->paginate(30);
     <small>{{ $category->ancestors->count() ? implode(' > ', $category->ancestors->pluck('name')->toArray()) : 'Top Level' }}</small><br>
     {{ $category->name }}
 @endforeach
-```
-
-#### Descendants
-
-Descendants are all nodes in a sub tree, i.e. children of node, children of
-children, etc.
-
-```php
-// #1 Using relationship
-$result = $node->descendants;
-
-// #2 Using a query
-$result = $node->descendants()->get();
-
-// #3 Getting descendants by primary key
-$result = Category::descendantsOf($id);
-
-// #3 Get descendants and the node by id
-$result = Category::descendantsAndSelf($id);
-```
-
-Descendants can be eagerly loaded:
-
-```php
-$nodes = Category::with('descendants')->whereIn('id', $idList)->get();
 ```
 
 #### Siblings
@@ -340,14 +333,20 @@ To get nodes of specified level, you can apply `having` constraint:
 $result = Category::withDepth()->having('depth', '=', 1)->get();
 ```
 
+__IMPORTANT!__ This will not work in database strict mode
+
 #### Default order
 
-Each node has it's own unique `_lft` value that determines its position in the tree. If
-you want node to be ordered by this value, you can use `defaultOrder` method on
-the query builder:
+All nodes are strictly organized internally. By default, no order is
+applied, so nodes may appear in random order and this doesn't affect
+displaying a tree. You can order nodes by alphabet or other index.
+
+But in some cases hierarchical order is essential. It is required for
+retrieving ancestors and can be used to order menu items.
+
+To apply tree order `defaultOrder` method is used:
 
 ```php
-// All nodes will now be ordered by lft value
 $result = Category::defaultOrder()->get();
 ```
 
@@ -356,8 +355,6 @@ You can get nodes in reversed order:
 ```php
 $result = Category::reversed()->get();
 ```
-
-##### Shifting a node
 
 To shift node up or down inside parent to affect default order:
 
@@ -448,17 +445,27 @@ after parent node. This is helpful when you get nodes with custom order
 $nodes = Category::get()->toFlatTree();
 ```
 
+Previous example will output:
+
+```
+Root
+Child 1
+Sub child 1
+Child 2
+Another root
+```
+
 ##### Getting a subtree
 
 Sometimes you don't need whole tree to be loaded and just some subtree of specific node.
 It is show in following example:
 
 ```php
-$root = Category::find($rootId);
-$tree = $root->descendants->toTree($root);
+$root = Category::descendantsAndSelf($rootId)->toTree()->first();
 ```
 
-Now `$tree` contains children of `$root` node.
+In a single query we are getting a root of a subtree and all of its
+descendants that are accessible via `children` relation.
 
 If you don't need `$root` node itself, do following instead:
 
@@ -692,7 +699,7 @@ MyModel::fixTree();
 License
 =======
 
-Copyright (c) 2016 Alexander Kalnoy
+Copyright (c) 2017 Alexander Kalnoy
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
