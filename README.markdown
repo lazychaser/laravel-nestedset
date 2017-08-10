@@ -126,7 +126,8 @@ $parent->appendNode($node);
 $parent->children()->create($attributes);
 
 // #5 Using node's parent relationship
-$node->parent()->associate($parent)->save();
+//Here using of getDirty method is important to maintain correct values of _lft and _rgt.
+$node->parent()->associate($parent)->getDirty()->save();
 
 // #6 Using the parent attribute
 $node->parent_id = $parent->id;
