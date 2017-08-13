@@ -242,6 +242,17 @@ trait NodeTrait
     }
 
     /**
+     * Children with parent associated with it.
+     * @return mixed
+     */
+    public function childrenAndSelf(){
+        $childrenAndSelf = $this->children;
+        $childrenAndSelf->prepend($this);
+        return $childrenAndSelf;
+    }
+
+
+    /**
      * Get query for descendants of the node.
      *
      * @return DescendantsRelation
