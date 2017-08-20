@@ -6,7 +6,7 @@
 
 This is a Laravel 4-5 package for working with trees in relational databases.
 
-*   **Laravel 5.2, 5.3, 5.4** is supported since v4
+*   **Laravel 5.2, 5.3, 5.4, 5.5** is supported since v4
 *   **Laravel 5.1** is supported in v3
 *   **Laravel 4** is supported in v2
 
@@ -213,6 +213,16 @@ Node `bar` has no primary key specified, so it will be created.
 
 `$delete` shows whether to delete nodes that are already exists but not present
 in `$data`. By default, nodes aren't deleted.
+
+##### Rebuilding a subtree
+
+As of 4.2.8 you can rebuild a subtree:
+
+```php
+Category::rebuildSubtree($root, $data);
+```
+
+This constraints tree rebuilding to descendants of `$root` node.
 
 ### Retrieving nodes
 

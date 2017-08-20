@@ -1,3 +1,8 @@
+### 4.2.8
+*   Support Laravel 5.5
+*   Added `fixSubtree` and `rebuildSubtree` methods
+*   Increased performance of tree rebuilding
+
 ### 4.2.7
 
 *   #217: parent_id, lft and rgt are reset when replicating a node

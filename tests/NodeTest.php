@@ -698,6 +698,16 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(null, $node->getParentId());
     }
 
+    public function testSubtreeIsFixed()
+    {
+        Category::where('id', '=', 8)->update([ '_lft' => 11 ]);
+
+        $fixed = Category::fixSubtree(Category::find(5));
+        $this->assertEquals($fixed, 1);
+        $this->assertTreeNotBroken();
+        $this->assertEquals(Category::find(8)->getLft(), 12);
+    }
+
     public function testParentIdDirtiness()
     {
         $node = $this->findCategory('apple');
@@ -808,6 +818,24 @@ class NodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertNotNull($node);
         $this->assertEquals(3, $node->getParentId());
+    }
+
+    public function testRebuildSubtree()
+    {
+        $fixed = Category::rebuildSubtree(Category::find(7), [
+            [ 'name' => 'new node' ],
+            [ 'id' => '8' ],
+        ]);
+
+        echo PHP_EOL.$fixed.PHP_EOL;
+
+        $this->assertTrue($fixed > 0);
+        $this->assertTreeNotBroken();
+
+        $node = $this->findCategory('new node');
+
+        $this->assertNotNull($node);
+        $this->assertEquals($node->getLft(), 12);
     }
 
     public function testRebuildTreeWithDeletion()
