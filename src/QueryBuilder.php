@@ -856,7 +856,7 @@ class QueryBuilder extends Builder
 
         $dictionary = $this->model
             ->newNestedSetQuery()
-            ->when($root, function (self $query, $root) {
+            ->when($root, function (self $query) use ($root) {
                 $query->whereDescendantOf($root);
             })
             ->defaultOrder()
@@ -968,7 +968,7 @@ class QueryBuilder extends Builder
         }
 
         $existing = $this
-            ->when($root, function (self $query, $root) {
+            ->when($root, function (self $query) use ($root) {
                 $query->whereDescendantOf($root);
             })
             ->get()
