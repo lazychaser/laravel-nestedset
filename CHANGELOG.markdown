@@ -1,4 +1,4 @@
-### 4.2.8
+### 4.3.0
 *   Support Laravel 5.5
 *   Added `fixSubtree` and `rebuildSubtree` methods
 *   Increased performance of tree rebuilding
