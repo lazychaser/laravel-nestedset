@@ -28,8 +28,6 @@
         "phpunit/phpunit": "4.8.*"
     },
 
-    "minimum-stability": "dev",
-
     "extra": {
         "branch-alias": {
             "dev-master": "v4.2.x-dev"
