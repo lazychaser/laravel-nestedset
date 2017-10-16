@@ -42,6 +42,11 @@ class NestedSet
         $table->unsignedInteger(self::RGT)->default(0);
         $table->unsignedInteger(self::PARENT_ID)->nullable();
 
+        $table->foreign(self::PARENT_ID)
+              ->references('id')
+              ->on($table->getTable())
+              ->onDelete('cascade');
+
         $table->index(static::getDefaultColumns());
     }
 
