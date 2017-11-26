@@ -98,6 +98,13 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $result->count());
         $this->assertEquals(5, $result->first()->getKey());
+
+        $node = MenuItem::scoped([ 'menu_id' => 1 ])->with('descendants')->find(2);
+
+        $result = $node->descendants;
+
+        $this->assertEquals(1, $result->count());
+        $this->assertEquals(5, $result->first()->getKey());
     }
 
     public function testAncestors()
@@ -109,7 +116,7 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $result->count());
         $this->assertEquals(2, $result->first()->getKey());
 
-        $node = MenuItem::with('ancestors')->find(5);
+        $node = MenuItem::scoped([ 'menu_id' => 1 ])->with('ancestors')->find(5);
 
         $result = $node->ancestors;
 

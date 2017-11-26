@@ -154,10 +154,6 @@ abstract class BaseRelation extends Relation
      */
     public function addEagerConstraints(array $models)
     {
-        $model = reset($models);
-
-        $this->query = $model->newScopedQuery();
-
         $this->query->whereNested(function (Builder $inner) use ($models) {
             // We will use this query in order to apply constraints to the
             // base query builder

@@ -572,17 +572,17 @@ protected function getScopeAttributes()
 }
 ```
 
-But now in order to execute some custom query, you need to provide attributes
+But now, in order to execute some custom query, you need to provide attributes
 that are used for scoping:
 
 ```php
 MenuItem::scoped([ 'menu_id' => 5 ])->withDepth()->get(); // OK
 MenuItem::descendantsOf($id)->get(); // WRONG: returns nodes from other scope
-MenuItem::scoped([ 'menu_id' => 5 ])->fixTree();
+MenuItem::scoped([ 'menu_id' => 5 ])->fixTree(); // OK
 ```
 
 When requesting nodes using model instance, scopes applied automatically based
-on the attributes of that model. See examples:
+on the attributes of that model:
 
 ```php
 $node = MenuItem::findOrFail($id);
@@ -596,12 +596,13 @@ To get scoped query builder using instance:
 $node->newScopedQuery();
 ```
 
-Note, that scoping is not required when retrieving model by primary key
-(since the key is unique):
+#### Scoping and eager loading
+
+Always use scoped query when eager loading:
 
 ```php
-$node = MenuItem::findOrFail($id); // OK
-$node = MenuItem::scoped([ 'menu_id' => 5 ])->findOrFail(); // OK, but redundant
+MenuItem::scoped([ 'menu_id' => 5])->with('descendants')->findOrFail($id); // OK
+MenuItem::with('descendants')->findOrFail($id); // WRONG
 ```
 
 Requirements

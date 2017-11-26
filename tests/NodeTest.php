@@ -827,8 +827,6 @@ class NodeTest extends PHPUnit_Framework_TestCase
             [ 'id' => '8' ],
         ]);
 
-        echo PHP_EOL.$fixed.PHP_EOL;
-
         $this->assertTrue($fixed > 0);
         $this->assertTreeNotBroken();
 
