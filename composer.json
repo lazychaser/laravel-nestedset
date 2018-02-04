@@ -34,6 +34,12 @@
     "extra": {
         "branch-alias": {
             "dev-master": "v4.2.x-dev"
+        },
+
+        "laravel": {
+            "providers": [
+                "Kalnoy\\Nestedset\\NestedSetServiceProvider"
+            ]
         }
     }
 }

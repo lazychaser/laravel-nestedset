@@ -6,7 +6,7 @@
 
 This is a Laravel 4-5 package for working with trees in relational databases.
 
-*   **Laravel 5.5** is supported since v4.3
+*   **Laravel 5.5, 5.6** is supported since v4.3
 *   **Laravel 5.2, 5.3, 5.4** is supported since v4
 *   **Laravel 5.1** is supported in v3
 *   **Laravel 4** is supported in v2
@@ -627,7 +627,21 @@ composer require kalnoy/nestedset
 
 #### The schema
 
-You can use a method to add needed columns with default names:
+For Laravel 5.5 and above users:
+
+```php
+Schema::create('table', function (Blueprint $table) {
+    ...
+    $table->nestedSet();
+});
+
+// To drop columns
+Schema::table('table', function (Blueprint $table) {
+    $table->dropNestedSet();
+});
+```
+
+For prior Laravel versions:
 
 ```php
 ...
