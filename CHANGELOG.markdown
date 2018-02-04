@@ -1,4 +1,4 @@
-### 4.3.1
+### 4.3.2
 *   Support Laravel 5.6
 *   Added `nestedSet` and `dropNestedSet` blueprint macros
 
