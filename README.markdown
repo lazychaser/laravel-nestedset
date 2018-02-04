@@ -385,6 +385,9 @@ position.
 Various constraints that can be applied to the query builder:
 
 -   __whereIsRoot()__ to get only root nodes;
+-   __hasParent()__ to get non-root nodes;
+-   __whereIsLeaf()__ to get only leaves;
+-   __hasChildren()__ to get non-leave nodes;
 -   __whereIsAfter($id)__ to get every node (not just siblings) that are after a node
     with specified id;
 -   __whereIsBefore($id)__ to get every node that is before a node with specified id.
