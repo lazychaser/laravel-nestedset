@@ -153,7 +153,9 @@ trait NodeTrait
         $casts = parent::getCasts();
 
         if ($this->getIncrementing()) {
-            return array_merge([$this->getParentIdName() => $this->getKeyType()], $casts);
+            $type = method_exists($this, 'getKeyType') ? $this->getKeyType() : 'int';
+
+            return array_merge([$this->getParentIdName() => $type], $casts);
         }
 
         return $casts;
