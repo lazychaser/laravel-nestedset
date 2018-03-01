@@ -144,6 +144,22 @@ trait NodeTrait
     }
 
     /**
+     * Get the casts array.
+     *
+     * @return array
+     */
+    public function getCasts()
+    {
+        $casts = parent::getCasts();
+
+        if ($this->getIncrementing()) {
+            return array_merge([$this->getParentIdName() => $this->getKeyType()], $casts);
+        }
+
+        return $casts;
+    }
+
+    /**
      * Get the lower bound.
      *
      * @return int
