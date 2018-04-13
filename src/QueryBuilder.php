@@ -1075,7 +1075,7 @@ class QueryBuilder extends Builder
     }
 
     /**
-     * Get the root node.
+     * Get the root node from model.
      *
      * @param array $columns
      *
@@ -1083,6 +1083,12 @@ class QueryBuilder extends Builder
      */
     public function root(array $columns = ['*'])
     {
-        return $this->whereIsRoot()->first($columns);
+        $query = $this->whereIsRoot();
+
+        if ($this->model->id) {
+            $query->whereAncestorOf($this->model->id, true);
+        }
+
+        return $this->first($columns);
     }
 }
