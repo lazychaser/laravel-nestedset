@@ -1089,6 +1089,6 @@ class QueryBuilder extends Builder
             $query->whereAncestorOf($this->model->id, true);
         }
 
-        return $this->first($columns);
+        return $query->first($columns);
     }
 }
