@@ -627,7 +627,10 @@ trait NodeTrait
             ? 'forceDelete'
             : 'delete';
 
-        $this->descendants()->{$method}();
+        $descendants = $this->getDescendants();
+        foreach($descendants as $descendant){
+            $descendant->{$method}();
+        }
 
         if ($this->hardDeleting()) {
             $height = $rgt - $lft + 1;
