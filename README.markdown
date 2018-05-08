@@ -13,8 +13,7 @@ This is a Laravel 4-5 package for working with trees in relational databases.
 
 Although this project is completely free for use, I appreciate any support!
 
--   __[Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
--   My Visa: 4276 0700 1073 4244
+-   __[Donate via PayPal](https://www.paypal.me/lazychaser)__
 
 __Contents:__
 
