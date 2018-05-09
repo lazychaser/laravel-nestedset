@@ -409,6 +409,7 @@ class QueryBuilder extends Builder
 
         $query = $this->model
             ->newScopedQuery('_d')
+            ->withoutGlobalScopes($this->removedScopes)
             ->toBase()
             ->selectRaw('count(1) - 1')
             ->from($this->model->getTable().' as '.$alias)
