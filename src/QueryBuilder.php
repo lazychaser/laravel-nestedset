@@ -11,6 +11,7 @@ use Illuminate\Database\Query\Builder as BaseQueryBuilder;
 use Illuminate\Support\Arr;
 use LogicException;
 use Illuminate\Database\Query\Expression;
+use Illuminate\Pagination\Paginator;
 
 class QueryBuilder extends Builder
 {
@@ -1084,5 +1085,28 @@ class QueryBuilder extends Builder
     public function root(array $columns = ['*'])
     {
         return $this->whereIsRoot()->first($columns);
+    }
+    
+    /**
+     * @param null $perPage
+     * @param array $columns
+     * @param string $pageName
+     * @param null $page
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator|\Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function paginate($perPage = null, $columns = ['*'], $pageName = 'page', $page = null)
+    {
+        $page = $page ?: Paginator::resolveCurrentPage($pageName);
+
+        $perPage = $perPage ?: $this->model->getPerPage();
+
+        $results = ($total = $this->toBase()->getCountForPagination())
+            ? $this->forPage($page, $perPage)->get($columns)
+            : $this->model->newCollection();
+
+        return $this->paginator($results, $total, $perPage, $page, [
+            'path' => Paginator::resolveCurrentPath(),
+            'pageName' => $pageName,
+        ]);
     }
 }
