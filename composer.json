@@ -13,9 +13,9 @@
 
     "require": {
         "php": ">=5.5.9",
-        "illuminate/support": "5.2 - 5.6",
-        "illuminate/database": "5.2 - 5.6",
-        "illuminate/events": "5.2 - 5.6"
+        "illuminate/support": "5.2 - 5.7",
+        "illuminate/database": "5.2 - 5.7",
+        "illuminate/events": "5.2 - 5.7"
     },
 
     "autoload": {
