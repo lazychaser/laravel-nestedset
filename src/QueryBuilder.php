@@ -110,8 +110,9 @@ class QueryBuilder extends Builder
 
         $this->query->whereNested(function ($inner) use ($value, $andSelf, $id, $keyName) {
             list($lft, $rgt) = $this->wrappedColumns();
+            $wrappedTable = $this->query->getGrammar()->wrapTable($this->model->getTable());
 
-            $inner->whereRaw("{$value} between {$lft} and {$rgt}");
+            $inner->whereRaw("{$value} between {$wrappedTable}.{$lft} and {$wrappedTable}.{$rgt}");
 
             if ( ! $andSelf) {
                 $inner->where($keyName, '<>', $id);
@@ -182,7 +183,7 @@ class QueryBuilder extends Builder
      */
     public function whereNodeBetween($values, $boolean = 'and', $not = false)
     {
-        $this->query->whereBetween($this->model->getLftName(), $values, $boolean, $not);
+        $this->query->whereBetween($this->model->getTable() . '.' . $this->model->getLftName(), $values, $boolean, $not);
 
         return $this;
     }
