@@ -30,7 +30,7 @@ class Collection extends BaseCollection
 
             /** @var Model|NodeTrait $child */
             foreach ($children as $child) {
-                $child->setRelation('parent', $node);
+                $child->setRelation('parent', clone $node);
             }
 
             $node->setRelation('children', BaseCollection::make($children));

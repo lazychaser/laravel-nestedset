@@ -1079,19 +1079,6 @@ trait NodeTrait
     }
 
     /**
-     * @return array
-     */
-    protected function getArrayableRelations()
-    {
-        $result = parent::getArrayableRelations();
-
-        // To fix #17 when converting tree to json falling to infinite recursion.
-        unset($result['parent']);
-
-        return $result;
-    }
-
-    /**
      * Get whether user is intended to delete the model from database entirely.
      *
      * @return bool
