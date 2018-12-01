@@ -1052,7 +1052,11 @@ class QueryBuilder extends Builder
                 unset($existing[$key]);
             }
 
-            $model->fill(Arr::except($itemData, 'children'))->save();
+            $fields = Arr::merge($model->getRebuildFields(), [
+                $model->getLftName(), $model->getRgtName(), $model->getParentIdName()
+            ]);
+
+            $model->fill(Arr::except(Arr::only($itemData, $fields), 'children'))->save();
 
             $dictionary[$parentId][] = $model;
 

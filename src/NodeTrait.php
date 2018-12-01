@@ -867,6 +867,16 @@ trait NodeTrait
     }
 
     /**
+     * Get the rebuild fields.
+     *
+     * @return  string
+     */
+    public function getRebuildFields()
+    {
+        return NestedSet::REBUILD_FIELDS;
+    }
+
+    /**
      * Get the value of the model's lft key.
      *
      * @return  integer
