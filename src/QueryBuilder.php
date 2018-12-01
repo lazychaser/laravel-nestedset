@@ -1052,7 +1052,7 @@ class QueryBuilder extends Builder
                 unset($existing[$key]);
             }
 
-            $fields = Arr::merge($model->getRebuildFields(), [
+            $fields = array_merge($model->getRebuildFields(), [
                 $model->getLftName(), $model->getRgtName(), $model->getParentIdName()
             ]);
 
