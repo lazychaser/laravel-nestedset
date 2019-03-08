@@ -676,7 +676,7 @@ trait NodeTrait
             ? $this->withTrashed()
             : $this->newQuery();
 
-        return $this->applyNestedSetScope($builder, $table);
+        return $this->applyNestedSetScope($builder->withoutGlobalScopes(), $table);
     }
 
     /**
