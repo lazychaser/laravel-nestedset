@@ -36,7 +36,7 @@ class QueryBuilder extends Builder
         $query->where($this->model->getKeyName(), '=', $id);
 
         $data = $query->first([ $this->model->getLftName(),
-                                $this->model->getRgtName() ]);
+            $this->model->getRgtName() ]);
 
         if ( ! $data && $required) {
             throw new ModelNotFoundException;
@@ -96,7 +96,7 @@ class QueryBuilder extends Builder
             $id = $id->getKey();
         } else {
             $valueQuery = $this->model
-                ->newQuery()
+                ->newQueryWithoutScopes()
                 ->toBase()
                 ->select("_.".$this->model->getRgtName())
                 ->from($this->model->getTable().' as _')
@@ -215,13 +215,13 @@ class QueryBuilder extends Builder
      * @return $this
      */
     public function whereDescendantOf($id, $boolean = 'and', $not = false,
-                                      $andSelf = false
+        $andSelf = false
     ) {
         if (NestedSet::isNode($id)) {
             $data = $id->getBounds();
         } else {
             $data = $this->model->newNestedSetQuery()
-                                ->getPlainNodeData($id, true);
+                ->getPlainNodeData($id, true);
         }
 
         // Don't include the node
@@ -322,7 +322,7 @@ class QueryBuilder extends Builder
             $this->query->addBinding($id->getLft());
         } else {
             $valueQuery = $this->model
-                ->newQuery()
+                ->newQueryWithoutScopes()
                 ->toBase()
                 ->select('_n.'.$this->model->getLftName())
                 ->from($this->model->getTable().' as _n')
@@ -542,7 +542,7 @@ class QueryBuilder extends Builder
     public function moveNode($key, $position)
     {
         list($lft, $rgt) = $this->model->newNestedSetQuery()
-                                       ->getPlainNodeData($key, true);
+            ->getPlainNodeData($key, true);
 
         if ($lft < $position && $position <= $rgt) {
             throw new LogicException('Cannot move node into itself.');
@@ -654,9 +654,9 @@ class QueryBuilder extends Builder
         if ($distance > 0) $distance = '+'.$distance;
 
         return new Expression("case ".
-                              "when {$col} between {$lft} and {$rgt} then {$col}{$distance} ". // Move the node
-                              "when {$col} between {$from} and {$to} then {$col}{$height} ". // Move other nodes
-                              "else {$col} end"
+            "when {$col} between {$lft} and {$rgt} then {$col}{$distance} ". // Move the node
+            "when {$col} between {$from} and {$to} then {$col}{$height} ". // Move other nodes
+            "else {$col} end"
         );
     }
 
@@ -683,7 +683,7 @@ class QueryBuilder extends Builder
         // Check for nodes that have missing parent
         $checks['missing_parent' ] = $this->getMissingParentQuery();
 
-        $query = $this->query->newQuery();
+        $query = $this->query->newQueryWithoutScopes();
 
         foreach ($checks as $key => $inner) {
             $inner->selectRaw('count(1)');
@@ -706,7 +706,7 @@ class QueryBuilder extends Builder
                 list($lft, $rgt) = $this->wrappedColumns();
 
                 $inner->whereRaw("{$lft} >= {$rgt}")
-                      ->orWhereRaw("({$rgt} - {$lft}) % 2 = 0");
+                    ->orWhereRaw("({$rgt} - {$lft}) % 2 = 0");
             });
     }
 
@@ -733,9 +733,9 @@ class QueryBuilder extends Builder
                 list($lft, $rgt) = $this->wrappedColumns();
 
                 $inner->orWhereRaw("{$waFirst}.{$lft}={$waSecond}.{$lft}")
-                      ->orWhereRaw("{$waFirst}.{$rgt}={$waSecond}.{$rgt}")
-                      ->orWhereRaw("{$waFirst}.{$lft}={$waSecond}.{$rgt}")
-                      ->orWhereRaw("{$waFirst}.{$rgt}={$waSecond}.{$lft}");
+                    ->orWhereRaw("{$waFirst}.{$rgt}={$waSecond}.{$rgt}")
+                    ->orWhereRaw("{$waFirst}.{$lft}={$waSecond}.{$rgt}")
+                    ->orWhereRaw("{$waFirst}.{$rgt}={$waSecond}.{$lft}");
             });
 
         return $this->model->applyNestedSetScope($query, $secondAlias);
@@ -772,8 +772,8 @@ class QueryBuilder extends Builder
                 list($lft, $rgt) = $this->wrappedColumns();
 
                 $inner->whereRaw("{$waChild}.{$lft} not between {$waParent}.{$lft} and {$waParent}.{$rgt}")
-                      ->orWhereRaw("{$waChild}.{$lft} between {$waInterm}.{$lft} and {$waInterm}.{$rgt}")
-                      ->whereRaw("{$waInterm}.{$lft} between {$waParent}.{$lft} and {$waParent}.{$rgt}");
+                    ->orWhereRaw("{$waChild}.{$lft} between {$waInterm}.{$lft} and {$waInterm}.{$rgt}")
+                    ->whereRaw("{$waInterm}.{$lft} between {$waParent}.{$lft} and {$waParent}.{$rgt}");
             });
 
         $this->model->applyNestedSetScope($query, $parentAlias);
@@ -810,7 +810,7 @@ class QueryBuilder extends Builder
                 $this->model->applyNestedSetScope($existsCheck, $alias);
 
                 $inner->whereRaw("{$parentIdName} is not null")
-                      ->addWhereExistsQuery($existsCheck, 'and', true);
+                    ->addWhereExistsQuery($existsCheck, 'and', true);
             });
     }
 
@@ -1025,9 +1025,9 @@ class QueryBuilder extends Builder
      * @param mixed $parentId
      */
     protected function buildRebuildDictionary(array &$dictionary,
-                                              array $data,
-                                              array &$existing,
-                                                    $parentId = null
+        array $data,
+        array &$existing,
+        $parentId = null
     ) {
         $keyName = $this->model->getKeyName();
 
@@ -1059,9 +1059,9 @@ class QueryBuilder extends Builder
             if ( ! isset($itemData['children'])) continue;
 
             $this->buildRebuildDictionary($dictionary,
-                                          $itemData['children'],
-                                          $existing,
-                                          $model->getKey());
+                $itemData['children'],
+                $existing,
+                $model->getKey());
         }
     }
 
