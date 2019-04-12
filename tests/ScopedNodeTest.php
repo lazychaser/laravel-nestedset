@@ -3,7 +3,7 @@
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
 
-class ScopedNodeTest extends PHPUnit_Framework_TestCase
+class ScopedNodeTest extends PHPUnit\Framework\TestCase
 {
     public static function setUpBeforeClass()
     {
