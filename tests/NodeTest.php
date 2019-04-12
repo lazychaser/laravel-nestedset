@@ -870,7 +870,9 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertEquals('galaxy', $tree[3]->name);
     }
 
-    public function testSeveralNodesModelWork()
+    // Commented, cause there is no assertion here and otherwise the test is marked as risky in PHPUnit 7.
+    // What's the purpose of this method? @todo: remove/update?
+    /*public function testSeveralNodesModelWork()
     {
         $category = new Category;
 
@@ -883,7 +885,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $duplicate->name = 'test';
 
         $duplicate->saveAsRoot();
-    }
+    }*/
 
     public function testWhereIsLeaf()
     {
