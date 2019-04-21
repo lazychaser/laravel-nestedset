@@ -33,7 +33,7 @@
 
     "extra": {
         "branch-alias": {
-            "dev-master": "v4.2.x-dev"
+            "dev-master": "v5.0.x-dev"
         },
 
         "laravel": {
