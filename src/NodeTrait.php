@@ -248,7 +248,7 @@ trait NodeTrait
      */
     public function descendants()
     {
-        return new DescendantsRelation($this->newScopedQuery(), $this);
+        return new DescendantsRelation($this->newQuery(), $this);
     }
 
     /**
@@ -337,7 +337,7 @@ trait NodeTrait
      */
     public function ancestors()
     {
-        return new AncestorsRelation($this->newScopedQuery(), $this);
+        return new AncestorsRelation($this->newQuery(), $this);
     }
 
     /**

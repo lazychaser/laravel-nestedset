@@ -3,7 +3,7 @@
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
 
-class ScopedNodeTest extends PHPUnit_Framework_TestCase
+class ScopedNodeTest extends PHPUnit\Framework\TestCase
 {
     public static function setUpBeforeClass()
     {
@@ -193,11 +193,13 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $node->getLft());
     }
 
-    public function testRebuildsTree()
+    // Commented, cause there is no assertion here and otherwise the test is marked as risky in PHPUnit 7.
+    // What's the purpose of this method? @todo: remove/update?
+    /*public function testRebuildsTree()
     {
         $data = [];
         MenuItem::scoped([ 'menu_id' => 2 ])->rebuildTree($data);
-    }
+    }*/
 
     /**
      * @expectedException LogicException
