@@ -77,7 +77,7 @@ class NestedSet
      */
     public static function isNode($node)
     {
-        return is_object($node) && in_array(NodeTrait::class, (array)$node);
+        return is_object($node) && array_key_exists(NodeTrait::class, class_uses($node));
     }
 
 }
