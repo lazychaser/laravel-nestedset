@@ -272,6 +272,10 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $path = all(Category::ancestorsOf(3)->pluck('name'));
 
         $this->assertEquals(array('store', 'notebooks'), $path);
+
+        $path = all(Category::ancestorsAndSelf(['name' => 'apple'])->pluck('name'));
+
+        $this->assertEquals(array('store', 'notebooks', 'apple'), $path);
     }
 
     public function testGetsAncestorsDirect()
@@ -296,6 +300,10 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         $descendants = all(Category::descendantsAndSelf(7)->pluck('name'));
         $expected = [ 'samsung', 'galaxy' ];
+
+        $this->assertEquals($expected, $descendants);
+
+        $descendants = all(Category::descendantsAndSelf(['name' => 'samsung'])->pluck('name'));
 
         $this->assertEquals($expected, $descendants);
     }
