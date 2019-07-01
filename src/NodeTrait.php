@@ -749,8 +749,9 @@ trait NodeTrait
      * Use `children` key on `$attributes` to create child nodes.
      *
      * @param self $parent
+     * @param  callable  $callback
      */
-    public static function create(array $attributes = [], self $parent = null)
+    public static function create(array $attributes = [], self $parent = null, callable $callbackForEachChild = null)
     {
         $children = array_pull($attributes, 'children');
 
@@ -766,9 +767,12 @@ trait NodeTrait
         $relation = new EloquentCollection;
 
         foreach ((array)$children as $child) {
-            $relation->add($child = static::create($child, $instance));
+            $relation->add($child = static::create($child, $instance, $callbackForEachChild));
 
             $child->setRelation('parent', $instance);
+            
+            if(isset($callback))
+                call_user_func($callbackForEachChild, $child);
         }
 
         $instance->refreshNode();
