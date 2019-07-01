@@ -43,8 +43,8 @@ a way to effectively store hierarchical data in a relational table. From wikiped
 ### Applications
 
 NSM shows good performance when tree is updated rarely. It is tuned to be fast for
-getting related nodes. It'is ideally suited for building multi-depth menu or
-categories for shop.
+getting related nodes. It is ideally suited for building multi-depth menu or
+categories for shops.
 
 Documentation
 -------------
@@ -66,14 +66,14 @@ Node has following relationships that are fully functional and can be eagerly lo
 Moving and inserting nodes includes several database queries, so it is
 highly recommended to use transactions.
 
-__IMPORTANT!__ As of v4.2.0 transaction is not automatically started
+__IMPORTANT!__ As of v4.2.0 a transaction is not automatically started.
 
 Another important note is that __structural manipulations are deferred__ until you
-hit `save` on model (some methods implicitly call `save` and return boolean result
+hit `save` on model (some methods implicitly call `save` and return the boolean result
 of the operation).
 
-If model is successfully saved it doesn't mean that node was moved. If your application
-depends on whether the node has actually changed its position, use `hasMoved` method:
+If the model is successfully saved it doesn't mean that node was moved. If your application
+depends on whether the node has actually changed its position, use the `hasMoved` method:
 
 ```php
 if ($node->save()) {
@@ -83,7 +83,7 @@ if ($node->save()) {
 
 #### Creating nodes
 
-When you simply creating a node, it will be appended to the end of the tree:
+When you simply create a node, it will be appended to the end of the tree:
 
 ```php
 Category::create($attributes); // Saved as root
@@ -110,11 +110,11 @@ The node will be appended to the end of the tree.
 
 #### Appending and prepending to the specified parent
 
-If you want to make node a child of other node, you can make it last or first child.
+If you want to make node a child of another node, you can make it the last or first child.
 
-*In following examples, `$parent` is some existing node.*
+*In the following examples, `$parent` is some existing node.*
 
-There are few ways to append a node:
+There are a few ways to append a node:
 
 ```php
 // #1 Using deferred insert
@@ -149,7 +149,7 @@ $parent->prependNode($node);
 
 #### Inserting before or after specified node
 
-You can make `$node` to be a neighbor of the `$neighbor` node using following methods:
+You can make `$node` a neighbor of the `$neighbor` node by using the following methods:
 
 *`$neighbor` must exists, target node can be fresh. If target node exists,
 it will be moved to the new position and parent will be changed if it's required.*
@@ -166,7 +166,7 @@ $node->insertBeforeNode($neighbor);
 
 #### Building a tree from array
 
-When using static method `create` on node, it checks whether attributes contains
+When using the static method `create` on a node, it checks whether attributes contains
 `children` key. If it does, it creates more nodes recursively.
 
 ```php
@@ -206,7 +206,7 @@ $data = [
 ```
 
 There is an id specified for node with the name of `foo` which means that existing
-node will be filled and saved. If node is not exists `ModelNotFoundException` is
+node will be filled and saved. If node does not exist then a `ModelNotFoundException` is
 thrown. Also, this node has `children` specified which is also an array of nodes;
 they will be processed in the same manner and saved as children of node `foo`.
 
@@ -223,7 +223,7 @@ As of 4.2.8 you can rebuild a subtree:
 Category::rebuildSubtree($root, $data);
 ```
 
-This constraints tree rebuilding to descendants of `$root` node.
+This constrains tree rebuilding to descendants of `$root` node.
 
 ### Retrieving nodes
 
@@ -231,10 +231,10 @@ This constraints tree rebuilding to descendants of `$root` node.
 
 #### Ancestors and descendants
 
-Ancestors make a chain of parents to the node. Helpful for displaying breadcrumbs
+Ancestors make a chain of parents to the node. For example, this is helpful for displaying breadcrumbs
 to the current category.
 
-Descendants are all nodes in a sub tree, i.e. children of node, children of
+Descendants are all nodes in a subtree, i.e. children of node, children of
 children, etc.
 
 Both ancestors and descendants can be eagerly loaded.
@@ -247,7 +247,7 @@ $node->ancestors;
 $node->descendants;
 ```
 
-It is possible to load ancestors and descendants using custom query:
+It is possible to load ancestors and descendants using a custom query:
 
 ```php
 $result = Category::ancestorsOf($id);
@@ -276,7 +276,7 @@ $categories = Category::with('ancestors')->paginate(30);
 
 #### Siblings
 
-Siblings are nodes that have same parent.
+Siblings are nodes that have the same parent.
 
 ```php
 $result = $node->getSiblings();
@@ -284,7 +284,7 @@ $result = $node->getSiblings();
 $result = $node->siblings()->get();
 ```
 
-To get only next siblings:
+To get only the next siblings:
 
 ```php
 // Get a sibling that is immediately after the node
@@ -312,7 +312,8 @@ $result = $node->prevSiblings()->get();
 
 #### Getting related models from other table
 
-Imagine that each category `has many` goods. I.e. `HasMany` relationship is established.
+Imagine that each category `has many` goods, i.e. a `HasMany` relationship is established.
+
 How can you get all goods of `$category` and every its descendant? Easy!
 
 ```php
@@ -338,13 +339,13 @@ $depth = $result->depth;
 
 Root node will be at level 0. Children of root nodes will have a level of 1, etc.
 
-To get nodes of specified level, you can apply `having` constraint:
+To get nodes of a specified level, you can apply the `having` constraint:
 
 ```php
 $result = Category::withDepth()->having('depth', '=', 1)->get();
 ```
 
-__IMPORTANT!__ This will not work in database strict mode
+__IMPORTANT!__ This will not work in database strict mode.
 
 #### Default order
 
@@ -416,7 +417,7 @@ $result = Category::whereAncestorOrSelf($id)->get();
 
 #### Building a tree
 
-After getting a set of nodes, you can convert it to tree. For example:
+After getting a set of nodes, you can convert it to a tree. For example:
 
 ```php
 $tree = Category::get()->toTree();
@@ -453,13 +454,13 @@ This will output something like this:
 
 Also, you can build a flat tree: a list of nodes where child nodes are immediately
 after parent node. This is helpful when you get nodes with custom order
-(i.e. alphabetically) and don't want to use recursion to iterate over your nodes.
+(e.g. alphabetically) and don't want to use recursion to iterate over your nodes.
 
 ```php
 $nodes = Category::get()->toFlatTree();
 ```
 
-Previous example will output:
+The previous example will output:
 
 ```
 Root
@@ -471,7 +472,8 @@ Another root
 
 ##### Getting a subtree
 
-Sometimes you don't need whole tree to be loaded and just some subtree of specific node.
+Sometimes you don't need whole tree to be loaded and just some subtree of a specific node.
+
 It is show in following example:
 
 ```php
@@ -479,9 +481,9 @@ $root = Category::descendantsAndSelf($rootId)->toTree()->first();
 ```
 
 In a single query we are getting a root of a subtree and all of its
-descendants that are accessible via `children` relation.
+descendants that are accessible via the `children` relation.
 
-If you don't need `$root` node itself, do following instead:
+If you don't need `$root` node itself, do the following instead:
 
 ```php
 $tree = Category::descendantsOf($rootId)->toTree($rootId);
@@ -553,7 +555,7 @@ It will return an array with following keys:
 
 #### Fixing tree
 
-Since v3.1 tree can now be fixed. Using inheritance info from `parent_id` column,
+Since v3.1, a broken tree can now be fixed. Using inheritance info from `parent_id` column,
 proper `_lft` and `_rgt` values are set for every node.
 
 ```php
@@ -584,7 +586,7 @@ MenuItem::descendantsOf($id)->get(); // WRONG: returns nodes from other scope
 MenuItem::scoped([ 'menu_id' => 5 ])->fixTree(); // OK
 ```
 
-When requesting nodes using model instance, scopes applied automatically based
+When requesting nodes using model instance, scopes are applied automatically based
 on the attributes of that model:
 
 ```php
