@@ -449,6 +449,21 @@ This will output something like this:
 - Another root
 ```
 
+##### Building a tree except himself and his descendants
+
+Avoid `LogicException: Node must not be a descendant.`
+
+```php
+$node = Category::find($id);
+
+$tree = Category::where(function($query) use ($category){
+                    $query->orWhere('_lft', '<', $$node->_lft)
+                          ->orWhere('_rgt', '>', $$node->_rgt);
+                })
+                ->get()
+                ->toTree();
+```
+
 ##### Building flat tree
 
 Also, you can build a flat tree: a list of nodes where child nodes are immediately
