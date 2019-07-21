@@ -20,6 +20,15 @@ class NodeTest extends PHPUnit\Framework\TestCase
             NestedSet::columns($table);
         });
 
+        $schema->create('categories_with_custom_parent', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->increments('id');
+            $table->string('name');
+            $table->unsignedInteger('parent_category_id')->nullable();
+            $table->unsignedInteger('_lft')->default(0);
+            $table->unsignedInteger('_rgt')->default(0);
+            $table->softDeletes();
+        });
+
         Capsule::enableQueryLog();
     }
 
@@ -28,6 +37,10 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $data = include __DIR__.'/data/categories.php';
 
         Capsule::table('categories')->insert($data);
+
+        $data = include __DIR__.'/data/categories_with_custom_parent.php';
+
+        Capsule::table('categories_with_custom_parent')->insert($data);
 
         Capsule::flushQueryLog();
 
@@ -39,6 +52,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
     public function tearDown()
     {
         Capsule::table('categories')->truncate();
+        Capsule::table('categories_with_custom_parent')->truncate();
     }
 
     // public static function tearDownAfterClass()
@@ -335,6 +349,26 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $node->refreshNode();
 
         $this->assertEquals(null, $node->parent_id);
+        $this->assertTrue($node->isRoot());
+    }
+
+    public function testParentIdCustomAttributeAccessorAppendsNode()
+    {
+        $node = new CategoryWithCustomParent([
+            'name' => 'lg',
+            'parent_category_id' => 5,
+        ]);
+        $node->save();
+
+        $this->assertEquals(5, $node->parent_category_id);
+        $this->assertEquals(5, $node->getParentId());
+
+        $node->parent_category_id = null;
+        $node->save();
+
+        $node->refreshNode();
+
+        $this->assertEquals(null, $node->parent_category_id);
         $this->assertTrue($node->isRoot());
     }
 
