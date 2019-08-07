@@ -864,6 +864,9 @@ class QueryBuilder extends Builder
             ->defaultOrder()
             ->get($columns)
             ->groupBy($this->model->getParentIdName())
+            ->sort(function(Collection $value) use ($root) {
+                return $value->first()->getParentId() == $root ? -1 : 1;
+            })
             ->all();
 
         return $this->fixNodes($dictionary, $root);
@@ -938,8 +941,8 @@ class QueryBuilder extends Builder
             $lft = $cut;
 
             $cut = self::reorderNodes($dictionary, $updated, $model->getKey(), $cut + 1);
-
-            if ($model->rawNode($lft, $cut, $parentId)->isDirty()) {
+            $modelParentId = $model->getParentId();
+            if ($model->rawNode($lft, $cut, isset($modelParentId) ? $modelParentId : $parentId)->isDirty()) {
                 $updated[] = $model;
             }
 
