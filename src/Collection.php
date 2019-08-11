@@ -67,6 +67,10 @@ class Collection extends BaseCollection
             if ($node->getParentId() == $root) {
                 $items[] = $node;
             }
+
+            if($node->isLeaf()){
+                unset($node->children);
+            }
         }
 
         return new static($items);
