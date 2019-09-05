@@ -1,6 +1,6 @@
 {
     "name": "kalnoy/nestedset",
-    "description": "Nested Set Model for Laravel 5.7 and up",
+    "description": "Nested Set Model for Laravel 6.0 and up",
     "keywords": ["laravel", "nested sets", "nsm", "database", "hierarchy"],
     "license": "MIT",
 
@@ -13,9 +13,9 @@
 
     "require": {
         "php": ">=7.1.3",
-        "illuminate/support": "~5.7.0|~5.8.0",
-        "illuminate/database": "~5.7.0|~5.8.0",
-        "illuminate/events": "~5.7.0|~5.8.0"
+        "illuminate/support": "^5.7.0",
+        "illuminate/database": "^5.7.0",
+        "illuminate/events": "^5.7.0"
     },
 
     "autoload": {
