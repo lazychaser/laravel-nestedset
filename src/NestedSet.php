@@ -22,6 +22,11 @@ class NestedSet
     const PARENT_ID = 'parent_id';
 
     /**
+     * The names of fields to rebuild.
+     */
+    const REBUILD_FIELDS = [];
+
+    /**
      * Insert direction.
      */
     const BEFORE = 1;

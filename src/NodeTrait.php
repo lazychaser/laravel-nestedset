@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
 use LogicException;
 
 trait NodeTrait
@@ -752,7 +753,7 @@ trait NodeTrait
      */
     public static function create(array $attributes = [], self $parent = null)
     {
-        $children = array_pull($attributes, 'children');
+        $children = Arr::pull($attributes, 'children');
 
         $instance = new static($attributes);
 
@@ -864,6 +865,16 @@ trait NodeTrait
     public function getParentIdName()
     {
         return NestedSet::PARENT_ID;
+    }
+
+    /**
+     * Get the rebuild fields.
+     *
+     * @return  string
+     */
+    public function getRebuildFields()
+    {
+        return NestedSet::REBUILD_FIELDS;
     }
 
     /**
