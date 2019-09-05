@@ -1,3 +1,6 @@
+### 4.3.4
+*   Support Laravel 5.8
+
 ### 4.3.3
 *   Support Laravel 5.7
 
