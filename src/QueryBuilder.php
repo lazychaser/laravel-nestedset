@@ -728,7 +728,7 @@ class QueryBuilder extends Builder
             ->newNestedSetQuery($firstAlias)
             ->toBase()
             ->from($this->query->raw("{$table} as {$waFirst}, {$table} {$waSecond}"))
-            ->whereRaw("{$waFirst}.id < {$waSecond}.id")
+            ->whereRaw("{$waFirst}.{$keyName} < {$waSecond}.{$keyName}")
             ->whereNested(function (BaseQueryBuilder $inner) use ($waFirst, $waSecond) {
                 list($lft, $rgt) = $this->wrappedColumns();
 
