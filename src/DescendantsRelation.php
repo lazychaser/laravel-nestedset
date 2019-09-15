@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class DescendantsRelation extends BaseRelation
 {
-
     /**
      * Set the base constraints on the relation query.
      *

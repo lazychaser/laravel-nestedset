@@ -139,5 +139,4 @@ class Collection extends BaseCollection
 
         return $this;
     }
-
 }

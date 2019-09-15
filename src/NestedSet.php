@@ -79,5 +79,4 @@ class NestedSet
     {
         return is_object($node) && in_array(NodeTrait::class, (array)$node);
     }
-
 }

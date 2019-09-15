@@ -1,6 +1,5 @@
 <?php
 
-
 class MenuItem extends \Illuminate\Database\Eloquent\Model
 {
     use \Kalnoy\Nestedset\NodeTrait;
@@ -18,5 +17,4 @@ class MenuItem extends \Illuminate\Database\Eloquent\Model
     {
         return ['menu_id'];
     }
-
 }

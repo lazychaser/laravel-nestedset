@@ -998,7 +998,6 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         $this->assertEquals(1, $category->getParentId());
     }
-
 }
 
 function all($items)
