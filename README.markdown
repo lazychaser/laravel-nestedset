@@ -584,7 +584,7 @@ MenuItem::descendantsOf($id)->get(); // WRONG: returns nodes from other scope
 MenuItem::scoped([ 'menu_id' => 5 ])->fixTree(); // OK
 ```
 
-When requesting nodes using model instance, scopes applied automatically based
+When requesting nodes using model instance, scopes are applied automatically based
 on the attributes of that model:
 
 ```php
