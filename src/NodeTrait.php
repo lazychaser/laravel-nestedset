@@ -1179,7 +1179,7 @@ trait NodeTrait
     protected function assertNodeExists(self $node)
     {
         if ( is_null($node->getLft()) || is_null($node->getRgt()) ) {
-            throw new LogicException('Node must exists.');
+            throw new LogicException('Node must exist.');
         }
 
         return $this;
