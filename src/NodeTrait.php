@@ -1291,4 +1291,10 @@ trait NodeTrait
     {
         return $query->withoutDescendants();
     }
+
+    public function scopeDescendantsOf(Builder $query, self $other_category) : Builder
+    {
+        return $query->where('_lft', '>', $other_category->_lft)
+            ->where('_lft', '<', $other_category->_rgt);
+    }
 }
