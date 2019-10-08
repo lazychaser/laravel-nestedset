@@ -1286,4 +1286,9 @@ trait NodeTrait
     {
         return $query->withoutAncestors();
     }
+
+    public function scopeLeaves(Builder $query) : Builder
+    {
+        return $query->withoutDescendants();
+    }
 }
