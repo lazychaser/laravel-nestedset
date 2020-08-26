@@ -21,7 +21,7 @@ class Collection extends BaseCollection
 
         /** @var Node $node */
         foreach ($this->items as $node) {
-            if (! $node->parent_id) {
+            if (is_null($node->getParentId())) {
                 $node->setRelation('parent', null);
             }
 
