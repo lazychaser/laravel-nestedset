@@ -130,7 +130,7 @@ abstract class BaseRelation extends Relation
      *
      * @return string
      */
-    public function getRelationCountHash()
+    public function getRelationCountHash($incrementJoinCount = true)
     {
         return 'nested_set_'.($incrementJoinCount ? self::$selfJoinCount++ : self::$selfJoinCount);
     }
