@@ -1,5 +1,5 @@
 {
-    "name": "WillaArts/kalnoynestedset",
+    "name": "willaarts/kalnoynestedset",
     "description": "Nested Set Model for Laravel 5.7 and up",
     "keywords": ["laravel", "nested sets", "nsm", "database", "hierarchy"],
     "license": "MIT",
