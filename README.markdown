@@ -4,7 +4,7 @@
 [![Latest Unstable Version](https://poser.pugx.org/kalnoy/nestedset/v/unstable.svg)](https://packagist.org/packages/kalnoy/nestedset)
 [![License](https://poser.pugx.org/kalnoy/nestedset/license.svg)](https://packagist.org/packages/kalnoy/nestedset)
 
-This is a Laravel 4-8 package for working with trees for LARAVEL8(Speacial) in relational databases.
+This is a Laravel 4-8 package for working with trees for LARAVEL8(Speacial)(edit by aliqasemi) in relational databases.
 
 Although this project is completely free for use, I appreciate any support!
 
