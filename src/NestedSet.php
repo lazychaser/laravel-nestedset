@@ -40,7 +40,7 @@ class NestedSet
     {
         $table->unsignedInteger(self::LFT)->default(0);
         $table->unsignedInteger(self::RGT)->default(0);
-        $table->unsignedInteger(self::PARENT_ID)->nullable();
+        $table->string(self::PARENT_ID)->nullable();
 
         $table->index(static::getDefaultColumns());
     }
@@ -79,5 +79,4 @@ class NestedSet
     {
         return is_object($node) && in_array(NodeTrait::class, (array)$node);
     }
-
 }
