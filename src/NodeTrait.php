@@ -677,7 +677,7 @@ trait NodeTrait
             ? $this->withTrashed()
             : $this->newQuery();
 
-        return $this->applyNestedSetScope($builder, $table);
+        return $this->applyNestedSetScope($builder->withoutGlobalScopes(), $table);
     }
 
     /**
@@ -687,7 +687,7 @@ trait NodeTrait
      */
     public function newScopedQuery($table = null)
     {
-        return $this->applyNestedSetScope($this->newQuery(), $table);
+        return $this->applyNestedSetScope($this->newQueryWithoutScopes(), $table);
     }
 
     /**
