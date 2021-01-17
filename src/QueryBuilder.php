@@ -96,7 +96,7 @@ class QueryBuilder extends Builder
             $id = $id->getKey();
         } else {
             $valueQuery = $this->model
-                ->newQuery()
+                ->newQueryWithoutScopes()
                 ->toBase()
                 ->select("_.".$this->model->getRgtName())
                 ->from($this->model->getTable().' as _')
@@ -322,7 +322,7 @@ class QueryBuilder extends Builder
             $this->query->addBinding($id->getLft());
         } else {
             $valueQuery = $this->model
-                ->newQuery()
+                ->newQueryWithoutScopes()
                 ->toBase()
                 ->select('_n.'.$this->model->getLftName())
                 ->from($this->model->getTable().' as _n')
@@ -683,7 +683,7 @@ class QueryBuilder extends Builder
         // Check for nodes that have missing parent
         $checks['missing_parent' ] = $this->getMissingParentQuery();
 
-        $query = $this->query->newQuery();
+        $query = $this->query->newQueryWithoutScopes();
 
         foreach ($checks as $key => $inner) {
             $inner->selectRaw('count(1)');
