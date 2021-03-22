@@ -844,17 +844,17 @@ class QueryBuilder extends Builder
      * Nodes with invalid parent are saved as roots.
      *
      * @param null|NodeTrait|Model $root
-     *
+     * @param array $extra
      * @return int The number of changed nodes
      */
-    public function fixTree($root = null)
+    public function fixTree($root = null, array $extraColumns = [])
     {
         $columns = [
             $this->model->getKeyName(),
             $this->model->getParentIdName(),
             $this->model->getLftName(),
             $this->model->getRgtName(),
-        ];
+        ] + $extraColumns;
 
         $dictionary = $this->model
             ->newNestedSetQuery()
