@@ -118,7 +118,7 @@ abstract class BaseRelation extends Relation
      *
      * @return mixed
      */
-    public function getRelationQuery(
+    public function getRelationshipQuery(
         EloquentBuilder $query, EloquentBuilder $parent,
         $columns = [ '*' ]
     ) {
