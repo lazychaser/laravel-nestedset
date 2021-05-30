@@ -249,7 +249,7 @@ trait NodeTrait
      */
     public function descendants()
     {
-        return new DescendantsRelation($this->newQuery(), $this);
+        return new DescendantsRelation($this->newQueryWithoutScopes(), $this);
     }
 
     /**
@@ -338,7 +338,7 @@ trait NodeTrait
      */
     public function ancestors()
     {
-        return new AncestorsRelation($this->newQuery(), $this);
+        return new AncestorsRelation($this->newQueryWithoutScopes(), $this);
     }
 
     /**
@@ -675,7 +675,7 @@ trait NodeTrait
     {
         $builder = $this->usesSoftDelete()
             ? $this->withTrashed()
-            : $this->newQuery();
+            : $this->newQueryWithoutScopes();
 
         return $this->applyNestedSetScope($builder, $table);
     }
@@ -687,7 +687,7 @@ trait NodeTrait
      */
     public function newScopedQuery($table = null)
     {
-        return $this->applyNestedSetScope($this->newQuery(), $table);
+        return $this->applyNestedSetScope($this->newQueryWithoutScopes(), $table);
     }
 
     /**

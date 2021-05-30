@@ -31,18 +31,21 @@ class QueryBuilder extends Builder
      */
     public function getNodeData($id, $required = false)
     {
-        $query = $this->toBase();
+        $lftName = $this->model->getLftName();
+        $rgtName = $this->model->getRgtName();
 
-        $query->where($this->model->getKeyName(), '=', $id);
-
-        $data = $query->first([ $this->model->getLftName(),
-                                $this->model->getRgtName() ]);
+        $data = $this->toBase()
+            ->where($this->model->getKeyName(), '=', $id)
+            ->first([$lftName, $rgtName]);
 
         if ( ! $data && $required) {
             throw new ModelNotFoundException;
         }
-
-        return (array)$data;
+        // Ensure that the result only contains the required attributes in
+        // correct order and nothing else.
+        // The query above might accidentally return more attributes, if
+        // a global scope is defined for the query by the base model.
+        return $data ? [$lftName => $data[$lftName], $rgtName => $data[$rgtName]] : [];
     }
 
     /**
