@@ -8,6 +8,26 @@ use Illuminate\Database\Eloquent\Model;
 class Collection extends BaseCollection
 {
     /**
+     * Flatten a tree into a non recursive array.
+     *
+     * @return $this
+     */
+    public function flattenTreeDeep() 
+    {
+        $result = collect();
+        
+        foreach ($this->items as $item) {
+            $result->push($item);
+
+            if ($item->children instanceof self) {
+                $result = $result->merge($item->children->flattenTreeDeep());
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Fill `parent` and `children` relationships for every node in the collection.
      *
      * This will overwrite any previously set relations.
@@ -18,7 +38,8 @@ class Collection extends BaseCollection
     {
         if ($this->isEmpty()) return $this;
 
-        $groupedNodes = $this->groupBy($this->first()->getParentIdName());
+        $groupedNodes = $this->flattenTreeDeep()
+            ->groupBy($this->first()->getParentIdName());
 
         /** @var NodeTrait|Model $node */
         foreach ($this->items as $node) {
@@ -139,5 +160,4 @@ class Collection extends BaseCollection
 
         return $this;
     }
-
 }
