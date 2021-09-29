@@ -34,6 +34,8 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         Category::resetActionsPerformed();
 
+        Category::removeScope('testScope');
+
         date_default_timezone_set('America/Denver');
     }
 
@@ -129,15 +131,16 @@ class NodeTest extends PHPUnit\Framework\TestCase
     {
         $this->assertTreeNotBroken();
 
-        Category::addGlobalScope('aScope', function($query){
+        Category::addGlobalScope('testScope', function($query){
             $query->whereIn('categories.name', ['apple', 'samsung', 'sony']);
         });
 
         $this->assertFalse(Category::isBroken(function($query){
-            $query->withoutGlobalScope('aScope');
+            $query->withoutGlobalScope('testScope');
         }));
 
-        Category::removeScope('aScope');
+        $this->expectException(Illuminate\Database\QueryException::class);
+        Category::isBroken();
     }
 
     public function nodeValues($node)
@@ -626,19 +629,17 @@ class NodeTest extends PHPUnit\Framework\TestCase
         Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
         Category::where('id', '=', 4)->update([ 'parent_id' => 24 ]);
 
-        Category::addGlobalScope('aScope', function($query){
+        Category::addGlobalScope('testScope', function($query){
             $query->whereIn('categories.name', ['apple', 'samsung', 'sony']);
         });
 
         $errors = Category::countErrors(function($query){
-            $query->withoutGlobalScope('aScope');
+            $query->withoutGlobalScope('testScope');
         });
 
         $this->assertEquals(1, $errors['oddness']);
         $this->assertEquals(2, $errors['duplicates']);
         $this->assertEquals(1, $errors['missing_parent']);
-
-        Category::removeScope('aScope');
     }
 
     public function testCreatesNode()
@@ -773,15 +774,15 @@ class NodeTest extends PHPUnit\Framework\TestCase
         Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
         Category::where('id', '=', 2)->update([ 'parent_id' => 24 ]);
 
-        Category::addGlobalScope('aScope', function($query){
+        Category::addGlobalScope('testScope', function($query){
             $query->whereIn('name', ['apple', 'samsung', 'sony']);
         });
 
         $fixed = Category::fixTree(null, function(QueryBuilder $query){
-            $query->withoutGlobalScope('aScope');
+            $query->withoutGlobalScope('testScope');
         });
 
-        Category::removeScope('aScope');
+        Category::removeScope('testScope');
 
         $this->assertTrue($fixed > 0);
         $this->assertTreeNotBroken();
