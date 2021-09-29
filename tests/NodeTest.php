@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
+use Kalnoy\Nestedset\QueryBuilder;
 
 class NodeTest extends PHPUnit\Framework\TestCase
 {
@@ -122,6 +123,21 @@ class NodeTest extends PHPUnit\Framework\TestCase
     {
         $this->assertTreeNotBroken();
         $this->assertFalse(Category::isBroken());
+    }
+
+    public function testTreeNotEvenWithGlobalScopesBroken()
+    {
+        $this->assertTreeNotBroken();
+
+        Category::addGlobalScope('aScope', function($query){
+            $query->whereIn('categories.name', ['apple', 'samsung', 'sony']);
+        });
+
+        $this->assertFalse(Category::isBroken(function($query){
+            $query->withoutGlobalScope('aScope');
+        }));
+
+        Category::removeScope('aScope');
     }
 
     public function nodeValues($node)
@@ -596,6 +612,35 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertEquals(1, $errors['missing_parent']);
     }
 
+    public function testCountsTreeErrorsWithGlobalScopes()
+    {
+        $errors = Category::countErrors();
+
+        $this->assertEquals([ 'oddness' => 0,
+                              'duplicates' => 0,
+                              'wrong_parent' => 0,
+                              'missing_parent' => 0 ], $errors);
+
+        Category::where('id', '=', 5)->update([ '_lft' => 14 ]);
+        Category::where('id', '=', 8)->update([ 'parent_id' => 2 ]);
+        Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
+        Category::where('id', '=', 4)->update([ 'parent_id' => 24 ]);
+
+        Category::addGlobalScope('aScope', function($query){
+            $query->whereIn('categories.name', ['apple', 'samsung', 'sony']);
+        });
+
+        $errors = Category::countErrors(function($query){
+            $query->withoutGlobalScope('aScope');
+        });
+
+        $this->assertEquals(1, $errors['oddness']);
+        $this->assertEquals(2, $errors['duplicates']);
+        $this->assertEquals(1, $errors['missing_parent']);
+
+        Category::removeScope('aScope');
+    }
+
     public function testCreatesNode()
     {
         $node = Category::create([ 'name' => 'test' ]);
@@ -696,6 +741,59 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $node = Category::find(2);
 
         $this->assertEquals(null, $node->getParentId());
+    }
+
+    public function testTreeFixingWithCallback()
+    {
+        Category::where('id', '=', 5)->update([ '_lft' => 14 ]);
+        Category::where('id', '=', 8)->update([ 'parent_id' => 2 ]);
+        Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
+        Category::where('id', '=', 2)->update([ 'parent_id' => 24 ]);
+
+        $fixed = Category::fixTree(null, function (QueryBuilder $query){
+            $this->assertIsObject($query);
+        });
+
+        $this->assertTrue($fixed > 0);
+        $this->assertTreeNotBroken();
+
+        $node = Category::find(8);
+
+        $this->assertEquals(2, $node->getParentId());
+
+        $node = Category::find(2);
+
+        $this->assertEquals(null, $node->getParentId());
+    }
+
+    public function testTreeFixingCallbackCanRemoveScopes()
+    {
+        Category::where('id', '=', 5)->update([ '_lft' => 14 ]);
+        Category::where('id', '=', 8)->update([ 'parent_id' => 2 ]);
+        Category::where('id', '=', 11)->update([ '_lft' => 20 ]);
+        Category::where('id', '=', 2)->update([ 'parent_id' => 24 ]);
+
+        Category::addGlobalScope('aScope', function($query){
+            $query->whereIn('name', ['apple', 'samsung', 'sony']);
+        });
+
+        $fixed = Category::fixTree(null, function(QueryBuilder $query){
+            $query->withoutGlobalScope('aScope');
+        });
+
+        Category::removeScope('aScope');
+
+        $this->assertTrue($fixed > 0);
+        $this->assertTreeNotBroken();
+
+        $node = Category::find(8);
+
+        $this->assertEquals(2, $node->getParentId());
+
+        $node = Category::find(2);
+
+        $this->assertEquals(null, $node->getParentId());
+
     }
 
     public function testSubtreeIsFixed()
