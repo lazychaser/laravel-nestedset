@@ -1,6 +1,6 @@
 <?php
 
-class DuplicateCategory extends \Illuminate\Database\Eloquent\Model
+class DuplicateCategory extends \Illuminate\Database\Eloquent\Model implements \Kalnoy\Nestedset\Node
 {
     use \Kalnoy\Nestedset\NodeTrait;
 

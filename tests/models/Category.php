@@ -2,7 +2,7 @@
 
 use \Illuminate\Database\Eloquent\Model;
 
-class Category extends Model {
+class Category extends Model implements \Kalnoy\Nestedset\Node {
 
     use \Illuminate\Database\Eloquent\SoftDeletes, \Kalnoy\Nestedset\NodeTrait;
 

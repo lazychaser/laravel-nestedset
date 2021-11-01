@@ -1,7 +1,7 @@
 <?php
 
 
-class MenuItem extends \Illuminate\Database\Eloquent\Model
+class MenuItem extends \Illuminate\Database\Eloquent\Model implements \Kalnoy\Nestedset\Node
 {
     use \Kalnoy\Nestedset\NodeTrait;
 
