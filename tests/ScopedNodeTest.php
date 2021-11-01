@@ -5,7 +5,7 @@ use Kalnoy\Nestedset\NestedSet;
 
 class ScopedNodeTest extends PHPUnit\Framework\TestCase
 {
-    public static function setUpBeforeClass(): void
+    public static function setUpBeforeClass()
     {
         $schema = Capsule::schema();
 
@@ -23,7 +23,7 @@ class ScopedNodeTest extends PHPUnit\Framework\TestCase
         Capsule::enableQueryLog();
     }
 
-    public function setUp(): void
+    public function setUp()
     {
         $data = include __DIR__.'/data/menu_items.php';
 
@@ -36,7 +36,7 @@ class ScopedNodeTest extends PHPUnit\Framework\TestCase
         date_default_timezone_set('America/Denver');
     }
 
-    public function tearDown(): void
+    public function tearDown()
     {
         Capsule::table('menu_items')->truncate();
     }

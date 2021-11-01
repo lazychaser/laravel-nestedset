@@ -5,7 +5,7 @@ use Kalnoy\Nestedset\NestedSet;
 
 class NodeTest extends PHPUnit\Framework\TestCase
 {
-    public static function setUpBeforeClass() : void
+    public static function setUpBeforeClass()
     {
         $schema = Capsule::schema();
 
@@ -23,7 +23,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
         Capsule::enableQueryLog();
     }
 
-    public function setUp() : void
+    public function setUp()
     {
         $data = include __DIR__.'/data/categories.php';
 
@@ -36,7 +36,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
         date_default_timezone_set('America/Denver');
     }
 
-    public function tearDown() : void
+    public function tearDown()
     {
         Capsule::table('categories')->truncate();
     }
@@ -84,9 +84,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
     public function dumpTree($items = null)
     {
-        if (! $items) {
-            $items = Category::withTrashed()->defaultOrder()->get();
-        }
+        if ( ! $items) $items = Category::withTrashed()->defaultOrder()->get();
 
         foreach ($items as $item) {
             echo PHP_EOL.($item->trashed() ? '-' : '+').' '.$item->name." ".$item->getKey().' '.$item->getLft()." ".$item->getRgt().' '.$item->getParentId();
@@ -617,15 +615,14 @@ class NodeTest extends PHPUnit\Framework\TestCase
     public function testCreatesTree()
     {
         $node = Category::create(
-            [
+        [
             'name' => 'test',
             'children' =>
             [
                 [ 'name' => 'test2' ],
                 [ 'name' => 'test3' ],
             ],
-        ]
-        );
+        ]);
 
         $this->assertTreeNotBroken();
 
@@ -672,7 +669,8 @@ class NodeTest extends PHPUnit\Framework\TestCase
     {
         $category = $this->findCategory('mobile');
 
-        foreach ($category->children()->take(2)->get() as $child) {
+        foreach ($category->children()->take(2)->get() as $child)
+        {
             $child->forceDelete();
         }
 
@@ -927,9 +925,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         foreach ($categories as $category) {
             $output["{$category->name} ({$category->id})}"] = $category->ancestors->count()
-                ? implode(' > ', $category->ancestors->map(function ($cat) {
-                    return "{$cat->name} ({$cat->id})";
-                })->toArray())
+                ? implode(' > ', $category->ancestors->map(function ($cat) { return "{$cat->name} ({$cat->id})"; })->toArray())
                 : '';
         }
 
@@ -961,9 +957,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         foreach ($categories as $category) {
             $output["{$category->name} ({$category->id})}"] = $category->ancestors->count()
-                ? implode(' > ', $category->ancestors->map(function ($cat) {
-                    return "{$cat->name} ({$cat->id})";
-                })->toArray())
+                ? implode(' > ', $category->ancestors->map(function ($cat) { return "{$cat->name} ({$cat->id})"; })->toArray())
                 : '';
         }
 
@@ -1004,6 +998,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         $this->assertEquals(1, $category->getParentId());
     }
+
 }
 
 function all($items)
