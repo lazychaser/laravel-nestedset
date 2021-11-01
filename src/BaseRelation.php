@@ -112,20 +112,6 @@ abstract class BaseRelation extends Relation
     }
 
     /**
-     * @param EloquentBuilder $query
-     * @param EloquentBuilder $parent
-     * @param array $columns
-     *
-     * @return mixed
-     */
-    public function getRelationQuery(
-        EloquentBuilder $query, EloquentBuilder $parent,
-        $columns = [ '*' ]
-    ) {
-        return $this->getRelationExistenceQuery($query, $parent, $columns);
-    }
-
-    /**
      * Get a relationship join table hash.
      *
      * @param  bool $incrementJoinCount
