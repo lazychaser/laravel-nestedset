@@ -1,6 +1,6 @@
 {
-    "name": "kalnoy/nestedset",
-    "description": "Nested Set Model for Laravel 5.7 and up",
+    "name": "lychee-org/nestedset",
+    "description": "Nested Set Model for Laravel 5.7 and up (fork with patches for Lychee)",
     "keywords": ["laravel", "nested sets", "nsm", "database", "hierarchy"],
     "license": "MIT",
 
