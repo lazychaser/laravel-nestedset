@@ -36,7 +36,7 @@ abstract class BaseRelation extends Relation
      */
     public function __construct(QueryBuilder $builder, Model $model)
     {
-        if ( ! NestedSet::isNode($model)) {
+        if (! NestedSet::isNode($model)) {
             throw new InvalidArgumentException('Model must be node.');
         }
 
@@ -76,8 +76,10 @@ abstract class BaseRelation extends Relation
      *
      * @return mixed
      */
-    public function getRelationExistenceQuery(EloquentBuilder $query, EloquentBuilder $parent,
-                                              $columns = [ '*' ]
+    public function getRelationExistenceQuery(
+        EloquentBuilder $query,
+        EloquentBuilder $parent,
+        $columns = [ '*' ]
     ) {
         $query = $this->getParent()->replicate()->newScopedQuery()->select($columns);
 
@@ -93,7 +95,8 @@ abstract class BaseRelation extends Relation
             $grammar->wrapTable($hash),
             $grammar->wrapTable($table),
             $grammar->wrap($this->parent->getLftName()),
-            $grammar->wrap($this->parent->getRgtName()));
+            $grammar->wrap($this->parent->getRgtName())
+        );
 
         return $query->whereRaw($condition);
     }
@@ -119,7 +122,8 @@ abstract class BaseRelation extends Relation
      * @return mixed
      */
     public function getRelationQuery(
-        EloquentBuilder $query, EloquentBuilder $parent,
+        EloquentBuilder $query,
+        EloquentBuilder $parent,
         $columns = [ '*' ]
     ) {
         return $this->getRelationExistenceQuery($query, $parent, $columns);

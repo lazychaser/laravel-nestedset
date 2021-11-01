@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class DescendantsRelation extends BaseRelation
 {
-
     /**
      * Set the base constraints on the relation query.
      *
@@ -15,7 +14,9 @@ class DescendantsRelation extends BaseRelation
      */
     public function addConstraints()
     {
-        if ( ! static::$constraints) return;
+        if (! static::$constraints) {
+            return;
+        }
 
         $this->query->whereDescendantOf($this->parent)
         ->applyNestedSetScope();
