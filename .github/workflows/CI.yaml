@@ -20,10 +20,10 @@ jobs:
         operating-system: [ubuntu-20.04]
         php-versions: ['7.4', '8.0', '8.1']
         dependencies: ['no', 'low', 'beta']
-        include:
+        exclude:
           - operating-system: ubuntu-20.04
-            php-versions: '8.0'
-            continue-on-error: true
+            php-versions: '8.1'
+            dependencies: 'low'
 
     name: PHP ${{ matrix.php-versions }} - ${{ matrix.dependencies }}
 
