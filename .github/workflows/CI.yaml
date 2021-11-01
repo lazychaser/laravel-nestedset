@@ -20,10 +20,10 @@ jobs:
         operating-system: [ubuntu-20.04]
         php-versions: ['7.4', '8.0', '8.1']
         dependencies: ['no', 'low', 'beta']
-        include:
+        exclude:
           - operating-system: ubuntu-20.04
-            php-versions: '8.0'
-            continue-on-error: true
+            php-versions: '8.1'
+            dependencies: 'low'
 
     name: PHP ${{ matrix.php-versions }} - ${{ matrix.dependencies }}
 
@@ -58,6 +58,10 @@ jobs:
           path: ~/.composer/cache/files
           key: dependencies-composer-${{ hashFiles('composer.json') }}
 
+      - name: Fix beta
+        if: ${{ matrix.dependencies == 'beta' }}
+        run: perl -pi -e 's/^}$/,"minimum-stability":"beta"}/' composer.json
+
       - name: Setup PHP Action
         uses: shivammathur/setup-php@2.8.0
         with:
@@ -91,8 +95,5 @@ jobs:
       - name: Validate files
         run: composer validate-files
       
-      - name: Check Style
-        run: composer check-code-style
-
-      # - name: Run tests
-        # run: composer run-tests
+      - name: Run tests
+        run: composer run-tests

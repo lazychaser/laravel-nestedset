@@ -84,9 +84,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
     public function dumpTree($items = null)
     {
-        if (! $items) {
-            $items = Category::withTrashed()->defaultOrder()->get();
-        }
+        if ( ! $items) $items = Category::withTrashed()->defaultOrder()->get();
 
         foreach ($items as $item) {
             echo PHP_EOL.($item->trashed() ? '-' : '+').' '.$item->name." ".$item->getKey().' '.$item->getLft()." ".$item->getRgt().' '.$item->getParentId();
@@ -223,32 +221,26 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertNodeReceivesValidValues($node);
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToInsertIntoChild()
     {
+        $this->expectException(Exception::class);
         $node = $this->findCategory('notebooks');
         $target = $node->children()->first();
 
         $node->afterNode($target)->save();
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToAppendIntoItself()
     {
+        $this->expectException(Exception::class);
         $node = $this->findCategory('notebooks');
 
         $node->appendToNode($node)->save();
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToPrependIntoItself()
     {
+        $this->expectException(Exception::class);
         $node = $this->findCategory('notebooks');
 
         $node->prependTo($node)->save();
@@ -340,11 +332,9 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertTrue($node->isRoot());
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToSaveNodeUntilNotInserted()
     {
+        $this->expectException(Exception::class);
         $node = new Category;
         $node->save();
     }
@@ -407,11 +397,9 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertNull($this->findCategory('sony'));
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToSaveNodeUntilParentIsSaved()
     {
+        $this->expectException(Exception::class);
         $node = new Category(array('title' => 'Node'));
         $parent = new Category(array('title' => 'Parent'));
 
@@ -617,15 +605,14 @@ class NodeTest extends PHPUnit\Framework\TestCase
     public function testCreatesTree()
     {
         $node = Category::create(
-            [
+        [
             'name' => 'test',
             'children' =>
             [
                 [ 'name' => 'test2' ],
                 [ 'name' => 'test3' ],
             ],
-        ]
-        );
+        ]);
 
         $this->assertTreeNotBroken();
 
@@ -644,11 +631,9 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertTrue($node->getDescendants()->isEmpty());
     }
 
-    /**
-     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
     public function testWhereDescendantsOf()
     {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
         Category::whereDescendantOf(124)->get();
     }
 
@@ -672,7 +657,8 @@ class NodeTest extends PHPUnit\Framework\TestCase
     {
         $category = $this->findCategory('mobile');
 
-        foreach ($category->children()->take(2)->get() as $child) {
+        foreach ($category->children()->take(2)->get() as $child)
+        {
             $child->forceDelete();
         }
 
@@ -854,11 +840,9 @@ class NodeTest extends PHPUnit\Framework\TestCase
         $this->assertTrue($nodes->count() > 1);
     }
 
-    /**
-     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
     public function testRebuildFailsWithInvalidPK()
     {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
         Category::rebuildTree([ [ 'id' => 24 ] ]);
     }
 
@@ -927,9 +911,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         foreach ($categories as $category) {
             $output["{$category->name} ({$category->id})}"] = $category->ancestors->count()
-                ? implode(' > ', $category->ancestors->map(function ($cat) {
-                    return "{$cat->name} ({$cat->id})";
-                })->toArray())
+                ? implode(' > ', $category->ancestors->map(function ($cat) { return "{$cat->name} ({$cat->id})"; })->toArray())
                 : '';
         }
 
@@ -961,9 +943,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         foreach ($categories as $category) {
             $output["{$category->name} ({$category->id})}"] = $category->ancestors->count()
-                ? implode(' > ', $category->ancestors->map(function ($cat) {
-                    return "{$cat->name} ({$cat->id})";
-                })->toArray())
+                ? implode(' > ', $category->ancestors->map(function ($cat) { return "{$cat->name} ({$cat->id})"; })->toArray())
                 : '';
         }
 
@@ -1004,6 +984,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
 
         $this->assertEquals(1, $category->getParentId());
     }
+
 }
 
 function all($items)

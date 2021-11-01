@@ -9,27 +9,27 @@ class NestedSet
     /**
      * The name of default lft column.
      */
-    public const LFT = '_lft';
+    const LFT = '_lft';
 
     /**
      * The name of default rgt column.
      */
-    public const RGT = '_rgt';
+    const RGT = '_rgt';
 
     /**
      * The name of default parent id column.
      */
-    public const PARENT_ID = 'parent_id';
+    const PARENT_ID = 'parent_id';
 
     /**
      * Insert direction.
      */
-    public const BEFORE = 1;
+    const BEFORE = 1;
 
     /**
      * Insert direction.
      */
-    public const AFTER = 2;
+    const AFTER = 2;
 
     /**
      * Add default nested set columns to the table. Also create an index.
@@ -79,4 +79,5 @@ class NestedSet
     {
         return $node instanceof Node;
     }
+
 }
