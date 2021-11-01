@@ -58,6 +58,10 @@ jobs:
           path: ~/.composer/cache/files
           key: dependencies-composer-${{ hashFiles('composer.json') }}
 
+      - name: Fix beta
+        if: ${{ matrix.dependencies == 'beta' }}
+        run: perl -pi -e 's/^}$/,"minimum-stability":"beta"}/' composer.json
+
       - name: Setup PHP Action
         uses: shivammathur/setup-php@2.8.0
         with:
@@ -91,5 +95,5 @@ jobs:
       - name: Validate files
         run: composer validate-files
       
-      # - name: Run tests
-        # run: composer run-tests
+      - name: Run tests
+        run: composer run-tests
