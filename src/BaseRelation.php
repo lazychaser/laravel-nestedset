@@ -195,4 +195,16 @@ abstract class BaseRelation extends Relation
 
         return $result;
     }
+
+    /**
+     * Get the plain foreign key.
+     *
+     * @return mixed
+     */
+    public function getForeignKeyName()
+    {
+        // Return a stub value for relation
+        // resolvers which need this function.
+        return NestedSet::PARENT_ID;
+    }
 }
