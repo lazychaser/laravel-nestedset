@@ -49,10 +49,9 @@ trait NodeTrait
 
         static::deleting(function ($model) {
             // We will need fresh data to delete node safely
+            // We must delete the descendants BEFORE we delete the actual
+            // album to avoid failing FOREIGN key constraints.
             $model->refreshNode();
-        });
-
-        static::deleted(function ($model) {
             $model->deleteDescendants();
         });
 
