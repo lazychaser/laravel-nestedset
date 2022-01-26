@@ -41,5 +41,10 @@
                 "Kalnoy\\Nestedset\\NestedSetServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "test": [
+            "@php ./vendor/bin/phpunit"
+        ]
     }
 }
