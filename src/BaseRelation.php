@@ -144,7 +144,7 @@ abstract class BaseRelation extends Relation
         // The first model in the array is always the parent, so add the scope constraints based on that model.
         // @link https://github.com/laravel/framework/pull/25240
         // @link https://github.com/lazychaser/laravel-nestedset/issues/351
-        optional($models[0])->applyNestedSetScope($this->query);
+        optional(reset($models))->applyNestedSetScope($this->query);
 
         $this->query->whereNested(function (Builder $inner) use ($models) {
             // We will use this query in order to apply constraints to the
