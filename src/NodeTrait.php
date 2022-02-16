@@ -88,11 +88,13 @@ trait NodeTrait
     {
         $this->moved = false;
 
-        if ( ! $this->pending && ! $this->exists) {
+        if (! $this->pending && ! $this->exists) {
             $this->makeRoot();
         }
 
-        if ( ! $this->pending) return;
+        if (! $this->pending) {
+            return;
+        }
 
         $method = 'action'.ucfirst(array_shift($this->pending));
         $parameters = $this->pending;
@@ -132,7 +134,7 @@ trait NodeTrait
     protected function actionRoot()
     {
         // Simplest case that do not affect other nodes.
-        if ( ! $this->exists) {
+        if (! $this->exists) {
             $cut = $this->getLowerBound() + 1;
 
             $this->setLft($cut);
@@ -168,7 +170,7 @@ trait NodeTrait
 
         $cut = $prepend ? $parent->getLft() + 1 : $parent->getRgt();
 
-        if ( ! $this->insertAt($cut)) {
+        if (! $this->insertAt($cut)) {
             return false;
         }
 
@@ -212,7 +214,9 @@ trait NodeTrait
      */
     public function refreshNode()
     {
-        if ( ! $this->exists || static::$actionsPerformed === 0) return;
+        if (! $this->exists || static::$actionsPerformed === 0) {
+            return;
+        }
 
         $attributes = $this->newNestedSetQuery()->getNodeData($this->getKey());
 
@@ -468,7 +472,7 @@ trait NodeTrait
             ->assertNotDescendant($node)
             ->assertSameScope($node);
 
-        if ( ! $this->isSiblingOf($node)) {
+        if (! $this->isSiblingOf($node)) {
             $this->setParent($node->getRelationValue('parent'));
         }
 
@@ -498,7 +502,9 @@ trait NodeTrait
      */
     public function insertBeforeNode(self $node)
     {
-        if ( ! $this->beforeNode($node)->save()) return false;
+        if (! $this->beforeNode($node)->save()) {
+            return false;
+        }
 
         // We'll update the target node since it will be moved
         $node->refreshNode();
@@ -534,7 +540,9 @@ trait NodeTrait
             ->skip($amount - 1)
             ->first();
 
-        if ( ! $sibling) return false;
+        if (! $sibling) {
+            return false;
+        }
 
         return $this->insertBeforeNode($sibling);
     }
@@ -553,7 +561,9 @@ trait NodeTrait
             ->skip($amount - 1)
             ->first();
 
-        if ( ! $sibling) return false;
+        if (! $sibling) {
+            return false;
+        }
 
         return $this->insertAfterNode($sibling);
     }
@@ -590,7 +600,9 @@ trait NodeTrait
         $updated = $this->newNestedSetQuery()
                 ->moveNode($this->getKey(), $position) > 0;
 
-        if ($updated) $this->refreshNode();
+        if ($updated) {
+            $this->refreshNode();
+        }
 
         return $updated;
     }
@@ -698,17 +710,20 @@ trait NodeTrait
      */
     public function applyNestedSetScope($query, $table = null)
     {
-        if ( ! $scoped = $this->getScopeAttributes()) {
+        if (! $scoped = $this->getScopeAttributes()) {
             return $query;
         }
 
-        if ( ! $table) {
+        if (! $table) {
             $table = $this->getTable();
         }
 
         foreach ($scoped as $attribute) {
-            $query->where($table.'.'.$attribute, '=',
-                          $this->getAttributeValue($attribute));
+            $query->where(
+                $table.'.'.$attribute,
+                '=',
+                $this->getAttributeValue($attribute)
+            );
         }
 
         return $query;
@@ -784,7 +799,9 @@ trait NodeTrait
      */
     public function getNodeHeight()
     {
-        if ( ! $this->exists) return 2;
+        if (! $this->exists) {
+            return 2;
+        }
 
         return $this->getRgt() - $this->getLft() + 1;
     }
@@ -810,7 +827,9 @@ trait NodeTrait
      */
     public function setParentIdAttribute($value)
     {
-        if ($this->getParentId() == $value) return;
+        if ($this->getParentId() == $value) {
+            return;
+        }
 
         if ($value) {
             $this->appendToNode($this->newScopedQuery()->findOrFail($value));
@@ -1178,7 +1197,7 @@ trait NodeTrait
      */
     protected function assertNodeExists(self $node)
     {
-        if ( ! $node->getLft() || ! $node->getRgt()) {
+        if (! $node->getLft() || ! $node->getRgt()) {
             throw new LogicException('Node must exists.');
         }
 
@@ -1190,7 +1209,7 @@ trait NodeTrait
      */
     protected function assertSameScope(self $node)
     {
-        if ( ! $scoped = $this->getScopeAttributes()) {
+        if (! $scoped = $this->getScopeAttributes()) {
             return;
         }
 
@@ -1217,5 +1236,65 @@ trait NodeTrait
         $except = $except ? array_unique(array_merge($except, $defaults)) : $defaults;
 
         return parent::replicate($except);
+    }
+
+    public function scopeWithChildren(Builder $query) : Builder
+    {
+        return $query->whereHas('children');
+    }
+
+    public function scopeWithoutChildren(Builder $query) : Builder
+    {
+        // @see https://laravel.com/api/5.7/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.html#method_whereHas
+        return $query->whereHas('children', null, '=', 0);
+    }
+
+    public function scopeWithDescendants(Builder $query) : Builder
+    {
+        return $query->whereHas('descendants');
+    }
+
+    public function scopeWithoutDescendants(Builder $query) : Builder
+    {
+        // @see https://laravel.com/api/5.7/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.html#method_whereHas
+        return $query->whereHas('descendants', null, '=', 0);
+    }
+
+    public function scopeWithSiblings(Builder $query) : Builder
+    {
+        return $query->whereHas('siblings');
+    }
+
+    public function scopeWithoutSiblings(Builder $query) : Builder
+    {
+        // @see https://laravel.com/api/5.7/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.html#method_whereHas
+        return $query->whereHas('siblings', null, '=', 0);
+    }
+
+    public function scopeWithAncestors(Builder $query) : Builder
+    {
+        return $query->whereHas('ancestors');
+    }
+
+    public function scopeWithoutAncestors(Builder $query) : Builder
+    {
+        // @see https://laravel.com/api/5.7/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.html#method_whereHas
+        return $query->whereHas('ancestors', null, '=', 0);
+    }
+
+    public function scopeRoots(Builder $query) : Builder
+    {
+        return $query->withoutAncestors();
+    }
+
+    public function scopeLeaves(Builder $query) : Builder
+    {
+        return $query->withoutDescendants();
+    }
+
+    public function scopeDescendantsOf(Builder $query, self $other_category) : Builder
+    {
+        return $query->where('_lft', '>', $other_category->_lft)
+            ->where('_lft', '<', $other_category->_rgt);
     }
 }
