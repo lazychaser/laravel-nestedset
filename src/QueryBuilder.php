@@ -34,9 +34,10 @@ class QueryBuilder extends Builder
         $query = $this->toBase();
 
         $query->where($this->model->getKeyName(), '=', $id);
-
-        $data = $query->first([ $this->model->getLftName(),
-                                $this->model->getRgtName() ]);
+        $data = $query->select([
+            $this->model->getLftName(),
+            $this->model->getRgtName(),
+        ])->first();
 
         if ( ! $data && $required) {
             throw new ModelNotFoundException;
