@@ -725,7 +725,7 @@ trait NodeTrait
     /**
      * @param array $attributes
      *
-     * @return self
+     * @return QueryBuilder
      */
     public static function scoped(array $attributes)
     {
