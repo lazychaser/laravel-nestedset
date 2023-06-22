@@ -1005,7 +1005,8 @@ trait NodeTrait
     public function isDescendantOf(self $other)
     {
         return $this->getLft() > $other->getLft() &&
-            $this->getLft() < $other->getRgt();
+            $this->getLft() < $other->getRgt() &&
+            $this->isSameScope($other);
     }
 
     /**
@@ -1199,6 +1200,24 @@ trait NodeTrait
                 throw new LogicException('Nodes must be in the same scope');
             }
         }
+    }
+
+    /**
+     * @param self $node
+     */
+    protected function isSameScope(self $node): bool
+    {
+        if ( ! $scoped = $this->getScopeAttributes()) {
+            return true;
+        }
+
+        foreach ($scoped as $attr) {
+            if ($this->getAttribute($attr) != $node->getAttribute($attr)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
