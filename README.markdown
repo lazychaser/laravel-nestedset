@@ -15,10 +15,6 @@ This is a Laravel 4-10 package for working with trees in relational databases.
 *   **Laravel 5.1** is supported in v3
 *   **Laravel 4** is supported in v2
 
-Although this project is completely free for use, I appreciate any support!
-
--   __[Donate via PayPal](https://www.paypal.me/lazychaser)__
-
 __Contents:__
 
 - [Theory](#what-are-nested-sets)
