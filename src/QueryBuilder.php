@@ -87,8 +87,10 @@ class QueryBuilder extends Builder
     public function whereAncestorOf($id, $andSelf = false, $boolean = 'and')
     {
         $keyName = $this->model->getTable() . '.' . $this->model->getKeyName();
+        $model = null;
 
         if (NestedSet::isNode($id)) {
+            $model = $id;
             $value = '?';
 
             $this->query->addBinding($id->getRgt());
@@ -108,7 +110,7 @@ class QueryBuilder extends Builder
             $value = '('.$valueQuery->toSql().')';
         }
 
-        $this->query->whereNested(function ($inner) use ($value, $andSelf, $id, $keyName) {
+        $this->query->whereNested(function ($inner) use ($model, $value, $andSelf, $id, $keyName) {
             list($lft, $rgt) = $this->wrappedColumns();
             $wrappedTable = $this->query->getGrammar()->wrapTable($this->model->getTable());
 
@@ -117,8 +119,12 @@ class QueryBuilder extends Builder
             if ( ! $andSelf) {
                 $inner->where($keyName, '<>', $id);
             }
+            if ($model !== null) {
+                // we apply scope only when Node was passed as $id.
+                // In other cases, according to docs, query should be scoped() before calling this method
+                $model->applyNestedSetScope($inner);
+            }
         }, $boolean);
-
 
         return $this;
     }
@@ -178,12 +184,13 @@ class QueryBuilder extends Builder
      * @param array $values
      * @param string $boolean
      * @param bool $not
+     * @param Query $query
      *
      * @return $this
      */
-    public function whereNodeBetween($values, $boolean = 'and', $not = false)
+    public function whereNodeBetween($values, $boolean = 'and', $not = false, $query = null)
     {
-        $this->query->whereBetween($this->model->getTable() . '.' . $this->model->getLftName(), $values, $boolean, $not);
+        ($query ?? $this->query)->whereBetween($this->model->getTable() . '.' . $this->model->getLftName(), $values, $boolean, $not);
 
         return $this;
     }
@@ -217,19 +224,26 @@ class QueryBuilder extends Builder
     public function whereDescendantOf($id, $boolean = 'and', $not = false,
                                       $andSelf = false
     ) {
-        if (NestedSet::isNode($id)) {
-            $data = $id->getBounds();
-        } else {
-            $data = $this->model->newNestedSetQuery()
-                                ->getPlainNodeData($id, true);
-        }
+        $this->query->whereNested(function (Query $inner) use ($id, $andSelf, $not) {
+            if (NestedSet::isNode($id)) {
+                $id->applyNestedSetScope($inner);
+                $data = $id->getBounds();
+            } else {
+                // we apply scope only when Node was passed as $id.
+                // In other cases, according to docs, query should be scoped() before calling this method
+                $data = $this->model->newNestedSetQuery()
+                    ->getPlainNodeData($id, true);
+            }
 
-        // Don't include the node
-        if ( ! $andSelf) {
-            ++$data[0];
-        }
+            // Don't include the node
+            if (!$andSelf) {
+                ++$data[0];
+            }
 
-        return $this->whereNodeBetween($data, $boolean, $not);
+            return $this->whereNodeBetween($data, 'and', $not, $inner);
+        }, $boolean);
+
+        return $this;
     }
 
     /**
