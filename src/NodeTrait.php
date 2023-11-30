@@ -49,10 +49,9 @@ trait NodeTrait
 
         static::deleting(function ($model) {
             // We will need fresh data to delete node safely
+            // We must delete the descendants BEFORE we delete the actual
+            // album to avoid failing FOREIGN key constraints.
             $model->refreshNode();
-        });
-
-        static::deleted(function ($model) {
             $model->deleteDescendants();
         });
 
@@ -249,7 +248,7 @@ trait NodeTrait
      */
     public function descendants()
     {
-        return new DescendantsRelation($this->newQuery(), $this);
+        return new DescendantsRelation($this->newQueryWithoutScopes(), $this);
     }
 
     /**
@@ -338,7 +337,7 @@ trait NodeTrait
      */
     public function ancestors()
     {
-        return new AncestorsRelation($this->newQuery(), $this);
+        return new AncestorsRelation($this->newQueryWithoutScopes(), $this);
     }
 
     /**
@@ -675,7 +674,7 @@ trait NodeTrait
     {
         $builder = $this->usesSoftDelete()
             ? $this->withTrashed()
-            : $this->newQuery();
+            : $this->newQueryWithoutScopes();
 
         return $this->applyNestedSetScope($builder, $table);
     }
@@ -687,7 +686,7 @@ trait NodeTrait
      */
     public function newScopedQuery($table = null)
     {
-        return $this->applyNestedSetScope($this->newQuery(), $table);
+        return $this->applyNestedSetScope($this->newQueryWithoutScopes(), $table);
     }
 
     /**
