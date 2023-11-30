@@ -64,7 +64,7 @@ class Collection extends BaseCollection
 
         /** @var Model|NodeTrait $node */
         foreach ($this->items as $node) {
-            if ($node->getParentId() == $root) {
+            if ($node->getParentId() == $root || ! $node->getParentId()) {
                 $items[] = $node;
             }
         }
