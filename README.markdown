@@ -40,6 +40,12 @@ a way to effectively store hierarchical data in a relational table. From wikiped
 > attributes. Querying becomes inexpensive: hierarchy membership can be tested by
 > comparing these numbers. Updating requires renumbering and is therefore expensive.
 
+### Install
+
+```
+composer require kalnoy/nestedset
+```
+
 ### Applications
 
 NSM shows good performance when tree is updated rarely. It is tuned to be fast for
