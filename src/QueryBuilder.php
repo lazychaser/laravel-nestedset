@@ -654,7 +654,7 @@ class QueryBuilder extends Builder
         extract($params);
 
         /** @var int $height */
-        if ($height > 0) $height = '+'.$height;
+        if ($height >= 0) $height = '+'.$height;
 
         if (isset($cut)) {
             return new Expression("case when {$col} >= {$cut} then {$col}{$height} else {$col} end");
@@ -665,7 +665,7 @@ class QueryBuilder extends Builder
         /** @var int $rgt */
         /** @var int $from */
         /** @var int $to */
-        if ($distance > 0) $distance = '+'.$distance;
+        if ($distance >= 0) $distance = '+'.$distance;
 
         return new Expression("case ".
                               "when {$col} between {$lft} and {$rgt} then {$col}{$distance} ". // Move the node
