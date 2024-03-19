@@ -2,10 +2,11 @@
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
+use Kalnoy\Nestedset\Tests\Models\MenuItem;
 
-class ScopedNodeTest extends PHPUnit_Framework_TestCase
+class ScopedNodeTest extends PHPUnit\Framework\TestCase
 {
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         $schema = Capsule::schema();
 
@@ -23,7 +24,7 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         Capsule::enableQueryLog();
     }
 
-    public function setUp()
+    public function setUp(): void
     {
         $data = include __DIR__.'/data/menu_items.php';
 
@@ -36,7 +37,7 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         date_default_timezone_set('America/Denver');
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         Capsule::table('menu_items')->truncate();
     }
@@ -98,6 +99,13 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $result->count());
         $this->assertEquals(5, $result->first()->getKey());
+
+        $node = MenuItem::scoped([ 'menu_id' => 1 ])->with('descendants')->find(2);
+
+        $result = $node->descendants;
+
+        $this->assertEquals(1, $result->count());
+        $this->assertEquals(5, $result->first()->getKey());
     }
 
     public function testAncestors()
@@ -109,7 +117,7 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $result->count());
         $this->assertEquals(2, $result->first()->getKey());
 
-        $node = MenuItem::with('ancestors')->find(5);
+        $node = MenuItem::scoped([ 'menu_id' => 1 ])->with('ancestors')->find(5);
 
         $result = $node->ancestors;
 
@@ -152,11 +160,10 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $this->assertOtherScopeNotAffected();
     }
 
-    /**
-     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
     public function testInsertionToParentFromOtherScope()
     {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
         $node = MenuItem::create([ 'menu_id' => 2, 'parent_id' => 5 ]);
     }
 
@@ -186,31 +193,47 @@ class ScopedNodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, $node->getLft());
     }
 
-    public function testRebuildsTree()
+    // Commented, cause there is no assertion here and otherwise the test is marked as risky in PHPUnit 7.
+    // What's the purpose of this method? @todo: remove/update?
+    /*public function testRebuildsTree()
     {
         $data = [];
         MenuItem::scoped([ 'menu_id' => 2 ])->rebuildTree($data);
-    }
+    }*/
 
-    /**
-     * @expectedException LogicException
-     */
     public function testAppendingToAnotherScopeFails()
     {
+        $this->expectException(LogicException::class);
+
         $a = MenuItem::find(1);
         $b = MenuItem::find(3);
 
         $a->appendToNode($b)->save();
     }
 
-    /**
-     * @expectedException LogicException
-     */
     public function testInsertingBeforeAnotherScopeFails()
     {
+        $this->expectException(LogicException::class);
+
         $a = MenuItem::find(1);
         $b = MenuItem::find(3);
 
         $a->insertAfterNode($b);
+    }
+
+    public function testEagerLoadingAncestorsWithScope()
+    {
+        $filteredNodes = MenuItem::where('title', 'menu item 3')->with(['ancestors'])->get();
+
+        $this->assertEquals(2, $filteredNodes->find(5)->ancestors[0]->id);
+        $this->assertEquals(4, $filteredNodes->find(6)->ancestors[0]->id);
+    }
+
+    public function testEagerLoadingDescendantsWithScope()
+    {
+        $filteredNodes = MenuItem::where('title', 'menu item 2')->with(['descendants'])->get();
+
+        $this->assertEquals(5, $filteredNodes->find(2)->descendants[0]->id);
+        $this->assertEquals(6, $filteredNodes->find(4)->descendants[0]->id);
     }
 }

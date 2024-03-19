@@ -2,10 +2,11 @@
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
+use Kalnoy\Nestedset\Tests\Models\Category;
 
-class NodeTest extends PHPUnit_Framework_TestCase
+class NodeTest extends PHPUnit\Framework\TestCase
 {
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         $schema = Capsule::schema();
 
@@ -23,7 +24,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         Capsule::enableQueryLog();
     }
 
-    public function setUp()
+    public function setUp(): void
     {
         $data = include __DIR__.'/data/categories.php';
 
@@ -36,7 +37,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         date_default_timezone_set('America/Denver');
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         Capsule::table('categories')->truncate();
     }
@@ -104,12 +105,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         );
     }
 
-    /**
-     * @param $name
-     *
-     * @return \Category
-     */
-    public function findCategory($name, $withTrashed = false)
+    public function findCategory(string $name, bool $withTrashed = false): Category
     {
         $q = new Category;
 
@@ -221,32 +217,29 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertNodeReceivesValidValues($node);
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToInsertIntoChild()
     {
+        $this->expectException(Exception::class);
+
         $node = $this->findCategory('notebooks');
         $target = $node->children()->first();
 
         $node->afterNode($target)->save();
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToAppendIntoItself()
     {
+        $this->expectException(Exception::class);
+
         $node = $this->findCategory('notebooks');
 
         $node->appendToNode($node)->save();
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToPrependIntoItself()
     {
+        $this->expectException(Exception::class);
+
         $node = $this->findCategory('notebooks');
 
         $node->prependTo($node)->save();
@@ -338,11 +331,10 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($node->isRoot());
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToSaveNodeUntilNotInserted()
     {
+        $this->expectException(Exception::class);
+
         $node = new Category;
         $node->save();
     }
@@ -405,11 +397,10 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertNull($this->findCategory('sony'));
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testFailsToSaveNodeUntilParentIsSaved()
     {
+        $this->expectException(Exception::class);
+
         $node = new Category(array('title' => 'Node'));
         $parent = new Category(array('title' => 'Parent'));
 
@@ -641,11 +632,10 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($node->getDescendants()->isEmpty());
     }
 
-    /**
-     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
     public function testWhereDescendantsOf()
     {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
         Category::whereDescendantOf(124)->get();
     }
 
@@ -827,8 +817,6 @@ class NodeTest extends PHPUnit_Framework_TestCase
             [ 'id' => '8' ],
         ]);
 
-        echo PHP_EOL.$fixed.PHP_EOL;
-
         $this->assertTrue($fixed > 0);
         $this->assertTreeNotBroken();
 
@@ -854,11 +842,10 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($nodes->count() > 1);
     }
 
-    /**
-     * @expectedException \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
     public function testRebuildFailsWithInvalidPK()
     {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
         Category::rebuildTree([ [ 'id' => 24 ] ]);
     }
 
@@ -872,7 +859,9 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('galaxy', $tree[3]->name);
     }
 
-    public function testSeveralNodesModelWork()
+    // Commented, cause there is no assertion here and otherwise the test is marked as risky in PHPUnit 7.
+    // What's the purpose of this method? @todo: remove/update?
+    /*public function testSeveralNodesModelWork()
     {
         $category = new Category;
 
@@ -885,7 +874,7 @@ class NodeTest extends PHPUnit_Framework_TestCase
         $duplicate->name = 'test';
 
         $duplicate->saveAsRoot();
-    }
+    }*/
 
     public function testWhereIsLeaf()
     {

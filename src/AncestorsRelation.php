@@ -15,7 +15,8 @@ class AncestorsRelation extends BaseRelation
     {
         if ( ! static::$constraints) return;
 
-        $this->query->whereAncestorOf($this->parent)->defaultOrder();
+        $this->query->whereAncestorOf($this->parent)
+            ->applyNestedSetScope();
     }
 
     /**

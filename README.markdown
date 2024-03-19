@@ -4,16 +4,17 @@
 [![Latest Unstable Version](https://poser.pugx.org/kalnoy/nestedset/v/unstable.svg)](https://packagist.org/packages/kalnoy/nestedset)
 [![License](https://poser.pugx.org/kalnoy/nestedset/license.svg)](https://packagist.org/packages/kalnoy/nestedset)
 
-This is a Laravel 4-5 package for working with trees in relational databases.
+This is a Laravel 4-11 package for working with trees in relational databases.
 
-*   **Laravel 5.2, 5.3, 5.4, 5.5** is supported since v4
+*   **Laravel 11.0** is supported since v7
+*   **Laravel 10.0** is supported since v6.0.2
+*   **Laravel 9.0** is supported since v6.0.1
+*   **Laravel 8.0** is supported since v6.0.0
+*   **Laravel 5.7, 5.8, 6.0, 7.0** is supported since v5
+*   **Laravel 5.5, 5.6** is supported since v4.3
+*   **Laravel 5.2, 5.3, 5.4** is supported since v4
 *   **Laravel 5.1** is supported in v3
 *   **Laravel 4** is supported in v2
-
-Although this project is completely free for use, I appreciate any support!
-
--   __[Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5TJUM7FYU5VR2)__
--   My Visa: 4276 0700 1073 4244
 
 __Contents:__
 
@@ -384,6 +385,9 @@ position.
 Various constraints that can be applied to the query builder:
 
 -   __whereIsRoot()__ to get only root nodes;
+-   __hasParent()__ to get non-root nodes;
+-   __whereIsLeaf()__ to get only leaves;
+-   __hasChildren()__ to get non-leave nodes;
 -   __whereIsAfter($id)__ to get every node (not just siblings) that are after a node
     with specified id;
 -   __whereIsBefore($id)__ to get every node that is before a node with specified id.
@@ -571,17 +575,17 @@ protected function getScopeAttributes()
 }
 ```
 
-But now in order to execute some custom query, you need to provide attributes
+But now, in order to execute some custom query, you need to provide attributes
 that are used for scoping:
 
 ```php
 MenuItem::scoped([ 'menu_id' => 5 ])->withDepth()->get(); // OK
 MenuItem::descendantsOf($id)->get(); // WRONG: returns nodes from other scope
-MenuItem::scoped([ 'menu_id' => 5 ])->fixTree();
+MenuItem::scoped([ 'menu_id' => 5 ])->fixTree(); // OK
 ```
 
 When requesting nodes using model instance, scopes applied automatically based
-on the attributes of that model. See examples:
+on the attributes of that model:
 
 ```php
 $node = MenuItem::findOrFail($id);
@@ -595,12 +599,13 @@ To get scoped query builder using instance:
 $node->newScopedQuery();
 ```
 
-Note, that scoping is not required when retrieving model by primary key
-(since the key is unique):
+#### Scoping and eager loading
+
+Always use scoped query when eager loading:
 
 ```php
-$node = MenuItem::findOrFail($id); // OK
-$node = MenuItem::scoped([ 'menu_id' => 5 ])->findOrFail(); // OK, but redundant
+MenuItem::scoped([ 'menu_id' => 5])->with('descendants')->findOrFail($id); // OK
+MenuItem::with('descendants')->findOrFail($id); // WRONG
 ```
 
 Requirements
@@ -625,7 +630,21 @@ composer require kalnoy/nestedset
 
 #### The schema
 
-You can use a method to add needed columns with default names:
+For Laravel 5.5 and above users:
+
+```php
+Schema::create('table', function (Blueprint $table) {
+    ...
+    $table->nestedSet();
+});
+
+// To drop columns
+Schema::table('table', function (Blueprint $table) {
+    $table->dropNestedSet();
+});
+```
+
+For prior Laravel versions:
 
 ```php
 ...

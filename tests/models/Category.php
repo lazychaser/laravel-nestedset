@@ -1,12 +1,17 @@
 <?php
 
+namespace Kalnoy\Nestedset\Tests\Models;
+
 use \Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Kalnoy\Nestedset\NodeTrait;
 
 class Category extends Model {
 
-    use \Illuminate\Database\Eloquent\SoftDeletes, \Kalnoy\Nestedset\NodeTrait;
+    use SoftDeletes;
+    use NodeTrait;
 
-    protected $fillable = array('name', 'parent_id');
+    protected $fillable = ['name', 'parent_id'];
 
     public $timestamps = false;
 

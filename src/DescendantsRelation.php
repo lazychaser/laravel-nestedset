@@ -17,7 +17,8 @@ class DescendantsRelation extends BaseRelation
     {
         if ( ! static::$constraints) return;
 
-        $this->query->whereDescendantOf($this->parent);
+        $this->query->whereDescendantOf($this->parent)
+        ->applyNestedSetScope();
     }
 
     /**

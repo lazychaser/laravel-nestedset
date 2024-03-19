@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
 use LogicException;
 
 trait NodeTrait
@@ -248,7 +249,7 @@ trait NodeTrait
      */
     public function descendants()
     {
-        return new DescendantsRelation($this->newScopedQuery(), $this);
+        return new DescendantsRelation($this->newQuery(), $this);
     }
 
     /**
@@ -337,7 +338,7 @@ trait NodeTrait
      */
     public function ancestors()
     {
-        return new AncestorsRelation($this->newScopedQuery(), $this);
+        return new AncestorsRelation($this->newQuery(), $this);
     }
 
     /**
@@ -724,7 +725,7 @@ trait NodeTrait
     /**
      * @param array $attributes
      *
-     * @return self
+     * @return QueryBuilder
      */
     public static function scoped(array $attributes)
     {
@@ -752,7 +753,7 @@ trait NodeTrait
      */
     public static function create(array $attributes = [], self $parent = null)
     {
-        $children = array_pull($attributes, 'children');
+        $children = Arr::pull($attributes, 'children');
 
         $instance = new static($attributes);
 
@@ -1004,7 +1005,8 @@ trait NodeTrait
     public function isDescendantOf(self $other)
     {
         return $this->getLft() > $other->getLft() &&
-            $this->getLft() < $other->getRgt();
+            $this->getLft() < $other->getRgt() &&
+            $this->isSameScope($other);
     }
 
     /**
@@ -1198,6 +1200,24 @@ trait NodeTrait
                 throw new LogicException('Nodes must be in the same scope');
             }
         }
+    }
+
+    /**
+     * @param self $node
+     */
+    protected function isSameScope(self $node): bool
+    {
+        if ( ! $scoped = $this->getScopeAttributes()) {
+            return true;
+        }
+
+        foreach ($scoped as $attr) {
+            if ($this->getAttribute($attr) != $node->getAttribute($attr)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
