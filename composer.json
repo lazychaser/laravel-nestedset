@@ -1,41 +1,40 @@
 {
     "name": "kalnoy/nestedset",
     "description": "Nested Set Model for Laravel 5.7 and up",
-    "keywords": ["laravel", "nested sets", "nsm", "database", "hierarchy"],
+    "keywords": [
+        "laravel",
+        "nested sets",
+        "nsm",
+        "database",
+        "hierarchy"
+    ],
     "license": "MIT",
-
     "authors": [
         {
             "name": "Alexander Kalnoy",
             "email": "lazychaser@gmail.com"
         }
     ],
-
     "require": {
         "php": "^7.2.5|^8.0",
-        "illuminate/support": "^7.0|^8.0|^9.0|^10.0",
-        "illuminate/database": "^7.0|^8.0|^9.0|^10.0",
-        "illuminate/events": "^7.0|^8.0|^9.0|^10.0"
+        "illuminate/support": "^7.0|^8.0|^9.0|^10.0|^11.0",
+        "illuminate/database": "^7.0|^8.0|^9.0|^10.0|^11.0",
+        "illuminate/events": "^7.0|^8.0|^9.0|^10.0|^11.0"
     },
-
     "autoload": {
         "psr-4": {
             "Kalnoy\\Nestedset\\": "src/"
         }
     },
-
     "require-dev": {
-        "phpunit/phpunit": "7.*|8.*|9.*"
+        "phpunit/phpunit": "7.*|8.*|9.*|^10.5"
     },
-
     "minimum-stability": "dev",
     "prefer-stable": true,
-
     "extra": {
         "branch-alias": {
             "dev-master": "v5.0.x-dev"
         },
-
         "laravel": {
             "providers": [
                 "Kalnoy\\Nestedset\\NestedSetServiceProvider"
