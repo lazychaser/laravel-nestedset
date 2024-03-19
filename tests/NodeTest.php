@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Kalnoy\Nestedset\NestedSet;
+use Kalnoy\Nestedset\Tests\Models\Category;
 
 class NodeTest extends PHPUnit\Framework\TestCase
 {
@@ -104,12 +105,7 @@ class NodeTest extends PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @param $name
-     *
-     * @return \Category
-     */
-    public function findCategory($name, $withTrashed = false)
+    public function findCategory(string $name, bool $withTrashed = false): Category
     {
         $q = new Category;
 
