@@ -4,8 +4,9 @@
 [![Latest Unstable Version](https://poser.pugx.org/kalnoy/nestedset/v/unstable.svg)](https://packagist.org/packages/kalnoy/nestedset)
 [![License](https://poser.pugx.org/kalnoy/nestedset/license.svg)](https://packagist.org/packages/kalnoy/nestedset)
 
-This is a Laravel 4-10 package for working with trees in relational databases.
+This is a Laravel 4-11 package for working with trees in relational databases.
 
+*   **Laravel 11.0** is supported since v7
 *   **Laravel 10.0** is supported since v6.0.2
 *   **Laravel 9.0** is supported since v6.0.1
 *   **Laravel 8.0** is supported since v6.0.0
