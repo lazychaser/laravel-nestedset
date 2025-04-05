@@ -36,12 +36,12 @@ class NestedSet
      *
      * @param \Illuminate\Database\Schema\Blueprint $table
      */
-    public static function columns(Blueprint $table, bool $uuid = false)
+    public static function columns(Blueprint $table, bool $withUuid = false)
     {
         $table->unsignedInteger(self::LFT)->default(0);
         $table->unsignedInteger(self::RGT)->default(0);
 
-        if ($uuid) {
+        if ($withUuid) {
             $table->uuid(self::PARENT_ID)->nullable()->index();
         } else {
             $table->unsignedInteger(self::PARENT_ID)->nullable();
