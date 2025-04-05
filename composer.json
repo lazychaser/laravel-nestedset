@@ -27,7 +27,8 @@
         }
     },
     "require-dev": {
-        "phpunit/phpunit": "7.*|8.*|9.*|^10.5"
+        "phpunit/phpunit": "7.*|8.*|9.*|^10.5",
+        "ramsey/uuid": "^4.7"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

@@ -2,7 +2,7 @@
 
 use Kalnoy\Nestedset\NestedSet;
 
-class ScopedNodeTest extends ScopedNodeTestBase
+class ScopedNodeUuidTest extends ScopedNodeTestBase
 {
     public function __construct($name = null)
     {
@@ -12,19 +12,19 @@ class ScopedNodeTest extends ScopedNodeTestBase
 
     protected function getTable(): string
     {
-        return 'menu_items';
+        return 'uuid_menu_items';
     }
 
     protected function getModelClass(): string
     {
-        return MenuItem::class;
+        return MenuItemUuid::class;
     }
 
     protected function createTable(\Illuminate\Database\Schema\Blueprint $table): void
     {
-        $table->increments('id');
+        $table->uuid('id')->primary();
         $table->unsignedInteger('menu_id');
         $table->string('title')->nullable();
-        NestedSet::columns($table);
+        NestedSet::columns($table, true);
     }
 }
