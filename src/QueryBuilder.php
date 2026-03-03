@@ -4,7 +4,6 @@ namespace Kalnoy\Nestedset;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder as Query;
 use Illuminate\Database\Query\Builder as BaseQueryBuilder;
@@ -12,10 +11,14 @@ use Illuminate\Support\Arr;
 use LogicException;
 use Illuminate\Database\Query\Expression;
 
+/**
+ * @template TModel of \Illuminate\Database\Eloquent\Model
+ * @extends \Illuminate\Database\Eloquent\Builder<TModel>
+ */
 class QueryBuilder extends Builder
 {
     /**
-     * @var NodeTrait|Model
+     * @var NodeTrait|T
      */
     protected $model;
 
@@ -143,7 +146,7 @@ class QueryBuilder extends Builder
     /**
      * @param $id
      *
-     * @return QueryBuilder
+     * @return $this
      */
     public function whereAncestorOrSelf($id)
     {
@@ -249,7 +252,7 @@ class QueryBuilder extends Builder
     /**
      * @param mixed $id
      *
-     * @return QueryBuilder
+     * @return $this
      */
     public function whereNotDescendantOf($id)
     {
@@ -259,7 +262,7 @@ class QueryBuilder extends Builder
     /**
      * @param mixed $id
      *
-     * @return QueryBuilder
+     * @return $this
      */
     public function orWhereDescendantOf($id)
     {
@@ -269,7 +272,7 @@ class QueryBuilder extends Builder
     /**
      * @param mixed $id
      *
-     * @return QueryBuilder
+     * @return $this
      */
     public function orWhereNotDescendantOf($id)
     {
@@ -857,7 +860,7 @@ class QueryBuilder extends Builder
      *
      * Nodes with invalid parent are saved as roots.
      *
-     * @param null|NodeTrait|Model $root
+     * @param null|NodeTrait|T $root
      *
      * @return int The number of changed nodes
      */
@@ -884,7 +887,7 @@ class QueryBuilder extends Builder
     }
 
     /**
-     * @param NodeTrait|Model $root
+     * @param NodeTrait|T $root
      *
      * @return int
      */
@@ -895,7 +898,7 @@ class QueryBuilder extends Builder
 
     /**
      * @param array $dictionary
-     * @param NodeTrait|Model|null $parent
+     * @param NodeTrait|T|null $parent
      *
      * @return int
      */
@@ -947,7 +950,7 @@ class QueryBuilder extends Builder
             return $cut;
         }
 
-        /** @var Model|NodeTrait $model */
+        /** @var T|NodeTrait $model */
         foreach ($dictionary[$parentId] as $model) {
             $lft = $cut;
 
@@ -995,7 +998,7 @@ class QueryBuilder extends Builder
 
         $this->buildRebuildDictionary($dictionary, $data, $existing, $parentId);
 
-        /** @var Model|NodeTrait $model */
+        /** @var T|NodeTrait $model */
         if ( ! empty($existing)) {
             if ($delete && ! $this->model->usesSoftDelete()) {
                 $this->model
@@ -1046,7 +1049,7 @@ class QueryBuilder extends Builder
         $keyName = $this->model->getKeyName();
 
         foreach ($data as $itemData) {
-            /** @var NodeTrait|Model $model */
+            /** @var NodeTrait|T $model */
 
             if ( ! isset($itemData[$keyName])) {
                 $model = $this->model->newInstance($this->model->getAttributes());
