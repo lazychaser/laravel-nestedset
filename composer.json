@@ -17,9 +17,9 @@
     ],
     "require": {
         "php": "^8.0",
-        "illuminate/support": "^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
-        "illuminate/database": "^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
-        "illuminate/events": "^7.0|^8.0|^9.0|^10.0|^11.0|^12.0"
+        "illuminate/support": ">=7.0",
+        "illuminate/database": ">=7.0",
+        "illuminate/events": ">=7.0"
     },
     "autoload": {
         "psr-4": {
@@ -27,7 +27,7 @@
         }
     },
     "require-dev": {
-        "phpunit/phpunit": "7.*|8.*|9.*|^10.5"
+        "phpunit/phpunit": ">=7.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
