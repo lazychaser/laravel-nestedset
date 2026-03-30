@@ -202,4 +202,16 @@ abstract class BaseRelation extends Relation
         // resolvers which need this function.
         return NestedSet::PARENT_ID;
     }
+
+     /**
+     * Get the Qualify plain foreign key.
+     *
+     * @return mixed
+     */
+    public function getQualifiedForeignKeyName()
+    {
+        // Return a stub value for relation
+        // resolvers which need this function.
+        return NestedSet::PARENT_ID;
+    }
 }
