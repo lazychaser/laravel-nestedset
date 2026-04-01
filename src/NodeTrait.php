@@ -110,9 +110,10 @@ trait NodeTrait
         static $softDelete;
 
         if (is_null($softDelete)) {
-            $instance = new static;
-
-            return $softDelete = method_exists($instance, 'bootSoftDeletes');
+            $softDelete = in_array(
+                \Illuminate\Database\Eloquent\SoftDeletes::class,
+                class_uses_recursive(static::class)
+            );
         }
 
         return $softDelete;
