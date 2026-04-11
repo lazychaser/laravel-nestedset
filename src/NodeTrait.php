@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use LogicException;
 
@@ -111,7 +112,7 @@ trait NodeTrait
 
         if (is_null($softDelete)) {
             $softDelete = in_array(
-                \Illuminate\Database\Eloquent\SoftDeletes::class,
+                SoftDeletes::class,
                 class_uses_recursive(static::class)
             );
         }
