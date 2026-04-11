@@ -43,32 +43,28 @@ trait NodeTrait
      */
     public static function bootNodeTrait()
     {
-        static::whenBooted(function () {
-
-            static::saving(function ($model) {
-                return $model->callPendingAction();
-            });
-
-            static::deleting(function ($model) {
-                // We will need fresh data to delete node safely
-                $model->refreshNode();
-            });
-
-            static::deleted(function ($model) {
-                $model->deleteDescendants();
-            });
-
-            if (static::usesSoftDelete()) {
-                static::restoring(function ($model) {
-                    static::$deletedAt = $model->{$model->getDeletedAtColumn()};
-                });
-
-                static::restored(function ($model) {
-                    $model->restoreDescendants(static::$deletedAt);
-                });
-            }
-            
+        static::saving(function ($model) {
+            return $model->callPendingAction();
         });
+
+        static::deleting(function ($model) {
+            // We will need fresh data to delete node safely
+            $model->refreshNode();
+        });
+
+        static::deleted(function ($model) {
+            $model->deleteDescendants();
+        });
+
+        if (static::usesSoftDelete()) {
+            static::restoring(function ($model) {
+                static::$deletedAt = $model->{$model->getDeletedAtColumn()};
+            });
+
+            static::restored(function ($model) {
+                $model->restoreDescendants(static::$deletedAt);
+            });
+        }
     }
 
     /**
