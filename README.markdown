@@ -491,21 +491,30 @@ $tree = Category::descendantsOf($rootId)->toTree($rootId);
 
 ### Deleting nodes
 
-To delete a node:
+#### To delete a node:
 
 ```php
 $node->delete();
 ```
 
-**IMPORTANT!** Any descendant that node has will also be deleted!
+> [!IMPORTANT]
+> Any descendant that node will also be deleted!
 
-**IMPORTANT!** Nodes are required to be deleted as models, **don't** try do delete them using a query like so:
+#### To delete multiple nodes:
 
 ```php
-Category::where('id', '=', $id)->delete();
+$nodes = Model::query()->get();
+foreach ($nodes as $node) {
+    $node->fresh()?->delete(); // Reload the `_lft` & `_rgt` columns using `fresh` method
+}
 ```
-
-This will break the tree!
+> [!IMPORTANT]
+> Node are required to be deleted as models, **don't** try do delete them using a query like so:
+> ```php
+> Category::where('id', '=', $id)->delete();
+> ```
+>
+>This will break the tree!
 
 `SoftDeletes` trait is supported, also on model level.
 
