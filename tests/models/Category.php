@@ -14,4 +14,9 @@ class Category extends Model {
     {
         static::$actionsPerformed = 0;
     }
+
+    static public function removeScope($name)
+    {
+        unset(static::$globalScopes[static::class][$name]);
+    }
 }
